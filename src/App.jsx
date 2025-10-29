@@ -8,7 +8,23 @@ import Opportunities from './pages/Opportunities'
 import Journey from './pages/Journey'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
+import RoleSelection from './pages/RoleSelection'
 import ProtectedRoute from './components/ProtectedRoute'
+
+// Investor Pages
+import BrowseProjects from './pages/BrowseProjects'
+import Portfolio from './pages/Portfolio'
+import SavedProjects from './pages/SavedProjects'
+import Investments from './pages/Investments'
+
+// Mentor Pages
+import Mentees from './pages/Mentees'
+import GroupSessions from './pages/GroupSessions'
+import Schedule from './pages/Schedule'
+
+// Shared Pages
+import Analytics from './pages/Analytics'
+import Settings from './pages/Settings'
 
 function App() {
   return (
@@ -42,6 +58,58 @@ function App() {
             <Route path="/journey" element={
               <ProtectedRoute>
                 <Journey />
+              </ProtectedRoute>
+            } />
+            <Route path="/role-selection" element={<RoleSelection />} />
+            
+            {/* Investor Routes */}
+            <Route path="/browse-projects" element={
+              <ProtectedRoute>
+                <BrowseProjects />
+              </ProtectedRoute>
+            } />
+            <Route path="/portfolio" element={
+              <ProtectedRoute>
+                <Portfolio />
+              </ProtectedRoute>
+            } />
+            <Route path="/saved" element={
+              <ProtectedRoute>
+                <SavedProjects />
+              </ProtectedRoute>
+            } />
+            <Route path="/investments" element={
+              <ProtectedRoute>
+                <Investments />
+              </ProtectedRoute>
+            } />
+            
+            {/* Mentor Routes */}
+            <Route path="/mentees" element={
+              <ProtectedRoute>
+                <Mentees />
+              </ProtectedRoute>
+            } />
+            <Route path="/group-sessions" element={
+              <ProtectedRoute>
+                <GroupSessions />
+              </ProtectedRoute>
+            } />
+            <Route path="/schedule" element={
+              <ProtectedRoute>
+                <Schedule />
+              </ProtectedRoute>
+            } />
+            
+            {/* Shared Routes */}
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <Analytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             } />
           </Routes>
