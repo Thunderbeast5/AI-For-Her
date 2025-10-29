@@ -1,5 +1,9 @@
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../firebase/config'
+import { useAuth } from '../context/AuthContext'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
 import { 
@@ -13,6 +17,9 @@ import {
 
 const Dashboard = () => {
   const navigate = useNavigate()
+  const { currentUser } = useAuth()
+  const [userData, setUserData] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   const quickActions = [
     {
@@ -44,6 +51,48 @@ const Dashboard = () => {
     { title: "Applied for SIDBI Grant", time: "3 days ago", icon: TrophyIcon },
   ]
 
+  // Fetch user data from Firestore
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (currentUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+          if (userDoc.exists()) {
+            setUserData(userDoc.data())
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error)
+        } finally {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchUserData()
+  }, [currentUser])
+
+  // Get display name
+  const getDisplayName = () => {
+    if (userData?.firstName) {
+      return userData.firstName
+    }
+    if (currentUser?.displayName) {
+      return currentUser.displayName.split(' ')[0]
+    }
+    return currentUser?.email?.split('@')[0] || 'User'
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
@@ -59,7 +108,7 @@ const Dashboard = () => {
             className="mb-8"
           >
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome, Priya 👋
+              Welcome, {getDisplayName()} 👋
             </h1>
             <p className="text-gray-600">Ready to take your business to the next level?</p>
           </motion.div>
