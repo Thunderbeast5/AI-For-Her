@@ -11,7 +11,7 @@ const Chat = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "👋 Hello! I'm your AI Startup Advisor for Women Entrepreneurs! I can help you discover personalized startup ideas based on your background, skills, and interests. I provide guidance on business planning, market analysis, funding options, and work-life balance considerations. What type of business opportunity would you like to explore today?",
+      text: "Hello! I'm your AI Startup Advisor for Women Entrepreneurs! I can help you discover personalized startup ideas based on your background, skills, and interests. I provide guidance on business planning, market analysis, funding options, and work-life balance considerations. What type of business opportunity would you like to explore today?",
       sender: 'ai',
       timestamp: new Date()
     }
