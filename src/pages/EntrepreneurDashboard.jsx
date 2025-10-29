@@ -26,21 +26,21 @@ const EntrepreneurDashboard = () => {
       title: "Find Mentor",
       description: "Get matched with experienced entrepreneurs",
       icon: AcademicCapIcon,
-      color: "from-primary to-primary/70",
+      color: "from-pink-200 to-pink-300",
       action: () => navigate('/mentors')
     },
     {
       title: "Ask AI Coach",
       description: "Get instant business advice and insights",
       icon: ChatBubbleLeftRightIcon,
-      color: "from-accent to-accent/70",
+      color: "from-pink-300 to-pink-400",
       action: () => navigate('/chat')
     },
     {
       title: "View Opportunities",
       description: "Discover funding and growth opportunities",
       icon: EyeIcon,
-      color: "from-purple-200 to-purple-300",
+      color: "from-pink-100 to-pink-200",
       action: () => navigate('/opportunities')
     }
   ]
@@ -86,7 +86,7 @@ const EntrepreneurDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading your dashboard...</p>
         </div>
       </div>

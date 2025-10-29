@@ -67,7 +67,7 @@ const MentorDashboard = () => {
       title: "Connected Mentees",
       description: "View and manage your mentees",
       icon: UserGroupIcon,
-      color: "from-blue-200 to-blue-300",
+      color: "from-pink-200 to-pink-300",
       count: connectedMentees.length,
       action: () => setActiveTab('mentees')
     },
@@ -75,7 +75,7 @@ const MentorDashboard = () => {
       title: "Chat Sessions",
       description: "Individual mentoring conversations",
       icon: ChatBubbleLeftRightIcon,
-      color: "from-green-200 to-green-300",
+      color: "from-pink-300 to-pink-400",
       count: 8,
       action: () => setActiveTab('chats')
     },
@@ -83,7 +83,7 @@ const MentorDashboard = () => {
       title: "Group Mentoring",
       description: "Host group sessions and workshops",
       icon: VideoCameraIcon,
-      color: "from-purple-200 to-purple-300",
+      color: "from-pink-100 to-pink-200",
       count: 3,
       action: () => setActiveTab('group')
     }
@@ -93,7 +93,7 @@ const MentorDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
@@ -187,7 +187,7 @@ const MentorDashboard = () => {
               {connectedMentees.map((mentee) => (
                 <div key={mentee.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+                    <div className="w-12 h-12 bg-gradient-to-r from-pink-300 to-pink-400 rounded-full flex items-center justify-center">
                       <span className="text-white font-semibold">{mentee.name.charAt(0)}</span>
                     </div>
                     <div>
@@ -227,7 +227,7 @@ const MentorDashboard = () => {
               <p className="text-gray-600 mb-4">Start individual mentoring sessions with your mentees</p>
               <button 
                 onClick={() => navigate('/chat')}
-                className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                className="px-6 py-2 bg-pink-400 text-white rounded-lg hover:bg-pink-500 transition-colors"
               >
                 Go to Chat
               </button>

@@ -64,15 +64,15 @@ const RoleSelection = () => {
               onClick={() => handleRoleSelect(role.id)}
               className="cursor-pointer group"
             >
-              <div className="relative bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-purple-500 transition-all duration-300 hover:shadow-lg h-full">
+              <div className="relative bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-pink-400 transition-all duration-300 hover:shadow-lg h-full">
                 <div className="flex flex-col items-center text-center space-y-4">
                   {/* Icon Container */}
-                  <div className="w-16 h-16 rounded-xl border-2 border-gray-200 group-hover:border-purple-500 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                    <role.icon className="w-8 h-8 text-gray-700 group-hover:text-purple-600" />
+                  <div className="w-16 h-16 rounded-xl border-2 border-gray-200 group-hover:border-pink-400 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <role.icon className="w-8 h-8 text-gray-700 group-hover:text-pink-500" />
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors">
+                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-pink-500 transition-colors">
                     {role.title}
                   </h3>
 
@@ -96,7 +96,7 @@ const RoleSelection = () => {
             Already have an account?{' '}
             <button
               onClick={() => navigate('/login')}
-              className="text-purple-600 hover:text-purple-700 font-semibold transition-colors underline"
+              className="text-pink-500 hover:text-pink-600 font-semibold transition-colors underline"
             >
               Sign in
             </button>

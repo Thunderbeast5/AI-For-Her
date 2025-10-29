@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: "#EDEBFF",
-        accent: "#FDE2E4",
+        primary: "#FDE2E4",
+        accent: "#FFC0CB",
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

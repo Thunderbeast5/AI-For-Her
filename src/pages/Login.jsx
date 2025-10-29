@@ -79,7 +79,7 @@ const Login = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all"
                 placeholder="you@example.com"
               />
             </div>
@@ -96,7 +96,7 @@ const Login = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all"
                 placeholder="Enter your password"
               />
             </div>
@@ -105,7 +105,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 px-4 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className="w-full py-3 px-4 bg-pink-400 text-white font-semibold rounded-lg hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
@@ -117,7 +117,7 @@ const Login = () => {
               Don't have an account?{' '}
               <button
                 onClick={() => navigate('/signup')}
-                className="text-purple-600 hover:text-purple-700 font-semibold transition-colors"
+                className="text-pink-500 hover:text-pink-600 font-semibold transition-colors"
               >
                 Sign up
               </button>
