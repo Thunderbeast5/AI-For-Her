@@ -35,14 +35,25 @@ const LandingPage = () => {
           >
             AI for Her
           </motion.h1>
-          <motion.button
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            onClick={() => navigate('/dashboard')}
-            className="px-4 py-2 bg-primary text-gray-700 rounded-lg hover:bg-primary/80 transition-colors"
-          >
-            Sign In
-          </motion.button>
+          <div className="flex space-x-4">
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              onClick={() => navigate('/signup')}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Sign Up
+            </motion.button>
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              onClick={() => navigate('/login')}
+              className="px-4 py-2 bg-primary text-gray-700 rounded-lg hover:bg-primary/80 transition-colors"
+            >
+              Sign In
+            </motion.button>
+          </div>
         </div>
       </header>
 
@@ -69,7 +80,7 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/signup')}
             className="px-8 py-4 bg-gradient-to-r from-primary to-accent text-gray-800 rounded-2xl text-lg font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200"
           >
             Get Started
