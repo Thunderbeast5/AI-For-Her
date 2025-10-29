@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import Sidebar from '../components/Sidebar'
-import Navbar from '../components/Navbar'
+import DashboardLayout from '../components/DashboardLayout'
+import EntrepreneurSidebar from '../components/EntrepreneurSidebar'
 import { StarIcon, MapPinIcon } from '@heroicons/react/24/solid'
 import { UserIcon } from '@heroicons/react/24/outline'
 
@@ -65,20 +65,14 @@ const Mentors = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col">
-        <Navbar />
-        
-        <main className="flex-1 p-6 overflow-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-4xl mx-auto"
-          >
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Your Perfect Mentor</h1>
-            <p className="text-gray-600 mb-8">Connect with experienced entrepreneurs who can guide your journey</p>
+    <DashboardLayout sidebar={<EntrepreneurSidebar />}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-4xl mx-auto"
+      >
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Your Perfect Mentor</h1>
+        <p className="text-gray-600 mb-8">Connect with experienced entrepreneurs who can guide your journey</p>
 
             {!showResults ? (
               <motion.div
@@ -95,7 +89,7 @@ const Mentors = () => {
                     <select
                       value={formData.sector}
                       onChange={(e) => handleInputChange('sector', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400"
                       required
                     >
                       <option value="">Select a sector</option>
@@ -112,7 +106,7 @@ const Mentors = () => {
                     <select
                       value={formData.stage}
                       onChange={(e) => handleInputChange('stage', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400"
                       required
                     >
                       <option value="">Select a stage</option>
@@ -130,14 +124,14 @@ const Mentors = () => {
                       value={formData.goals}
                       onChange={(e) => handleInputChange('goals', e.target.value)}
                       placeholder="e.g., Scale my team, raise funding, improve product-market fit..."
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary h-24 resize-none"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 h-24 resize-none"
                       required
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-primary to-accent text-gray-800 py-4 rounded-xl font-semibold hover:shadow-lg transition-all duration-200"
+                    className="w-full bg-pink-400 text-white py-4 rounded-xl font-semibold hover:bg-pink-500 transition-all duration-200"
                   >
                     Find My Match
                   </button>
@@ -153,7 +147,7 @@ const Mentors = () => {
                   <h2 className="text-xl font-semibold text-gray-900">Your Mentor Matches</h2>
                   <button
                     onClick={() => setShowResults(false)}
-                    className="px-4 py-2 text-primary border border-primary rounded-lg hover:bg-primary hover:text-gray-800 transition-colors"
+                    className="px-4 py-2 text-pink-500 border border-pink-400 rounded-lg hover:bg-pink-50 transition-colors"
                   >
                     New Search
                   </button>
@@ -168,7 +162,9 @@ const Mentors = () => {
                     className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow"
                   >
                     <div className="flex items-start space-x-4">
-                      <div className="text-4xl">{mentor.image}</div>
+                      <div className="w-16 h-16 bg-gradient-to-r from-pink-300 to-pink-400 rounded-full flex items-center justify-center">
+                        <UserIcon className="w-8 h-8 text-white" />
+                      </div>
                       
                       <div className="flex-1">
                         <div className="flex justify-between items-start mb-2">
@@ -204,14 +200,14 @@ const Mentors = () => {
                           {mentor.expertise.map((skill, skillIndex) => (
                             <span
                               key={skillIndex}
-                              className="px-3 py-1 bg-primary/20 text-gray-700 rounded-full text-sm"
+                              className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm"
                             >
                               {skill}
                             </span>
                           ))}
                         </div>
 
-                        <button className="bg-gradient-to-r from-primary to-accent text-gray-800 px-6 py-2 rounded-lg font-medium hover:shadow-md transition-all duration-200">
+                        <button className="bg-pink-400 text-white px-6 py-2 rounded-lg font-medium hover:bg-pink-500 transition-all duration-200">
                           Connect
                         </button>
                       </div>
@@ -220,10 +216,8 @@ const Mentors = () => {
                 ))}
               </motion.div>
             )}
-          </motion.div>
-        </main>
-      </div>
-    </div>
+      </motion.div>
+    </DashboardLayout>
   )
 }
 
