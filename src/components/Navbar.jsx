@@ -1,25 +1,51 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ChevronDownIcon, UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
+import GoogleTranslate from './GoogleTranslate'
 
-const Navbar = ({ language, onLanguageChange }) => {
+const Navbar = () => {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { currentUser, logout } = useAuth()
   const [showDropdown, setShowDropdown] = useState(false)
+  const [showLangDropdown, setShowLangDropdown] = useState(false)
   const [userName, setUserName] = useState('')
   const dropdownRef = useRef(null)
+  const langDropdownRef = useRef(null)
 
   const languages = [
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'hi', name: 'हिंदी', flag: '🇮🇳' },
-    { code: 'mr', name: 'मराठी', flag: '🇮🇳' },
-    { code: 'ta', name: 'தமிழ்', flag: '🇮🇳' },
-    { code: 'te', name: 'తెలుగు', flag: '🇮🇳' },
-    { code: 'bn', name: 'বাংলা', flag: '🇮🇳' },
-    { code: 'gu', name: 'ગુજરાતી', flag: '🇮🇳' },
-    { code: 'pa', name: 'ਪੰਜਾਬੀ', flag: '🇮🇳' }
+    { code: 'en', name: 'English', nativeName: 'English' },
+    { code: 'hi', name: 'Hindi', nativeName: 'हिंदी' },
+    { code: 'mr', name: 'Marathi', nativeName: 'मराठी' },
+    { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்' },
+    { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' },
+    { code: 'bn', name: 'Bengali', nativeName: 'বাংলা' },
+    { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી' }
   ]
+
+  const changeLanguage = (lang) => {
+    setShowLangDropdown(false)
+    
+    // Wait for Google Translate to load, then trigger it
+    const attemptTranslate = (attempts = 0) => {
+      const googleTranslateSelect = document.querySelector('.goog-te-combo')
+      
+      if (googleTranslateSelect) {
+        googleTranslateSelect.value = lang.code
+        googleTranslateSelect.dispatchEvent(new Event('change'))
+        console.log('Language changed to:', lang.nativeName)
+      } else if (attempts < 10) {
+        // Retry up to 10 times with 200ms delay
+        setTimeout(() => attemptTranslate(attempts + 1), 200)
+      } else {
+        console.error('Google Translate widget not found')
+      }
+    }
+    
+    attemptTranslate()
+  }
 
   // Get user name from Firebase Auth or display name
   useEffect(() => {
@@ -33,6 +59,9 @@ const Navbar = ({ language, onLanguageChange }) => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false)
+      }
+      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target)) {
+        setShowLangDropdown(false)
       }
     }
 
@@ -57,21 +86,8 @@ const Navbar = ({ language, onLanguageChange }) => {
         </div>
         
         <div className="flex items-center space-x-4">
-          {/* Language Switcher */}
-          <div className="relative">
-            <select 
-              value={language}
-              onChange={(e) => onLanguageChange(e.target.value)}
-              className="appearance-none bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {languages.map(lang => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.flag} {lang.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDownIcon className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
+          {/* Google Translate Widget - Now Visible */}
+          <GoogleTranslate />
 
           {/* User Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>
@@ -96,7 +112,7 @@ const Navbar = ({ language, onLanguageChange }) => {
                   className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                  <span>Logout</span>
+                  <span>{t('auth.logout')}</span>
                 </button>
               </div>
             )}

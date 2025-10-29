@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useAuth } from '../context/AuthContext'
@@ -16,6 +17,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 const EntrepreneurDashboard = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { currentUser } = useAuth()
   const [userData, setUserData] = useState(null)
@@ -23,22 +25,22 @@ const EntrepreneurDashboard = () => {
 
   const quickActions = [
     {
-      title: "Find Mentor",
-      description: "Get matched with experienced entrepreneurs",
+      title: t('actions.findMentor'),
+      description: t('actions.findMentorDesc'),
       icon: AcademicCapIcon,
       color: "from-pink-200 to-pink-300",
       action: () => navigate('/mentors')
     },
     {
-      title: "Ask AI Coach",
-      description: "Get instant business advice and insights",
+      title: t('actions.askAI'),
+      description: t('actions.askAIDesc'),
       icon: ChatBubbleLeftRightIcon,
       color: "from-pink-300 to-pink-400",
       action: () => navigate('/chat')
     },
     {
-      title: "View Opportunities",
-      description: "Discover funding and growth opportunities",
+      title: t('actions.viewOpportunities'),
+      description: t('actions.viewOpportunitiesDesc'),
       icon: EyeIcon,
       color: "from-pink-100 to-pink-200",
       action: () => navigate('/opportunities')
@@ -87,7 +89,7 @@ const EntrepreneurDashboard = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     )
@@ -102,9 +104,9 @@ const EntrepreneurDashboard = () => {
         className="mb-8"
       >
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome, {getDisplayName()} 
+          {t('dashboard.welcome')}, {getDisplayName()} 
         </h1>
-        <p className="text-gray-600">Ready to take your business to the next level?</p>
+        <p className="text-gray-600">{t('dashboard.subtitle')}</p>
       </motion.div>
 
       {/* Your AI Mentor Hub */}
@@ -114,7 +116,7 @@ const EntrepreneurDashboard = () => {
         transition={{ delay: 0.1 }}
         className="mb-8"
       >
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Your AI Mentor Hub</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('dashboard.mentorHub')}</h2>
         <div className="grid md:grid-cols-3 gap-6">
           {quickActions.map((action, index) => (
             <motion.div
@@ -144,19 +146,19 @@ const EntrepreneurDashboard = () => {
       >
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="text-2xl font-bold text-gray-900">3</div>
-          <div className="text-sm text-gray-600">Mentor Connections</div>
+          <div className="text-sm text-gray-600">{t('dashboard.stats.mentorConnections')}</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="text-2xl font-bold text-gray-900">12</div>
-          <div className="text-sm text-gray-600">AI Conversations</div>
+          <div className="text-sm text-gray-600">{t('dashboard.stats.aiConversations')}</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="text-2xl font-bold text-gray-900">5</div>
-          <div className="text-sm text-gray-600">Opportunities Applied</div>
+          <div className="text-sm text-gray-600">{t('dashboard.stats.opportunitiesApplied')}</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="text-2xl font-bold text-gray-900">85%</div>
-          <div className="text-sm text-gray-600">Journey Progress</div>
+          <div className="text-sm text-gray-600">{t('dashboard.stats.journeyProgress')}</div>
         </div>
       </motion.div>
 
@@ -167,7 +169,7 @@ const EntrepreneurDashboard = () => {
         transition={{ delay: 0.5 }}
         className="bg-white rounded-2xl p-6 shadow-sm"
       >
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.recentActivity')}</h3>
         <div className="space-y-4">
           {recentActivity.map((activity, index) => (
             <div key={index} className="flex items-center space-x-3">

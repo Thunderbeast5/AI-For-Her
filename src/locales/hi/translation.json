@@ -1,0 +1,82 @@
+{
+  "nav": {
+    "language": "भाषा"
+  },
+  "dashboard": {
+    "welcome": "स्वागत है",
+    "subtitle": "अपने व्यवसाय को अगले स्तर पर ले जाने के लिए तैयार हैं?",
+    "mentorHub": "आपका AI मेंटर हब",
+    "recentActivity": "हाल की गतिविधि",
+    "stats": {
+      "mentorConnections": "मेंटर कनेक्शन",
+      "aiConversations": "AI बातचीत",
+      "opportunitiesApplied": "अवसरों के लिए आवेदन",
+      "journeyProgress": "यात्रा प्रगति"
+    }
+  },
+  "actions": {
+    "findMentor": "मेंटर खोजें",
+    "findMentorDesc": "अनुभवी उद्यमियों के साथ जुड़ें",
+    "askAI": "AI कोच से पूछें",
+    "askAIDesc": "तुरंत व्यावसायिक सलाह और अंतर्दृष्टि प्राप्त करें",
+    "viewOpportunities": "अवसर देखें",
+    "viewOpportunitiesDesc": "फंडिंग और विकास के अवसर खोजें"
+  },
+  "mentor": {
+    "welcome": "स्वागत है",
+    "subtitle": "महिला उद्यमियों की अगली पीढ़ी को सशक्त बनाना",
+    "mentoringHub": "मेंटरिंग हब",
+    "connectedMentees": "जुड़े हुए मेंटी",
+    "connectedMenteesDesc": "अपने मेंटी को देखें और प्रबंधित करें",
+    "chatSessions": "चैट सत्र",
+    "chatSessionsDesc": "व्यक्तिगत मेंटरिंग बातचीत",
+    "groupMentoring": "समूह मेंटरिंग",
+    "groupMentoringDesc": "समूह सत्र और कार्यशालाएं आयोजित करें",
+    "stats": {
+      "activeMentees": "सक्रिय मेंटी",
+      "sessionsThisMonth": "इस महीने के सत्र",
+      "averageRating": "औसत रेटिंग",
+      "totalHours": "कुल घंटे मेंटर किए"
+    }
+  },
+  "investor": {
+    "welcome": "स्वागत है",
+    "subtitle": "नवीन महिला-नेतृत्व वाले स्टार्टअप में निवेश करें",
+    "browseProjects": "निवेश के अवसर ब्राउज़ करें",
+    "searchPlaceholder": "परियोजनाओं, संस्थापकों या विचारों की खोज करें...",
+    "projectsFound": "परियोजनाएं मिलीं",
+    "investNow": "अभी निवेश करें",
+    "viewDetails": "विवरण देखें",
+    "stats": {
+      "activeInvestments": "सक्रिय निवेश",
+      "totalInvested": "कुल निवेश",
+      "projectsReviewed": "समीक्षा की गई परियोजनाएं",
+      "portfolioCompanies": "पोर्टफोलियो कंपनियां"
+    }
+  },
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "edit": "संपादित करें",
+    "delete": "हटाएं",
+    "search": "खोजें",
+    "filter": "फ़िल्टर",
+    "all": "सभी",
+    "back": "पीछे",
+    "next": "आगे",
+    "submit": "जमा करें"
+  },
+  "auth": {
+    "login": "साइन इन करें",
+    "signup": "साइन अप करें",
+    "logout": "लॉगआउट",
+    "email": "ईमेल पता",
+    "password": "पासवर्ड",
+    "confirmPassword": "पासवर्ड की पुष्टि करें",
+    "firstName": "पहला नाम",
+    "lastName": "अंतिम नाम",
+    "alreadyHaveAccount": "पहले से खाता है?",
+    "dontHaveAccount": "खाता नहीं है?"
+  }
+}
