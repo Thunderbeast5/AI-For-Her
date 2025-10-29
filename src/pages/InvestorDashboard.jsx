@@ -5,6 +5,7 @@ import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useAuth } from '../context/AuthContext'
 import DashboardLayout from '../components/DashboardLayout'
+import InvestorSidebar from '../components/InvestorSidebar'
 import { 
   MagnifyingGlassIcon,
   LightBulbIcon,
@@ -48,8 +49,7 @@ const InvestorDashboard = () => {
               raised: '₹8,00,000',
               stage: 'Seed',
               location: 'Mumbai',
-              rating: 4.5,
-              image: '👗'
+              rating: 4.5
             },
             {
               id: 2,
@@ -61,8 +61,7 @@ const InvestorDashboard = () => {
               raised: '₹15,00,000',
               stage: 'Series A',
               location: 'Bangalore',
-              rating: 4.8,
-              image: '🏥'
+              rating: 4.8
             },
             {
               id: 3,
@@ -74,8 +73,7 @@ const InvestorDashboard = () => {
               raised: '₹12,00,000',
               stage: 'Seed',
               location: 'Delhi',
-              rating: 4.6,
-              image: '📚'
+              rating: 4.6
             },
             {
               id: 4,
@@ -87,8 +85,7 @@ const InvestorDashboard = () => {
               raised: '₹5,00,000',
               stage: 'Pre-Seed',
               location: 'Pune',
-              rating: 4.3,
-              image: '🌾'
+              rating: 4.3
             }
           ])
         } catch (error) {
@@ -133,7 +130,7 @@ const InvestorDashboard = () => {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout sidebar={<InvestorSidebar />}>
       {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -250,12 +247,9 @@ const InvestorDashboard = () => {
               className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="text-4xl">{project.image}</div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{project.name}</h4>
-                    <p className="text-sm text-gray-600">by {project.founder}</p>
-                  </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 text-lg">{project.name}</h4>
+                  <p className="text-sm text-gray-600">Founded by {project.founder}</p>
                 </div>
                 <div className="flex items-center space-x-1">
                   <StarIcon className="w-4 h-4 text-yellow-500 fill-yellow-500" />

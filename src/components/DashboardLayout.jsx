@@ -1,10 +1,9 @@
-import Sidebar from './Sidebar'
 import Navbar from './Navbar'
 
-const DashboardLayout = ({ children }) => {
+const DashboardLayout = ({ children, sidebar }) => {
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
+      {sidebar}
       
       <div className="flex-1 flex flex-col">
         <Navbar />

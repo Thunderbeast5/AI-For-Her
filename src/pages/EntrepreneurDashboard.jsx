@@ -5,6 +5,7 @@ import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useAuth } from '../context/AuthContext'
 import DashboardLayout from '../components/DashboardLayout'
+import EntrepreneurSidebar from '../components/EntrepreneurSidebar'
 import { 
   AcademicCapIcon, 
   ChatBubbleLeftRightIcon, 
@@ -93,7 +94,7 @@ const EntrepreneurDashboard = () => {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout sidebar={<EntrepreneurSidebar />}>
       {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

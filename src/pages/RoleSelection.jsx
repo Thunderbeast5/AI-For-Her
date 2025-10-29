@@ -38,27 +38,23 @@ const RoleSelection = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center px-4 py-12">
-      <div className="max-w-6xl w-full">
+    <div className="min-h-screen bg-gradient-to-br from-white to-primary/10 flex items-center justify-center px-4 py-12">
+      <div className="max-w-5xl w-full">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-            What brings you to
-            <br />
-            <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              AI For Her?
-            </span>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            AI For Her
           </h1>
-          <p className="text-gray-300 text-lg md:text-xl">
+          <p className="text-gray-600 text-lg">
             Choose your role to get started with the registration process
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 max-w-3xl mx-auto">
           {roles.map((role, index) => (
             <motion.div
               key={role.id}
@@ -68,28 +64,23 @@ const RoleSelection = () => {
               onClick={() => handleRoleSelect(role.id)}
               className="cursor-pointer group"
             >
-              <div className="relative bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 hover:border-purple-500 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 h-full">
-                <div className="flex flex-col items-center text-center space-y-6">
+              <div className="relative bg-white border-2 border-gray-200 rounded-2xl p-8 hover:border-purple-500 transition-all duration-300 hover:shadow-lg h-full">
+                <div className="flex flex-col items-center text-center space-y-4">
                   {/* Icon Container */}
-                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${role.color} p-0.5 group-hover:scale-110 transition-transform duration-300`}>
-                    <div className="w-full h-full bg-gray-900 rounded-2xl flex items-center justify-center">
-                      <role.icon className="w-10 h-10 text-white" />
-                    </div>
+                  <div className="w-16 h-16 rounded-xl border-2 border-gray-200 group-hover:border-purple-500 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <role.icon className="w-8 h-8 text-gray-700 group-hover:text-purple-600" />
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-2xl font-bold text-white group-hover:text-purple-400 transition-colors">
+                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors">
                     {role.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="text-gray-400 group-hover:text-gray-300 transition-colors">
+                  <p className="text-gray-600 text-sm">
                     {role.description}
                   </p>
                 </div>
-
-                {/* Hover Effect Overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${role.color} opacity-0 group-hover:opacity-10 rounded-2xl transition-opacity duration-300`} />
               </div>
             </motion.div>
           ))}
@@ -101,11 +92,11 @@ const RoleSelection = () => {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center"
         >
-          <p className="text-gray-400">
+          <p className="text-gray-600">
             Already have an account?{' '}
             <button
               onClick={() => navigate('/login')}
-              className="text-purple-400 hover:text-purple-300 font-semibold transition-colors"
+              className="text-purple-600 hover:text-purple-700 font-semibold transition-colors underline"
             >
               Sign in
             </button>

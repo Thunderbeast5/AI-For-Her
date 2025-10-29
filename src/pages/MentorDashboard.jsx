@@ -5,6 +5,7 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { db } from '../firebase/config'
 import { useAuth } from '../context/AuthContext'
 import DashboardLayout from '../components/DashboardLayout'
+import MentorSidebar from '../components/MentorSidebar'
 import { 
   UserGroupIcon,
   ChatBubbleLeftRightIcon,
@@ -100,7 +101,7 @@ const MentorDashboard = () => {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout sidebar={<MentorSidebar />}>
       {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
