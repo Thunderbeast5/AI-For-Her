@@ -7,7 +7,7 @@ import MentorSidebar from '../components/MentorSidebar';
 import InvestorSidebar from '../components/InvestorSidebar';
 import { 
   ChartBarIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   UsersIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
@@ -51,7 +51,7 @@ const Analytics = () => {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <TrendingUpIcon className="w-8 h-8 text-green-500" />
+            <ArrowTrendingUpIcon className="w-8 h-8 text-green-500" />
             <span className="text-xs text-green-600 font-medium">+8%</span>
           </div>
           <p className="text-2xl font-bold text-gray-900 mb-1">89%</p>

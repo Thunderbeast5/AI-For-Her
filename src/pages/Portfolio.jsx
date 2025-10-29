@@ -4,7 +4,7 @@ import InvestorSidebar from '../components/InvestorSidebar';
 import { 
   BriefcaseIcon,
   ChartBarIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   CalendarIcon
 } from '@heroicons/react/24/outline';
 
@@ -79,7 +79,7 @@ const Portfolio = () => {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <TrendingUpIcon className="w-8 h-8 text-blue-500" />
+            <ArrowTrendingUpIcon className="w-8 h-8 text-blue-500" />
             <span className="text-sm text-gray-500">Total Growth</span>
           </div>
           <p className="text-3xl font-bold text-green-600">{totalGrowth}</p>
