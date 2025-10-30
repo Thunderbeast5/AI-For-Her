@@ -15,6 +15,7 @@ const Navbar = () => {
   const [showLangDropdown, setShowLangDropdown] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [userName, setUserName] = useState('')
+  const [userInitials, setUserInitials] = useState('')
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const dropdownRef = useRef(null)
@@ -53,10 +54,15 @@ const Navbar = () => {
     attemptTranslate()
   }
 
-  // Get user name from Firebase Auth or display name
+  // Get user name and initials from Firebase Auth or display name
   useEffect(() => {
     if (currentUser) {
-      setUserName(currentUser.displayName || currentUser.email?.split('@')[0] || 'User')
+      const name = currentUser.displayName || currentUser.email?.split('@')[0] || 'User'
+      setUserName(name)
+      
+      // Generate initials - just first letter
+      const initials = name.charAt(0).toUpperCase()
+      setUserInitials(initials)
     }
   }, [currentUser])
 
@@ -109,7 +115,7 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logout()
-      navigate('/login')
+      navigate('/')
     } catch (error) {
       console.error('Failed to log out:', error)
     }
@@ -142,7 +148,7 @@ const Navbar = () => {
   }
 
   return (
-    <div className="bg-white border-b border-gray-100 px-6 py-4">
+    <div className="bg-white px-6 py-4 border-b-2 border-pink-200">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Dashboard</h2>
@@ -216,7 +222,9 @@ const Navbar = () => {
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center space-x-2 hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors"
             >
-              <UserCircleIcon className="w-8 h-8 text-gray-400" />
+              <div className="w-8 h-8 bg-gradient-to-r from-pink-200 to-pink-300 rounded-full flex items-center justify-center">
+                <span className="text-gray-700 font-semibold text-sm">{userInitials}</span>
+              </div>
               <span className="text-sm font-medium text-gray-700">{userName}</span>
               <ChevronDownIcon className="w-4 h-4 text-gray-400" />
             </button>

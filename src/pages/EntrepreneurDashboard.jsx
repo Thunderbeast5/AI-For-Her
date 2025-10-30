@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -42,14 +42,14 @@ const EntrepreneurDashboard = () => {
       title: t('actions.askAI'),
       description: t('actions.askAIDesc'),
       icon: ChatBubbleLeftRightIcon,
-      color: "from-pink-300 to-pink-400",
+      color: "from-pink-200 to-pink-300",
       action: () => navigate('/chat')
     },
     {
       title: t('actions.viewOpportunities'),
       description: t('actions.viewOpportunitiesDesc'),
       icon: EyeIcon,
-      color: "from-pink-100 to-pink-200",
+      color: "from-pink-200 to-pink-300",
       action: () => navigate('/opportunities')
     }
   ]
@@ -158,6 +158,9 @@ const EntrepreneurDashboard = () => {
     fetchUserData()
   }, [currentUser])
 
+  // Memoize sidebar to prevent re-rendering on state changes
+  const sidebar = useMemo(() => <EntrepreneurSidebar />, [])
+
   // Get display name
   const getDisplayName = () => {
     if (userData?.firstName) {
@@ -181,7 +184,7 @@ const EntrepreneurDashboard = () => {
   }
 
   return (
-    <DashboardLayout sidebar={<EntrepreneurSidebar />}>
+    <DashboardLayout sidebar={sidebar}>
       {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

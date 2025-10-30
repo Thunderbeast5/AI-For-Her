@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import Sidebar from '../components/Sidebar'
-import Navbar from '../components/Navbar'
+import DashboardLayout from '../components/DashboardLayout'
+import EntrepreneurSidebar from '../components/EntrepreneurSidebar'
 import { PaperAirplaneIcon, MicrophoneIcon } from '@heroicons/react/24/outline'
 import { SparklesIcon } from '@heroicons/react/24/solid'
 import ReactMarkdown from 'react-markdown'
@@ -103,49 +103,38 @@ const Chat = () => {
     setIsTyping(true)
 
     try {
-      // Call Python Flask backend API
-      const response = await fetch('http://localhost:5001/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: currentInput,
-          language: language,
-          profile: null // You can add user profile data here if needed
-        })
-      })
+      // Mock response for now (backend will be deployed later)
+      // TODO: Replace with actual API call when backend is deployed
+      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API delay
+      
+      const mockResponse = `Thank you for your question! As your AI Startup Advisor, I'm here to help women entrepreneurs like you succeed.
 
-      const data = await response.json()
+**Here are some insights based on your query:**
 
-      if (data.success && data.response) {
-        const aiMessage = {
-          id: messages.length + 2,
-          text: data.response,
-          sender: 'ai',
-          timestamp: new Date()
-        }
-        setMessages(prev => [...prev, aiMessage])
-        
-        // Text-to-speech for AI response
-        if (isTTSEnabled) {
-          speakText(data.response)
-        }
-      } else {
-        // Fallback response if API fails
-        const errorMessage = {
-          id: messages.length + 2,
-          text: data.fallback_response || "I apologize, but I'm having trouble processing your request. Please try again.",
-          sender: 'ai',
-          timestamp: new Date()
-        }
-        setMessages(prev => [...prev, errorMessage])
+1. **Market Research**: Understanding your target audience is crucial for any business venture.
+2. **Financial Planning**: Start with a clear budget and explore funding options available for women entrepreneurs.
+3. **Networking**: Connect with other women entrepreneurs through our platform to share experiences and learn.
+4. **Government Schemes**: Look into schemes like SIDBI, Mudra Loans, and Stand-Up India for financial support.
+
+Would you like me to provide more specific guidance on any of these areas?`
+
+      const aiMessage = {
+        id: messages.length + 2,
+        text: mockResponse,
+        sender: 'ai',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, aiMessage])
+      
+      // Text-to-speech for AI response
+      if (isTTSEnabled) {
+        speakText(mockResponse)
       }
     } catch (error) {
-      console.error('Error calling chatbot API:', error)
+      console.error('Error in chat:', error)
       const errorMessage = {
         id: messages.length + 2,
-        text: "I'm sorry, I'm having trouble connecting to the AI service. Please make sure the backend server is running on port 5001.",
+        text: "I apologize, but I'm having trouble processing your request. Please try again.",
         sender: 'ai',
         timestamp: new Date()
       }
@@ -223,14 +212,13 @@ const Chat = () => {
     "What are some creative online business ideas?"
   ]
 
+  // Memoize sidebar to prevent re-rendering
+  const sidebar = useMemo(() => <EntrepreneurSidebar />, [])
+
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar language={language} onLanguageChange={setLanguage} />
-        
-        <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full overflow-hidden">
+    <DashboardLayout sidebar={sidebar}>
+      <div className="flex flex-col h-[calc(100vh-0px)] -m-6">
+        <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden min-h-0">
           {/* Chat Header */}
           <div className="bg-white border-b border-gray-100 px-6 py-4 flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -267,7 +255,7 @@ const Chat = () => {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-auto p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 min-h-0">
             {messages.map((message, index) => (
               <motion.div
                 key={message.id}
@@ -336,7 +324,7 @@ const Chat = () => {
 
           {/* Suggested Questions */}
           {messages.length === 1 && (
-            <div className="px-6 pb-4 flex-shrink-0 bg-gray-50">
+            <div className="px-6 pb-4 flex-shrink-0 bg-white border-t border-gray-100">
               <p className="text-sm text-gray-600 mb-3">Try asking:</p>
               <div className="flex flex-wrap gap-2">
                 {suggestedQuestions.map((question, index) => (
@@ -387,7 +375,7 @@ const Chat = () => {
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }
 

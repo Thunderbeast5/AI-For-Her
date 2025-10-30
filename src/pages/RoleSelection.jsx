@@ -46,7 +46,7 @@ const RoleSelection = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4 notranslate">
             AI For Her
           </h1>
           <p className="text-gray-600 text-lg">

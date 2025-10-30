@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { doc, getDoc, collection, query, getDocs, orderBy } from 'firebase/firestore'
@@ -103,6 +103,9 @@ const InvestorDashboard = () => {
     fetchData()
   }, [currentUser])
 
+  // Memoize sidebar to prevent re-rendering on state changes
+  const sidebar = useMemo(() => <InvestorSidebar />, [])
+
   const getDisplayName = () => {
     if (userData?.firstName) {
       return userData.firstName
@@ -134,7 +137,7 @@ const InvestorDashboard = () => {
   }
 
   return (
-    <DashboardLayout sidebar={<InvestorSidebar />}>
+    <DashboardLayout sidebar={sidebar}>
       {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

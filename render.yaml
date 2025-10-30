@@ -5,6 +5,20 @@ services:
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     autoDeploy: true
+    buildFilter:
+      paths:
+        - src/**
+        - public/**
+        - index.html
+        - package.json
+        - package-lock.json
+        - vite.config.js
+        - tailwind.config.js
+        - render.yaml
+      ignoredPaths:
+        - requirements.txt
+        - app.py
+        - chatbot/**
     routes:
       - type: rewrite
         source: /*

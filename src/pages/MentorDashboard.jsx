@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'
@@ -24,6 +24,7 @@ const MentorDashboard = () => {
   const [activeTab, setActiveTab] = useState('mentees') // mentees, chats, group
   const [chatSessionsCount, setChatSessionsCount] = useState(0)
   const [groupSessionsCount, setGroupSessionsCount] = useState(0)
+  const [chatSessions, setChatSessions] = useState([])
 
   // Fetch user data and connected mentees
   useEffect(() => {
@@ -73,13 +74,33 @@ const MentorDashboard = () => {
           
           setConnectedMentees(menteesData)
 
-          // Fetch chat sessions count
-          const chatsQuery = query(
-            collection(db, 'chats'),
-            where('mentorId', '==', currentUser.uid)
-          )
-          const chatsSnapshot = await getDocs(chatsQuery)
-          setChatSessionsCount(chatsSnapshot.size)
+          // Fetch chat sessions - using connections to find mentees
+          const chatSessionsData = []
+          
+          for (const mentee of menteesData) {
+            // Check if there's a chat with this mentee
+            const chatQuery = query(
+              collection(db, 'chats'),
+              where('userId', '==', mentee.id.split('_')[1] || mentee.id) // Get mentee userId
+            )
+            const chatSnapshot = await getDocs(chatQuery)
+            
+            if (!chatSnapshot.empty) {
+              const chatDoc = chatSnapshot.docs[0]
+              const chat = chatDoc.data()
+              
+              chatSessionsData.push({
+                id: chatDoc.id,
+                menteeName: mentee.name,
+                lastMessage: chat.lastMessage || 'No messages yet',
+                lastMessageTime: chat.lastMessageTime || chat.createdAt || 'Recently',
+                messageCount: chat.messages?.length || 0
+              })
+            }
+          }
+          
+          setChatSessions(chatSessionsData)
+          setChatSessionsCount(chatSessionsData.length)
 
           // Fetch group sessions count
           const groupSessionsQuery = query(
@@ -99,6 +120,9 @@ const MentorDashboard = () => {
 
     fetchData()
   }, [currentUser])
+
+  // Memoize sidebar to prevent re-rendering on state changes
+  const sidebar = useMemo(() => <MentorSidebar />, [])
 
   const getDisplayName = () => {
     if (userData?.firstName) {
@@ -123,7 +147,7 @@ const MentorDashboard = () => {
       title: "Chat Sessions",
       description: "Individual mentoring conversations",
       icon: ChatBubbleLeftRightIcon,
-      color: "from-pink-300 to-pink-400",
+      color: "from-pink-200 to-pink-300",
       count: chatSessionsCount,
       action: () => setActiveTab('chats')
     },
@@ -131,7 +155,7 @@ const MentorDashboard = () => {
       title: "Group Mentoring",
       description: "Host group sessions and workshops",
       icon: VideoCameraIcon,
-      color: "from-pink-100 to-pink-200",
+      color: "from-pink-200 to-pink-300",
       count: groupSessionsCount,
       action: () => setActiveTab('group')
     }
@@ -149,7 +173,7 @@ const MentorDashboard = () => {
   }
 
   return (
-    <DashboardLayout sidebar={<MentorSidebar />}>
+    <DashboardLayout sidebar={sidebar}>
       {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -269,17 +293,52 @@ const MentorDashboard = () => {
         {/* Chat Sessions Tab */}
         {activeTab === 'chats' && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Individual Chat Sessions</h3>
-            <div className="text-center py-12">
-              <ChatBubbleLeftRightIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-600 mb-4">Start individual mentoring sessions with your mentees</p>
-              <button 
-                onClick={() => navigate('/chat')}
-                className="px-6 py-2 bg-pink-400 text-white rounded-lg hover:bg-pink-500 transition-colors"
-              >
-                Go to Chat
-              </button>
-            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Individual Chat Sessions ({chatSessions.length})</h3>
+            {chatSessions.length > 0 ? (
+              <div className="space-y-4">
+                {chatSessions.map((session) => (
+                  <div key={session.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-pink-200 to-pink-300 rounded-full flex items-center justify-center">
+                        <span className="text-gray-700 font-semibold">{session.menteeName.charAt(0)}</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{session.menteeName}</h4>
+                        <p className="text-sm text-gray-600 truncate max-w-md">{session.lastMessage}</p>
+                        <p className="text-xs text-gray-500 flex items-center mt-1">
+                          <ClockIcon className="w-3 h-3 mr-1" />
+                          {typeof session.lastMessageTime === 'object' && session.lastMessageTime?.seconds 
+                            ? new Date(session.lastMessageTime.seconds * 1000).toLocaleDateString()
+                            : session.lastMessageTime}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                        {session.messageCount} messages
+                      </span>
+                      <button 
+                        onClick={() => navigate('/chat')}
+                        className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                        <ChatBubbleLeftRightIcon className="w-5 h-5 text-gray-600" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <ChatBubbleLeftRightIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">No chat sessions yet. Start individual mentoring sessions with your mentees</p>
+                <button 
+                  onClick={() => navigate('/chat')}
+                  className="px-6 py-2 bg-pink-400 text-white rounded-lg hover:bg-pink-500 transition-colors"
+                >
+                  Go to Chat
+                </button>
+              </div>
+            )}
           </div>
         )}
 

@@ -1,6 +1,7 @@
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
-import Sidebar from '../components/Sidebar'
-import Navbar from '../components/Navbar'
+import DashboardLayout from '../components/DashboardLayout'
+import EntrepreneurSidebar from '../components/EntrepreneurSidebar'
 import { 
   CheckCircleIcon, 
   ClockIcon, 
@@ -138,14 +139,11 @@ const Journey = () => {
     milestones.reduce((acc, milestone) => acc + milestone.progress, 0) / milestones.length
   )
 
+  // Memoize sidebar to prevent re-rendering
+  const sidebar = useMemo(() => <EntrepreneurSidebar />, [])
+
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col">
-        <Navbar />
-        
-        <main className="flex-1 p-6 overflow-auto">
+    <DashboardLayout sidebar={sidebar}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -280,9 +278,7 @@ const Journey = () => {
               })}
             </div>
           </motion.div>
-        </main>
-      </div>
-    </div>
+    </DashboardLayout>
   )
 }
 

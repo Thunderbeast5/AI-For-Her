@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import GoogleTranslate from '../components/GoogleTranslate';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -45,7 +46,11 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-primary/20 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-white to-primary/20 flex items-center justify-center px-4 py-12 relative">
+      {/* Google Translate Widget */}
+      <div className="absolute top-4 right-4">
+        <GoogleTranslate />
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -54,7 +59,7 @@ const Login = () => {
       >
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">AI for Her</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2 notranslate">AI For Her</h1>
           <p className="text-gray-600">Empowering Women Entrepreneurs</p>
         </div>
 
