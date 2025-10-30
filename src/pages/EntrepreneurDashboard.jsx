@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useAuth } from '../context/AuthContext'
 import DashboardLayout from '../components/DashboardLayout'
@@ -22,6 +22,13 @@ const EntrepreneurDashboard = () => {
   const { currentUser } = useAuth()
   const [userData, setUserData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    mentorConnections: 0,
+    aiConversations: 0,
+    opportunitiesApplied: 0,
+    journeyProgress: 0
+  })
+  const [recentActivity, setRecentActivity] = useState([])
 
   const quickActions = [
     {
@@ -47,21 +54,99 @@ const EntrepreneurDashboard = () => {
     }
   ]
 
-  const recentActivity = [
-    { title: "Completed business plan review", time: "2 hours ago", icon: SparklesIcon },
-    { title: "Connected with mentor Sarah K.", time: "1 day ago", icon: AcademicCapIcon },
-    { title: "Applied for SIDBI Grant", time: "3 days ago", icon: TrophyIcon },
-  ]
 
-  // Fetch user data from Firestore
+  // Fetch user data and stats from Firestore
   useEffect(() => {
     const fetchUserData = async () => {
       if (currentUser) {
         try {
+          // Fetch user data
           const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
           if (userDoc.exists()) {
             setUserData(userDoc.data())
           }
+
+          // Fetch mentor connections count
+          const connectionsQuery = query(
+            collection(db, 'connections'),
+            where('menteeId', '==', currentUser.uid)
+          )
+          const connectionsSnapshot = await getDocs(connectionsQuery)
+          const mentorCount = connectionsSnapshot.size
+
+          // Fetch AI conversations count (from chats collection)
+          const chatsQuery = query(
+            collection(db, 'chats'),
+            where('userId', '==', currentUser.uid)
+          )
+          const chatsSnapshot = await getDocs(chatsQuery)
+          const aiConversationsCount = chatsSnapshot.size
+
+          // Fetch opportunities applied (mock for now - you can create an applications collection)
+          const opportunitiesCount = 0 // TODO: Implement when you have applications collection
+
+          // Calculate journey progress based on profile completion
+          const profileData = userDoc.data()
+          let progress = 0
+          if (profileData?.firstName) progress += 20
+          if (profileData?.lastName) progress += 20
+          if (profileData?.email) progress += 20
+          if (profileData?.sector) progress += 20
+          if (profileData?.startupName) progress += 20
+
+          setStats({
+            mentorConnections: mentorCount,
+            aiConversations: aiConversationsCount,
+            opportunitiesApplied: opportunitiesCount,
+            journeyProgress: progress
+          })
+
+          // Fetch recent activity
+          const activities = []
+          
+          // Add recent connections
+          const recentConnections = await Promise.all(
+            connectionsSnapshot.docs.slice(0, 2).map(async (doc) => {
+              const connection = doc.data()
+              const mentorDoc = await getDoc(doc(db, 'users', connection.mentorId))
+              const mentorData = mentorDoc.data()
+              const mentorName = mentorData?.firstName || 'Mentor'
+              return {
+                title: `Connected with mentor ${mentorName}`,
+                time: connection.createdAt ? new Date(connection.createdAt).toLocaleDateString() : 'Recently',
+                icon: AcademicCapIcon
+              }
+            })
+          )
+          activities.push(...recentConnections)
+
+          // Add startup creation if exists
+          const startupsQuery = query(
+            collection(db, 'startups'),
+            where('userId', '==', currentUser.uid),
+            orderBy('createdAt', 'desc'),
+            limit(1)
+          )
+          const startupsSnapshot = await getDocs(startupsQuery)
+          if (!startupsSnapshot.empty) {
+            const startup = startupsSnapshot.docs[0].data()
+            activities.push({
+              title: `Created startup: ${startup.name}`,
+              time: startup.createdAt ? new Date(startup.createdAt.seconds * 1000).toLocaleDateString() : 'Recently',
+              icon: SparklesIcon
+            })
+          }
+
+          // Add default activity if no activities
+          if (activities.length === 0) {
+            activities.push({
+              title: 'Welcome to AI For Her!',
+              time: 'Just now',
+              icon: SparklesIcon
+            })
+          }
+
+          setRecentActivity(activities)
         } catch (error) {
           console.error('Error fetching user data:', error)
         } finally {
@@ -145,19 +230,19 @@ const EntrepreneurDashboard = () => {
         className="grid md:grid-cols-4 gap-4 mb-8"
       >
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">3</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.mentorConnections}</div>
           <div className="text-sm text-gray-600">{t('dashboard.stats.mentorConnections')}</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">12</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.aiConversations}</div>
           <div className="text-sm text-gray-600">{t('dashboard.stats.aiConversations')}</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">5</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.opportunitiesApplied}</div>
           <div className="text-sm text-gray-600">{t('dashboard.stats.opportunitiesApplied')}</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">85%</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.journeyProgress}%</div>
           <div className="text-sm text-gray-600">{t('dashboard.stats.journeyProgress')}</div>
         </div>
       </motion.div>

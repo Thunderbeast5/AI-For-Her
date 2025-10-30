@@ -34,13 +34,42 @@ const MentorDashboard = () => {
             setUserData(userDoc.data())
           }
 
-          // Fetch connected mentees (mock data for now)
-          // In production, query sessions collection where mentorId === currentUser.uid
-          setConnectedMentees([
-            { id: 1, name: 'Priya Sharma', business: 'Fashion Startup', lastContact: '2 days ago', status: 'active' },
-            { id: 2, name: 'Anjali Verma', business: 'Food Tech', lastContact: '5 days ago', status: 'active' },
-            { id: 3, name: 'Meera Patel', business: 'EdTech Platform', lastContact: '1 week ago', status: 'pending' },
-          ])
+          // Fetch connected mentees from connections collection
+          const connectionsQuery = query(
+            collection(db, 'connections'),
+            where('mentorId', '==', currentUser.uid)
+          )
+          const connectionsSnapshot = await getDocs(connectionsQuery)
+          
+          const menteesData = await Promise.all(
+            connectionsSnapshot.docs.map(async (connectionDoc) => {
+              const connection = connectionDoc.data()
+              // Fetch mentee user data
+              const menteeDoc = await getDoc(doc(db, 'users', connection.menteeId))
+              const menteeData = menteeDoc.data()
+              
+              // Get display name
+              let name = 'Anonymous User'
+              if (menteeData?.firstName && menteeData?.lastName) {
+                name = `${menteeData.firstName} ${menteeData.lastName}`
+              } else if (menteeData?.firstName) {
+                name = menteeData.firstName
+              } else if (menteeData?.email) {
+                name = menteeData.email.split('@')[0]
+              }
+              
+              return {
+                id: connectionDoc.id,
+                name: name,
+                business: menteeData?.startupName || menteeData?.sector || 'Entrepreneur',
+                lastContact: connection.lastContact || 'Recently',
+                status: connection.status || 'active',
+                email: menteeData?.email
+              }
+            })
+          )
+          
+          setConnectedMentees(menteesData)
         } catch (error) {
           console.error('Error fetching data:', error)
         } finally {

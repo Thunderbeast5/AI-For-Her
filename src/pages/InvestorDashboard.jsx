@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, collection, query, getDocs, orderBy } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useAuth } from '../context/AuthContext'
 import DashboardLayout from '../components/DashboardLayout'
@@ -25,6 +25,12 @@ const InvestorDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [projects, setProjects] = useState([])
+  const [stats, setStats] = useState({
+    activeInvestments: 0,
+    totalInvested: 0,
+    projectsReviewed: 0,
+    portfolioCompanies: 0
+  })
 
   // Fetch user data and projects
   useEffect(() => {
@@ -37,57 +43,55 @@ const InvestorDashboard = () => {
             setUserData(userDoc.data())
           }
 
-          // Mock project data - in production, fetch from Firestore
-          setProjects([
-            {
-              id: 1,
-              name: 'EcoFashion Marketplace',
-              founder: 'Priya Sharma',
-              category: 'Fashion',
-              description: 'Sustainable fashion marketplace connecting eco-conscious designers with consumers',
-              fundingGoal: '₹25,00,000',
-              raised: '₹8,00,000',
-              stage: 'Seed',
-              location: 'Mumbai',
-              rating: 4.5
-            },
-            {
-              id: 2,
-              name: 'HealthTech AI',
-              founder: 'Anjali Verma',
-              category: 'HealthTech',
-              description: 'AI-powered health diagnostics platform for rural areas',
-              fundingGoal: '₹50,00,000',
-              raised: '₹15,00,000',
-              stage: 'Series A',
-              location: 'Bangalore',
-              rating: 4.8
-            },
-            {
-              id: 3,
-              name: 'EdLearn Platform',
-              founder: 'Meera Patel',
-              category: 'EdTech',
-              description: 'Interactive learning platform for K-12 students in regional languages',
-              fundingGoal: '₹35,00,000',
-              raised: '₹12,00,000',
-              stage: 'Seed',
-              location: 'Delhi',
-              rating: 4.6
-            },
-            {
-              id: 4,
-              name: 'FarmFresh Connect',
-              founder: 'Kavita Singh',
-              category: 'AgriTech',
-              description: 'Direct farm-to-consumer organic produce delivery platform',
-              fundingGoal: '₹20,00,000',
-              raised: '₹5,00,000',
-              stage: 'Pre-Seed',
-              location: 'Pune',
-              rating: 4.3
-            }
-          ])
+          // Fetch real startups from Firestore
+          const startupsQuery = query(
+            collection(db, 'startups'),
+            orderBy('createdAt', 'desc')
+          )
+          const startupsSnapshot = await getDocs(startupsQuery)
+          
+          const startupsData = await Promise.all(
+            startupsSnapshot.docs.map(async (startupDoc) => {
+              const startup = startupDoc.data()
+              
+              // Fetch founder data
+              let founderName = 'Anonymous'
+              if (startup.userId) {
+                const founderDoc = await getDoc(doc(db, 'users', startup.userId))
+                const founderData = founderDoc.data()
+                if (founderData?.firstName && founderData?.lastName) {
+                  founderName = `${founderData.firstName} ${founderData.lastName}`
+                } else if (founderData?.firstName) {
+                  founderName = founderData.firstName
+                } else if (startup.founderName) {
+                  founderName = startup.founderName
+                }
+              }
+              
+              return {
+                id: startupDoc.id,
+                name: startup.name || 'Unnamed Startup',
+                founder: founderName,
+                category: startup.category || 'Other',
+                description: startup.description || 'No description available',
+                fundingGoal: startup.fundingGoal || '₹0',
+                raised: startup.raised || '₹0',
+                stage: startup.stage || 'Seed',
+                location: startup.location || 'India',
+                rating: startup.rating || 0
+              }
+            })
+          )
+          
+          setProjects(startupsData)
+          
+          // Calculate stats
+          setStats({
+            activeInvestments: 0, // TODO: Implement investments tracking
+            totalInvested: 0, // TODO: Implement investments tracking
+            projectsReviewed: startupsData.length,
+            portfolioCompanies: 0 // TODO: Implement portfolio tracking
+          })
         } catch (error) {
           console.error('Error fetching data:', error)
         } finally {
@@ -153,7 +157,7 @@ const InvestorDashboard = () => {
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-gray-900">12</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.activeInvestments}</div>
               <div className="text-sm text-gray-600">Active Investments</div>
             </div>
             <BanknotesIcon className="w-8 h-8 text-green-500" />
@@ -162,7 +166,7 @@ const InvestorDashboard = () => {
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-gray-900">₹2.5Cr</div>
+              <div className="text-2xl font-bold text-gray-900">₹{stats.totalInvested}</div>
               <div className="text-sm text-gray-600">Total Invested</div>
             </div>
             <ChartBarIcon className="w-8 h-8 text-blue-500" />
@@ -171,8 +175,8 @@ const InvestorDashboard = () => {
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-gray-900">48</div>
-              <div className="text-sm text-gray-600">Projects Reviewed</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.projectsReviewed}</div>
+              <div className="text-sm text-gray-600">Projects Available</div>
             </div>
             <LightBulbIcon className="w-8 h-8 text-yellow-500" />
           </div>
@@ -180,7 +184,7 @@ const InvestorDashboard = () => {
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-bold text-gray-900">8</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.portfolioCompanies}</div>
               <div className="text-sm text-gray-600">Portfolio Companies</div>
             </div>
             <StarIcon className="w-8 h-8 text-purple-500" />
