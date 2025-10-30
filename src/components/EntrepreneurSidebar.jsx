@@ -14,6 +14,7 @@ const EntrepreneurSidebar = () => {
     { icon: HomeIcon, label: 'Home', path: '/dashboard' },
     { icon: AcademicCapIcon, label: 'Find Mentors', path: '/mentors' },
     { icon: UserGroupIcon, label: 'Chat Sessions', path: '/chat-sessions' },
+    { icon: UserGroupIcon, label: 'Self Help Groups', path: '/shg' },
     { icon: LightBulbIcon, label: 'Opportunities', path: '/opportunities' },
     { icon: ChatBubbleLeftRightIcon, label: 'AI Coach', path: '/chat' },
     { icon: ChartBarIcon, label: 'Growth Journey', path: '/journey' },
