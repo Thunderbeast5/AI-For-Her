@@ -7,6 +7,7 @@ import Chat from './pages/Chat'
 import Opportunities from './pages/Opportunities'
 import Journey from './pages/Journey'
 import SelfHelpGroups from './pages/SelfHelpGroups'
+import CreateStartup from './pages/CreateStartup'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
 import RoleSelection from './pages/RoleSelection'
@@ -65,6 +66,11 @@ function App() {
             <Route path="/shg" element={
               <ProtectedRoute>
                 <SelfHelpGroups />
+              </ProtectedRoute>
+            } />
+            <Route path="/create-startup" element={
+              <ProtectedRoute>
+                <CreateStartup />
               </ProtectedRoute>
             } />
             <Route path="/role-selection" element={<RoleSelection />} />

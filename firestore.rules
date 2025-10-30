@@ -106,6 +106,17 @@ service cloud.firestore {
                        (resource.data.userId == request.auth.uid);
     }
     
+    // Startups collection - for entrepreneurs to create startups
+    match /startups/{startupId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid;
+    }
+    
     // Default deny all other collections
     match /{document=**} {
       allow read, write: if false;

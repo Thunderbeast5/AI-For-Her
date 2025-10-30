@@ -3,8 +3,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
-  updateProfile
+  onAuthStateChanged
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
@@ -19,14 +18,9 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // Sign up function
-  const signup = async (email, password, firstName, lastName, role, profileData = {}) => {
+  const signup = async (email, password, firstName, lastName, role) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-
-    // Update user profile with display name
-    await updateProfile(user, {
-      displayName: `${firstName} ${lastName}`
-    });
 
     // Store user data in Firestore
     await setDoc(doc(db, 'users', user.uid), {
@@ -34,9 +28,12 @@ export const AuthProvider = ({ children }) => {
       lastName,
       email,
       role,
-      ...profileData,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      profileCompleted: false
     });
+
+    // Set the role immediately in state
+    setUserRole(role);
 
     return userCredential;
   };
@@ -70,9 +67,14 @@ export const AuthProvider = ({ children }) => {
       console.log('AuthContext: Auth state changed', { user: user?.uid, email: user?.email });
       setCurrentUser(user);
       if (user) {
-        const role = await fetchUserRole(user.uid);
-        console.log('AuthContext: User role fetched', { uid: user.uid, role });
-        setUserRole(role);
+        try {
+          const role = await fetchUserRole(user.uid);
+          console.log('AuthContext: User role fetched', { uid: user.uid, role });
+          setUserRole(role);
+        } catch (error) {
+          console.error('AuthContext: Error fetching role', error);
+          setUserRole(null);
+        }
       } else {
         setUserRole(null);
       }

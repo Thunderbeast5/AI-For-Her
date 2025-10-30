@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import DashboardLayout from '../components/DashboardLayout';
 import InvestorSidebar from '../components/InvestorSidebar';
 import { 
@@ -12,47 +14,46 @@ import {
 const BrowseProjects = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const categories = ['all', 'Fashion', 'HealthTech', 'EdTech', 'AgriTech', 'FoodTech', 'FinTech'];
+  const categories = ['all', 'Fashion', 'HealthTech', 'EdTech', 'AgriTech', 'FoodTech', 'FinTech', 'E-commerce', 'SaaS', 'Other'];
 
-  const projects = [
-    {
-      id: 1,
-      name: 'EcoFashion Marketplace',
-      founder: 'Priya Sharma',
-      category: 'Fashion',
-      description: 'Sustainable fashion marketplace connecting eco-conscious designers with consumers',
-      fundingGoal: '₹25,00,000',
-      raised: '₹8,00,000',
-      stage: 'Seed',
-      location: 'Mumbai',
-      rating: 4.5
-    },
-    {
-      id: 2,
-      name: 'HealthTech AI',
-      founder: 'Anjali Verma',
-      category: 'HealthTech',
-      description: 'AI-powered health diagnostics platform for rural areas',
-      fundingGoal: '₹50,00,000',
-      raised: '₹15,00,000',
-      stage: 'Series A',
-      location: 'Bangalore',
-      rating: 4.8
-    },
-    {
-      id: 3,
-      name: 'EdLearn Platform',
-      founder: 'Meera Patel',
-      category: 'EdTech',
-      description: 'Interactive learning platform for K-12 students in regional languages',
-      fundingGoal: '₹35,00,000',
-      raised: '₹12,00,000',
-      stage: 'Seed',
-      location: 'Delhi',
-      rating: 4.6
-    }
-  ];
+  // Fetch startups from Firestore
+  useEffect(() => {
+    const fetchStartups = async () => {
+      try {
+        const startupsQuery = query(
+          collection(db, 'startups'),
+          orderBy('createdAt', 'desc')
+        );
+        const querySnapshot = await getDocs(startupsQuery);
+        const startupsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name,
+          founder: doc.data().founderName,
+          category: doc.data().category,
+          description: doc.data().description,
+          fundingGoal: doc.data().fundingGoal,
+          raised: doc.data().raised || '₹0',
+          stage: doc.data().stage,
+          location: doc.data().location,
+          rating: doc.data().rating || 0,
+          email: doc.data().email,
+          phone: doc.data().phone,
+          website: doc.data().website,
+          pitchDeck: doc.data().pitchDeck
+        }));
+        setProjects(startupsData);
+      } catch (error) {
+        console.error('Error fetching startups:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStartups();
+  }, []);
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -60,6 +61,19 @@ const BrowseProjects = () => {
     const matchesCategory = selectedCategory === 'all' || project.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  if (loading) {
+    return (
+      <DashboardLayout sidebar={<InvestorSidebar />}>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading startups...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout sidebar={<InvestorSidebar />}>
@@ -117,8 +131,21 @@ const BrowseProjects = () => {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           {filteredProjects.length} Projects Found
         </h3>
-        <div className="grid md:grid-cols-2 gap-6">
-          {filteredProjects.map((project, index) => (
+        {filteredProjects.length === 0 ? (
+          <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+            <div className="text-gray-400 mb-4">
+              <MagnifyingGlassIcon className="w-16 h-16 mx-auto" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No startups found</h3>
+            <p className="text-gray-600">
+              {projects.length === 0 
+                ? "No startups have been created yet. Be the first entrepreneur to create one!"
+                : "Try adjusting your search or filter criteria"}
+            </p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {filteredProjects.map((project, index) => (
             <motion.div
               key={project.id}
               initial={{ opacity: 0, y: 20 }}
@@ -176,6 +203,7 @@ const BrowseProjects = () => {
             </motion.div>
           ))}
         </div>
+        )}
       </motion.div>
     </DashboardLayout>
   );
