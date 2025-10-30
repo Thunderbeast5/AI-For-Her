@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm'
 import { useAuth } from '../context/AuthContext'
 
 // Flask backend URL - change to your deployed backend URL
-const CHATBOT_API_URL = 'http://127.0.0.1:5000/api/chat'
+const CHATBOT_API_URL = 'https://chatbot-1f9h.onrender.com/api/chat'
 
 const Chat = () => {
   const { user } = useAuth()
