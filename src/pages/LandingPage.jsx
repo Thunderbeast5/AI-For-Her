@@ -131,10 +131,10 @@ const LandingPage = () => {
       {/* Navbar - Scroll Responsive */}
       <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
         <div className="w-full flex justify-center transition-all duration-300" style={{ paddingTop: isScrolled ? '0.5rem' : '0' }}>
-          <div className={`transition-all duration-300 ${
+          <div className={`w-full transition-all duration-300 ${
             isScrolled 
-              ? 'w-full max-w-4xl rounded-2xl bg-pink-200 shadow-2xl py-2' 
-              : 'w-full max-w-7xl bg-pink-200/95 backdrop-blur-sm py-4'
+              ? 'max-w-4xl rounded-2xl bg-pink-200 shadow-2xl py-2' 
+              : 'bg-pink-200/95 backdrop-blur-sm py-4'
           }`}>
             <div className={`flex justify-between items-center transition-all duration-300 ${
               isScrolled ? 'px-8' : 'px-6'
