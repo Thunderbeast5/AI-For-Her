@@ -1,17 +1,26 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import DashboardLayout from '../components/DashboardLayout'
 import EntrepreneurSidebar from '../components/EntrepreneurSidebar'
 import { StarIcon, MapPinIcon } from '@heroicons/react/24/solid'
 import { UserIcon } from '@heroicons/react/24/outline'
+import { collection, query, where, getDocs, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '../firebase/config'
+import { useAuth } from '../context/AuthContext'
 
 const Mentors = () => {
+  const { currentUser } = useAuth()
   const [formData, setFormData] = useState({
     sector: '',
     stage: '',
     goals: ''
   })
   const [showResults, setShowResults] = useState(false)
+  const [mentors, setMentors] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [userProfile, setUserProfile] = useState(null)
+  const [connectingMentorId, setConnectingMentorId] = useState(null)
+  const [connectionStatus, setConnectionStatus] = useState(new Map()) // mentorId -> status
 
   const sectors = [
     'Technology', 'Healthcare', 'Education', 'E-commerce', 'Food & Beverage', 
@@ -22,46 +31,202 @@ const Mentors = () => {
     'Idea Stage', 'MVP Development', 'Early Stage', 'Growth Stage', 'Scaling'
   ]
 
-  const mockMentors = [
-    {
-      name: "Sarah Kumar",
-      experience: "15+ years in Tech",
-      sector: "Technology",
-      location: "Bangalore",
-      matchScore: 95,
-      image: "👩‍💼",
-      expertise: ["Product Development", "Team Building", "Fundraising"],
-      bio: "Former VP at Microsoft, now helping women entrepreneurs scale their tech startups."
-    },
-    {
-      name: "Meera Patel",
-      experience: "12+ years in E-commerce",
-      sector: "E-commerce",
-      location: "Mumbai",
-      matchScore: 88,
-      image: "👩‍🚀",
-      expertise: ["Digital Marketing", "Operations", "Customer Acquisition"],
-      bio: "Built and sold two successful e-commerce companies, passionate about mentoring."
-    },
-    {
-      name: "Dr. Anjali Sharma",
-      experience: "20+ years in Healthcare",
-      sector: "Healthcare",
-      location: "Delhi",
-      matchScore: 82,
-      image: "👩‍⚕️",
-      expertise: ["Healthcare Innovation", "Regulatory Affairs", "Medical Devices"],
-      bio: "Healthcare entrepreneur and investor, focused on women's health solutions."
+  // Fetch user profile on component mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (currentUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+          if (userDoc.exists()) {
+            const profile = userDoc.data()
+            setUserProfile(profile)
+            // Auto-populate sector from user profile
+            if (profile.sector) {
+              setFormData(prev => ({ ...prev, sector: profile.sector }))
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error)
+        }
+      }
     }
-  ]
+    fetchUserProfile()
+  }, [currentUser])
 
-  const handleSubmit = (e) => {
+  // Calculate match score based on profile similarity
+  const calculateMatchScore = (mentor, searchCriteria) => {
+    let score = 0
+    let maxScore = 0
+
+    // Sector match (40 points)
+    maxScore += 40
+    if (mentor.sector && searchCriteria.sector) {
+      if (mentor.sector.toLowerCase() === searchCriteria.sector.toLowerCase()) {
+        score += 40
+      }
+    }
+
+    // Expertise relevance (30 points)
+    maxScore += 30
+    if (mentor.expertise && searchCriteria.goals) {
+      const goals = searchCriteria.goals.toLowerCase()
+      const expertise = mentor.expertise.toLowerCase()
+      // Check for keyword matches
+      const keywords = ['funding', 'team', 'product', 'marketing', 'scale', 'growth']
+      let matchedKeywords = 0
+      keywords.forEach(keyword => {
+        if (goals.includes(keyword) && expertise.includes(keyword)) {
+          matchedKeywords++
+        }
+      })
+      score += (matchedKeywords / keywords.length) * 30
+    }
+
+    // Experience level (30 points)
+    maxScore += 30
+    if (mentor.yearsOfExperience) {
+      const years = parseInt(mentor.yearsOfExperience)
+      if (years >= 10) score += 30
+      else if (years >= 5) score += 20
+      else if (years >= 2) score += 10
+    }
+
+    // Calculate percentage
+    return Math.round((score / maxScore) * 100)
+  }
+
+  // Check existing connections
+  const checkExistingConnections = async (mentorsList) => {
+    if (!currentUser) return
+    
+    try {
+      const connectionsQuery = query(
+        collection(db, 'connections'),
+        where('menteeId', '==', currentUser.uid)
+      )
+      
+      const snapshot = await getDocs(connectionsQuery)
+      const statusMap = new Map()
+      
+      snapshot.forEach((doc) => {
+        const connection = doc.data()
+        statusMap.set(connection.mentorId, connection.status)
+      })
+      
+      setConnectionStatus(statusMap)
+    } catch (error) {
+      console.error('Error checking connections:', error)
+    }
+  }
+
+  // Fetch mentors from Firestore
+  const fetchMentors = async (searchCriteria) => {
+    setLoading(true)
+    try {
+      // Query for all users with role 'mentor'
+      const mentorsQuery = query(
+        collection(db, 'users'),
+        where('role', '==', 'mentor')
+      )
+      
+      const querySnapshot = await getDocs(mentorsQuery)
+      const mentorsList = []
+      
+      querySnapshot.forEach((doc) => {
+        const mentorData = doc.data()
+        const matchScore = calculateMatchScore(mentorData, searchCriteria)
+        
+        mentorsList.push({
+          id: doc.id,
+          name: `${mentorData.firstName || ''} ${mentorData.lastName || ''}`.trim() || 'Anonymous Mentor',
+          email: mentorData.email,
+          sector: mentorData.sector || 'Not specified',
+          companyName: mentorData.companyName || 'Independent',
+          yearsOfExperience: mentorData.yearsOfExperience || 'N/A',
+          expertise: mentorData.expertise || 'No expertise listed',
+          bio: mentorData.bio || 'No bio available',
+          matchScore: matchScore
+        })
+      })
+      
+      // Sort by match score (highest first)
+      mentorsList.sort((a, b) => b.matchScore - a.matchScore)
+      
+      setMentors(mentorsList)
+      
+      // Check existing connections
+      await checkExistingConnections(mentorsList)
+    } catch (error) {
+      console.error('Error fetching mentors:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    await fetchMentors(formData)
     setShowResults(true)
   }
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleConnect = async (mentor) => {
+    if (!currentUser) return
+    
+    // Check if already connected
+    if (connectionStatus.has(mentor.id)) {
+      alert('You already have a connection with this mentor.')
+      return
+    }
+    
+    setConnectingMentorId(mentor.id)
+    try {
+      // Create a connection request (pending approval)
+      await addDoc(collection(db, 'connections'), {
+        mentorId: mentor.id,
+        menteeId: currentUser.uid,
+        menteeName: currentUser.displayName || 'Anonymous',
+        mentorName: mentor.name,
+        menteeEmail: currentUser.email,
+        mentorEmail: mentor.email,
+        menteeSector: userProfile?.sector || 'N/A',
+        menteeStartup: userProfile?.startupName || 'N/A',
+        status: 'pending',
+        createdAt: serverTimestamp()
+      })
+      
+      // Create notification for mentor (connection request)
+      await addDoc(collection(db, 'notifications'), {
+        userId: mentor.id,
+        title: 'New Connection Request',
+        message: `${currentUser.displayName || 'A mentee'} wants to connect with you!`,
+        link: '/mentees',
+        read: false,
+        createdAt: serverTimestamp()
+      })
+      
+      // Create notification for mentee (request sent)
+      await addDoc(collection(db, 'notifications'), {
+        userId: currentUser.uid,
+        title: 'Connection Request Sent',
+        message: `Your connection request has been sent to ${mentor.name}. Waiting for approval.`,
+        link: '/mentors',
+        read: false,
+        createdAt: serverTimestamp()
+      })
+      
+      // Update status map
+      setConnectionStatus(prev => new Map(prev).set(mentor.id, 'pending'))
+      alert(`Connection request sent to ${mentor.name}!`)
+    } catch (error) {
+      console.error('Error connecting with mentor:', error)
+      alert('Failed to connect. Please try again.')
+    } finally {
+      setConnectingMentorId(null)
+    }
   }
 
   return (
@@ -144,7 +309,9 @@ const Mentors = () => {
                 className="space-y-6"
               >
                 <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold text-gray-900">Your Mentor Matches</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Your Mentor Matches {mentors.length > 0 && `(${mentors.length} found)`}
+                  </h2>
                   <button
                     onClick={() => setShowResults(false)}
                     className="px-4 py-2 text-pink-500 border border-pink-400 rounded-lg hover:bg-pink-50 transition-colors"
@@ -153,7 +320,18 @@ const Mentors = () => {
                   </button>
                 </div>
 
-                {mockMentors.map((mentor, index) => (
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400"></div>
+                    <p className="mt-4 text-gray-600">Finding the best mentors for you...</p>
+                  </div>
+                ) : mentors.length === 0 ? (
+                  <div className="bg-white rounded-2xl p-12 text-center">
+                    <p className="text-gray-600 mb-4">No mentors found matching your criteria.</p>
+                    <p className="text-sm text-gray-500">Try adjusting your search parameters or check back later.</p>
+                  </div>
+                ) : (
+                  mentors.map((mentor, index) => (
                   <motion.div
                     key={index}
                     initial={{ opacity: 0, y: 20 }}
@@ -170,7 +348,7 @@ const Mentors = () => {
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <h3 className="text-lg font-semibold text-gray-900">{mentor.name}</h3>
-                            <p className="text-gray-600">{mentor.experience}</p>
+                            <p className="text-gray-600">{mentor.companyName} • {mentor.yearsOfExperience} years experience</p>
                           </div>
                           <div className="text-right">
                             <div className="flex items-center space-x-1 mb-1">
@@ -187,33 +365,42 @@ const Mentors = () => {
                         </div>
 
                         <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
-                          <span className="flex items-center">
-                            <MapPinIcon className="w-4 h-4 mr-1" />
-                            {mentor.location}
-                          </span>
-                          <span>{mentor.sector}</span>
+                          <span className="px-3 py-1 bg-gray-100 rounded-full">{mentor.sector}</span>
                         </div>
 
                         <p className="text-gray-600 mb-4">{mentor.bio}</p>
 
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {mentor.expertise.map((skill, skillIndex) => (
-                            <span
-                              key={skillIndex}
-                              className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm"
-                            >
-                              {skill}
-                            </span>
-                          ))}
+                        <div className="mb-4">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Areas of Expertise:</p>
+                          <p className="text-sm text-gray-600 bg-pink-50 p-3 rounded-lg">{mentor.expertise}</p>
                         </div>
 
-                        <button className="bg-pink-400 text-white px-6 py-2 rounded-lg font-medium hover:bg-pink-500 transition-all duration-200">
-                          Connect
+                        <button 
+                          onClick={() => handleConnect(mentor)}
+                          disabled={connectingMentorId === mentor.id || connectionStatus.has(mentor.id)}
+                          className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                            connectionStatus.get(mentor.id) === 'accepted'
+                              ? 'bg-green-500 text-white'
+                              : connectionStatus.get(mentor.id) === 'pending'
+                              ? 'bg-orange-400 text-white'
+                              : 'bg-pink-400 text-white hover:bg-pink-500'
+                          }`}
+                        >
+                          {connectingMentorId === mentor.id 
+                            ? 'Sending...' 
+                            : connectionStatus.get(mentor.id) === 'accepted'
+                            ? 'Connected'
+                            : connectionStatus.get(mentor.id) === 'pending'
+                            ? 'Pending'
+                            : connectionStatus.get(mentor.id) === 'rejected'
+                            ? 'Declined'
+                            : 'Connect'}
                         </button>
                       </div>
                     </div>
                   </motion.div>
-                ))}
+                ))
+                )}
               </motion.div>
             )}
       </motion.div>

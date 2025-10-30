@@ -35,11 +35,37 @@ service cloud.firestore {
                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
-    // Chat messages - users can read/write their own messages
+    // Connections collection - for mentor-mentee connections
+    match /connections/{connectionId} {
+      allow read: if isAuthenticated() && 
+                     (resource.data.mentorId == request.auth.uid || 
+                      resource.data.menteeId == request.auth.uid);
+      allow create: if isAuthenticated() &&
+                       (request.resource.data.mentorId is string && 
+                        request.resource.data.menteeId is string);
+      allow update: if isAuthenticated() && 
+                       (resource.data.mentorId == request.auth.uid || 
+                        resource.data.menteeId == request.auth.uid);
+      allow delete: if isAuthenticated() && 
+                       (resource.data.mentorId == request.auth.uid || 
+                        resource.data.menteeId == request.auth.uid);
+    }
+    
+    // Notifications collection - users can read/write their own notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Chat messages - users can read/write messages in chats they're part of
     match /chats/{chatId} {
-      allow read, write: if isAuthenticated() && 
-                            (resource.data.userId == request.auth.uid || 
-                             request.resource.data.userId == request.auth.uid);
+      allow read, write: if isAuthenticated();
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated();
+      }
     }
     
     // Journey/Progress tracking - users can read/write their own journey

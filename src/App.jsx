@@ -19,6 +19,7 @@ import Investments from './pages/Investments'
 
 // Mentor Pages
 import Mentees from './pages/Mentees'
+import ChatSessions from './pages/ChatSessions'
 import GroupSessions from './pages/GroupSessions'
 import Schedule from './pages/Schedule'
 
@@ -88,6 +89,11 @@ function App() {
             <Route path="/mentees" element={
               <ProtectedRoute>
                 <Mentees />
+              </ProtectedRoute>
+            } />
+            <Route path="/chat-sessions" element={
+              <ProtectedRoute>
+                <ChatSessions />
               </ProtectedRoute>
             } />
             <Route path="/group-sessions" element={

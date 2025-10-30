@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // Sign up function
-  const signup = async (email, password, firstName, lastName, role) => {
+  const signup = async (email, password, firstName, lastName, role, profileData = {}) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }) => {
       lastName,
       email,
       role,
+      ...profileData,
       createdAt: new Date().toISOString()
     });
 
@@ -66,9 +67,11 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('AuthContext: Auth state changed', { user: user?.uid, email: user?.email });
       setCurrentUser(user);
       if (user) {
         const role = await fetchUserRole(user.uid);
+        console.log('AuthContext: User role fetched', { uid: user.uid, role });
         setUserRole(role);
       } else {
         setUserRole(null);

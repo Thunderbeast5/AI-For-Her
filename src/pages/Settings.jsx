@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
@@ -11,10 +11,78 @@ import {
   LockClosedIcon,
   GlobeAltIcon
 } from '@heroicons/react/24/outline';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 const Settings = () => {
   const { userRole, currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
+  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const sectors = [
+    'Technology', 'Healthcare', 'Education', 'E-commerce', 'Food & Beverage', 
+    'Fashion', 'Finance', 'Manufacturing', 'Services', 'Other'
+  ];
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (currentUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            setProfileData(userDoc.data());
+          } else {
+            // Initialize with default values if document doesn't exist
+            const displayName = currentUser.displayName || '';
+            const [firstName = '', lastName = ''] = displayName.split(' ');
+            setProfileData({
+              firstName,
+              lastName,
+              email: currentUser.email,
+              role: userRole,
+              sector: '',
+              bio: ''
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    fetchUserProfile();
+  }, [currentUser, userRole]);
+
+  const handleProfileUpdate = async () => {
+    if (!currentUser || !profileData) return;
+    
+    try {
+      setSaving(true);
+      setMessage('');
+      // Use setDoc with merge to create document if it doesn't exist
+      await setDoc(doc(db, 'users', currentUser.uid), {
+        ...profileData,
+        email: currentUser.email,
+        role: userRole,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      setMessage('Profile updated successfully!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setMessage('Failed to update profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setProfileData(prev => ({ ...prev, [field]: value }));
+  };
 
   const getSidebar = () => {
     if (userRole === 'mentor') return <MentorSidebar />;
@@ -76,41 +144,178 @@ const Settings = () => {
           {activeTab === 'profile' && (
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Profile Settings</h2>
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue={currentUser?.displayName || ''}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
-                  />
+              
+              {message && (
+                <div className={`mb-4 p-4 rounded-lg ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                  {message}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    defaultValue={currentUser?.email || ''}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
-                  />
+              )}
+              
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">Loading profile...</div>
+              ) : (
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={profileData?.firstName || ''}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={profileData?.lastName || ''}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={currentUser?.email || ''}
+                      disabled
+                      className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 cursor-not-allowed"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Sector
+                    </label>
+                    <select
+                      value={profileData?.sector || ''}
+                      onChange={(e) => handleInputChange('sector', e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                    >
+                      <option value="">Select your sector</option>
+                      {sectors.map(sector => (
+                        <option key={sector} value={sector}>{sector}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {userRole === 'entrepreneur' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Startup Name
+                      </label>
+                      <input
+                        type="text"
+                        value={profileData?.startupName || ''}
+                        onChange={(e) => handleInputChange('startupName', e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                        placeholder="Your startup name"
+                      />
+                    </div>
+                  )}
+
+                  {userRole === 'mentor' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Company Name
+                        </label>
+                        <input
+                          type="text"
+                          value={profileData?.companyName || ''}
+                          onChange={(e) => handleInputChange('companyName', e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                          placeholder="Current or previous company"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Years of Experience
+                        </label>
+                        <input
+                          type="number"
+                          value={profileData?.yearsOfExperience || ''}
+                          onChange={(e) => handleInputChange('yearsOfExperience', e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                          placeholder="Years of experience"
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Areas of Expertise
+                        </label>
+                        <textarea
+                          value={profileData?.expertise || ''}
+                          onChange={(e) => handleInputChange('expertise', e.target.value)}
+                          rows={4}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                          placeholder="e.g., Product Development, Team Building, Fundraising"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {userRole === 'investor' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Investment Focus
+                        </label>
+                        <textarea
+                          value={profileData?.investmentFocus || ''}
+                          onChange={(e) => handleInputChange('investmentFocus', e.target.value)}
+                          rows={4}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                          placeholder="e.g., Early-stage tech startups, Healthcare innovation"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Portfolio Size
+                        </label>
+                        <select
+                          value={profileData?.portfolioSize || ''}
+                          onChange={(e) => handleInputChange('portfolioSize', e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                        >
+                          <option value="">Select portfolio size</option>
+                          <option value="0-5">0-5 investments</option>
+                          <option value="6-10">6-10 investments</option>
+                          <option value="11-20">11-20 investments</option>
+                          <option value="20+">20+ investments</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bio
+                    </label>
+                    <textarea
+                      value={profileData?.bio || ''}
+                      onChange={(e) => handleInputChange('bio', e.target.value)}
+                      rows={4}
+                      placeholder="Tell us about yourself..."
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                    />
+                  </div>
+                  <button 
+                    onClick={handleProfileUpdate}
+                    disabled={saving}
+                    className="px-6 py-3 bg-pink-400 text-white font-medium rounded-lg hover:bg-pink-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bio
-                  </label>
-                  <textarea
-                    rows={4}
-                    placeholder="Tell us about yourself..."
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
-                  />
-                </div>
-                <button className="px-6 py-3 bg-pink-400 text-white font-medium rounded-lg hover:bg-pink-500 transition-colors">
-                  Save Changes
-                </button>
-              </div>
+              )}
             </div>
           )}
 

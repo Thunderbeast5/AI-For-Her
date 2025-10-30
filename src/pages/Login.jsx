@@ -25,6 +25,13 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate Gmail
+    const emailRegex = /^[^\s@]+@gmail\.com$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid Gmail address (must end with @gmail.com)');
+      return;
+    }
+
     try {
       setError('');
       setLoading(true);
@@ -80,7 +87,7 @@ const Login = () => {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all"
-                placeholder="you@example.com"
+                placeholder="you@gmail.com"
               />
             </div>
 
