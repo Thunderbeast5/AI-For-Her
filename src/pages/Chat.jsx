@@ -6,8 +6,13 @@ import { PaperAirplaneIcon, MicrophoneIcon } from '@heroicons/react/24/outline'
 import { SparklesIcon } from '@heroicons/react/24/solid'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { useAuth } from '../context/AuthContext'
+
+// Flask backend URL - change to your deployed backend URL
+const CHATBOT_API_URL = 'http://127.0.0.1:5000/api/chat'
 
 const Chat = () => {
+  const { user } = useAuth()
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -21,6 +26,11 @@ const Chat = () => {
   const [language, setLanguage] = useState('en')
   const [isTTSEnabled, setIsTTSEnabled] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
+  const [sessionId] = useState(() => user?.uid || `session_${Date.now()}`)
+  const [buttons, setButtons] = useState([])
+  const [ideas, setIdeas] = useState([])
+  const [resources, setResources] = useState([])
+  const [schemes, setSchemes] = useState([])
   const messagesEndRef = useRef(null)
   const recognitionRef = useRef(null)
   const synthesisRef = useRef(window.speechSynthesis)
@@ -86,55 +96,78 @@ const Chat = () => {
     }
   }, [language])
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault()
-    if (!inputText.trim()) return
+  const handleSendMessage = async (e, messageText = null) => {
+    if (e) e.preventDefault()
+    const textToSend = messageText || inputText
+    if (!textToSend.trim()) return
 
     const userMessage = {
       id: messages.length + 1,
-      text: inputText,
+      text: textToSend,
       sender: 'user',
       timestamp: new Date()
     }
 
     setMessages(prev => [...prev, userMessage])
-    const currentInput = inputText
     setInputText('')
     setIsTyping(true)
+    setButtons([]) // Clear previous buttons
 
     try {
-      // Mock response for now (backend will be deployed later)
-      // TODO: Replace with actual API call when backend is deployed
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API delay
+      const response = await fetch(CHATBOT_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: textToSend,
+          session_id: sessionId
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok')
+      }
+
+      const data = await response.json()
       
-      const mockResponse = `Thank you for your question! As your AI Startup Advisor, I'm here to help women entrepreneurs like you succeed.
-
-**Here are some insights based on your query:**
-
-1. **Market Research**: Understanding your target audience is crucial for any business venture.
-2. **Financial Planning**: Start with a clear budget and explore funding options available for women entrepreneurs.
-3. **Networking**: Connect with other women entrepreneurs through our platform to share experiences and learn.
-4. **Government Schemes**: Look into schemes like SIDBI, Mudra Loans, and Stand-Up India for financial support.
-
-Would you like me to provide more specific guidance on any of these areas?`
-
       const aiMessage = {
         id: messages.length + 2,
-        text: mockResponse,
+        text: data.reply || 'I received your message.',
         sender: 'ai',
         timestamp: new Date()
       }
       setMessages(prev => [...prev, aiMessage])
+
+      // Handle buttons if present
+      if (data.buttons && data.buttons.length > 0) {
+        setButtons(data.buttons)
+      }
+
+      // Handle ideas if present
+      if (data.ideas && data.ideas.length > 0) {
+        setIdeas(data.ideas)
+      }
+
+      // Handle resources if present
+      if (data.resources && data.resources.length > 0) {
+        setResources(data.resources)
+      }
+
+      // Handle schemes if present
+      if (data.schemes && data.schemes.length > 0) {
+        setSchemes(data.schemes)
+      }
       
       // Text-to-speech for AI response
       if (isTTSEnabled) {
-        speakText(mockResponse)
+        speakText(data.reply)
       }
     } catch (error) {
       console.error('Error in chat:', error)
       const errorMessage = {
         id: messages.length + 2,
-        text: "I apologize, but I'm having trouble processing your request. Please try again.",
+        text: "I apologize, but I'm having trouble connecting to the chatbot service. Please make sure the Flask backend is running on http://localhost:5000",
         sender: 'ai',
         timestamp: new Date()
       }
@@ -142,6 +175,10 @@ Would you like me to provide more specific guidance on any of these areas?`
     } finally {
       setIsTyping(false)
     }
+  }
+
+  const handleButtonClick = (buttonValue) => {
+    handleSendMessage(null, buttonValue)
   }
 
   const formatTime = (date) => {
@@ -319,6 +356,159 @@ Would you like me to provide more specific guidance on any of these areas?`
                 </div>
               </motion.div>
             )}
+
+            {/* Interactive Buttons from Chatbot */}
+            {buttons.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex justify-start"
+              >
+                <div className="flex flex-wrap gap-2 max-w-2xl">
+                  {buttons.map((button, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleButtonClick(button.value)}
+                      className="px-4 py-2 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 rounded-lg text-sm font-medium hover:shadow-md transition-all duration-200"
+                    >
+                      {button.text}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Business Ideas Display */}
+            {ideas.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-3"
+              >
+                <div className="text-sm font-semibold text-gray-700 mb-2">💡 Business Ideas for You:</div>
+                {ideas.map((idea, index) => (
+                  <div key={index} className="bg-gradient-to-r from-pink-50 to-purple-50 border-2 border-pink-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-all">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="font-bold text-gray-900 text-lg">{idea.title}</h3>
+                      {idea.home_based && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">🏠 Home-based</span>}
+                    </div>
+                    <p className="text-sm text-gray-700 mb-3 leading-relaxed">{idea.description}</p>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div className="bg-white rounded-lg p-2">
+                        <div className="text-xs text-gray-500">Investment Range</div>
+                        <div className="font-semibold text-pink-600">₹{idea.required_investment_min?.toLocaleString()} - ₹{idea.required_investment_max?.toLocaleString()}</div>
+                      </div>
+                      {idea.profitability && (
+                        <div className="bg-white rounded-lg p-2">
+                          <div className="text-xs text-gray-500">Profitability</div>
+                          <div className="font-semibold text-green-600">{idea.profitability}</div>
+                        </div>
+                      )}
+                    </div>
+                    {idea.skills_required && (
+                      <div className="text-xs text-gray-600 mb-2">
+                        <span className="font-semibold">Skills:</span> {idea.skills_required}
+                      </div>
+                    )}
+                    {idea.why_this_location && (
+                      <div className="bg-white rounded-lg p-3 mt-2">
+                        <div className="text-xs font-semibold text-gray-700 mb-1">📍 Why this works in your area:</div>
+                        <div className="text-xs text-gray-600">{idea.why_this_location}</div>
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => handleButtonClick(`create_plan_${index}`)}
+                      className="mt-3 w-full bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 py-2 rounded-lg font-semibold hover:shadow-md transition-all"
+                    >
+                      📋 Create Business Plan
+                    </button>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+
+            {/* Resources Display */}
+            {resources.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-3"
+              >
+                <div className="text-sm font-semibold text-gray-700 mb-2">📍 Local Resources Near You:</div>
+                {resources.map((resource, index) => (
+                  <div key={index} className="bg-white border-l-4 border-pink-300 rounded-lg p-4 shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{resource.name}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{resource.address}</p>
+                        {resource.details && <p className="text-xs text-gray-500 mt-2">{resource.details}</p>}
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        resource.type === 'supplier' ? 'bg-blue-100 text-blue-700' :
+                        resource.type === 'market' ? 'bg-green-100 text-green-700' :
+                        'bg-purple-100 text-purple-700'
+                      }`}>
+                        {resource.type === 'supplier' ? '🏭 Supplier' :
+                         resource.type === 'market' ? '🏪 Market' :
+                         '🏛️ Government'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+
+            {/* Government Schemes Display */}
+            {schemes.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-3"
+              >
+                <div className="text-sm font-semibold text-gray-700 mb-2">💰 Government Schemes for You:</div>
+                {schemes.map((scheme, index) => (
+                  <div key={index} className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-5 shadow-md">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="font-bold text-gray-900">{scheme.title}</h3>
+                      <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-semibold">{scheme.region}</span>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="font-semibold text-gray-700">Benefits:</span>
+                        <p className="text-gray-600 mt-1">{scheme.benefit}</p>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-gray-700">Eligibility:</span>
+                        <p className="text-gray-600 mt-1">{scheme.eligibility}</p>
+                      </div>
+                      {scheme.documents && (
+                        <div>
+                          <span className="font-semibold text-gray-700">Required Documents:</span>
+                          <p className="text-gray-600 mt-1">{scheme.documents}</p>
+                        </div>
+                      )}
+                      {scheme.how_to_apply && (
+                        <div>
+                          <span className="font-semibold text-gray-700">How to Apply:</span>
+                          <p className="text-gray-600 mt-1">{scheme.how_to_apply}</p>
+                        </div>
+                      )}
+                    </div>
+                    {scheme.apply_link && (
+                      <a 
+                        href={scheme.apply_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-block bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 px-6 py-2 rounded-lg font-semibold hover:shadow-md transition-all"
+                      >
+                        🔗 Apply Now
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </motion.div>
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
 

@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template, session
+from flask_cors import CORS
 from models import db, User, ChatHistory, BusinessContext
 from nlp.intent import detect_intent, extract_entities, categorize_interest
 from utils.llm import generate_plan, chat_with_groq, generate_business_ideas, find_local_resources, find_government_schemes
@@ -9,6 +10,8 @@ import os
 import requests
 
 app = Flask(__name__)
+# Enable CORS for React frontend with specific configuration
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"]}})
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///startup_sathi.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
@@ -22,9 +25,18 @@ def index():
     """Home page"""
     return render_template('index.html')
 
-@app.route('/api/chat', methods=['POST'])
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({"status": "ok", "message": "Chatbot API is running"}), 200
+
+@app.route('/api/chat', methods=['POST', 'OPTIONS'])
 def chat():
     """Main chat endpoint"""
+    # Handle OPTIONS request for CORS preflight
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "ok"}), 200
+    
     try:
         data = request.json
         user_msg = data.get('message', '').strip()
@@ -1451,5 +1463,5 @@ if __name__ == '__main__':
     print("🚀 Startup Sathi is running!")
     print("📱 Open http://localhost:5000 in your browser")
     print("✨ All responses are AI-generated dynamically!")
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='0.0.0.0', port=5000)
 
