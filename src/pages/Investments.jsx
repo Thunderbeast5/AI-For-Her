@@ -1,4 +1,8 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import InvestorSidebar from '../components/InvestorSidebar';
 import { 
@@ -9,35 +13,93 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Investments = () => {
-  const investments = [
-    {
-      id: 1,
-      projectName: 'EcoFashion Marketplace',
-      amount: '₹10,00,000',
-      date: 'Jan 15, 2024',
-      status: 'Completed',
-      returns: '₹15,00,000',
-      roi: '+50%'
-    },
-    {
-      id: 2,
-      projectName: 'HealthTech AI',
-      amount: '₹20,00,000',
-      date: 'Mar 20, 2024',
-      status: 'Completed',
-      returns: '₹28,00,000',
-      roi: '+40%'
-    },
-    {
-      id: 3,
-      projectName: 'EdLearn Platform',
-      amount: '₹15,00,000',
-      date: 'May 10, 2024',
-      status: 'Pending',
-      returns: '-',
-      roi: '-'
-    }
-  ];
+  const { currentUser } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [investments, setInvestments] = useState([]);
+  const [stats, setStats] = useState({
+    totalInvested: 0,
+    completed: 0,
+    pending: 0
+  });
+
+  useEffect(() => {
+    const fetchInvestments = async () => {
+      if (currentUser) {
+        try {
+          // Fetch all investments for this investor
+          const investmentsQuery = query(
+            collection(db, 'investments'),
+            where('investorId', '==', currentUser.uid)
+          );
+          const investmentsSnapshot = await getDocs(investmentsQuery);
+          
+          let totalInv = 0;
+          let completedCount = 0;
+          let pendingCount = 0;
+          
+          const investmentsData = await Promise.all(
+            investmentsSnapshot.docs.map(async (investmentDoc) => {
+              const investment = investmentDoc.data();
+              
+              // Fetch startup details
+              let startupName = 'Unknown Startup';
+              if (investment.startupId) {
+                const startupDoc = await getDoc(doc(db, 'startups', investment.startupId));
+                if (startupDoc.exists()) {
+                  startupName = startupDoc.data().name;
+                }
+              }
+              
+              const amount = investment.amount || 0;
+              const status = investment.status || 'pending';
+              const returns = investment.currentValue || 0;
+              const roi = amount > 0 && returns > 0 ? (((returns - amount) / amount) * 100).toFixed(1) : 0;
+              
+              totalInv += amount;
+              if (status === 'completed') completedCount++;
+              else pendingCount++;
+              
+              return {
+                id: investmentDoc.id,
+                projectName: startupName,
+                amount: `₹${amount.toLocaleString('en-IN')}`,
+                date: investment.investedDate || 'Recently',
+                status: status === 'completed' ? 'Completed' : 'Pending',
+                returns: status === 'completed' ? `₹${returns.toLocaleString('en-IN')}` : '-',
+                roi: status === 'completed' ? `${roi > 0 ? '+' : ''}${roi}%` : '-'
+              };
+            })
+          );
+          
+          setInvestments(investmentsData);
+          setStats({
+            totalInvested: totalInv,
+            completed: completedCount,
+            pending: pendingCount
+          });
+        } catch (error) {
+          console.error('Error fetching investments:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchInvestments();
+  }, [currentUser]);
+
+  if (loading) {
+    return (
+      <DashboardLayout sidebar={<InvestorSidebar />}>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading investments...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout sidebar={<InvestorSidebar />}>
@@ -62,7 +124,7 @@ const Investments = () => {
             <BanknotesIcon className="w-6 h-6 text-pink-400" />
             <span className="text-sm text-gray-600">Total Invested</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">₹45,00,000</p>
+          <p className="text-2xl font-bold text-gray-900">₹{stats.totalInvested.toLocaleString('en-IN')}</p>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -70,7 +132,7 @@ const Investments = () => {
             <CheckCircleIcon className="w-6 h-6 text-green-500" />
             <span className="text-sm text-gray-600">Completed</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">2</p>
+          <p className="text-2xl font-bold text-gray-900">{stats.completed}</p>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -78,7 +140,7 @@ const Investments = () => {
             <ClockIcon className="w-6 h-6 text-yellow-500" />
             <span className="text-sm text-gray-600">Pending</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">1</p>
+          <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
         </div>
       </motion.div>
 
@@ -90,8 +152,15 @@ const Investments = () => {
         className="bg-white rounded-2xl p-6 shadow-sm"
       >
         <h2 className="text-xl font-semibold text-gray-900 mb-6">All Investments</h2>
-        <div className="space-y-4">
-          {investments.map((investment, index) => (
+        {investments.length === 0 ? (
+          <div className="text-center py-12">
+            <BanknotesIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600">No investments yet</p>
+            <p className="text-sm text-gray-500 mt-2">Browse startups and make your first investment</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {investments.map((investment, index) => (
             <motion.div
               key={investment.id}
               initial={{ opacity: 0, x: -20 }}
@@ -128,6 +197,7 @@ const Investments = () => {
             </motion.div>
           ))}
         </div>
+        )}
       </motion.div>
     </DashboardLayout>
   );

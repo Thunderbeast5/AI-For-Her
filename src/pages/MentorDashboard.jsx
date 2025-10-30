@@ -22,6 +22,8 @@ const MentorDashboard = () => {
   const [loading, setLoading] = useState(true)
   const [connectedMentees, setConnectedMentees] = useState([])
   const [activeTab, setActiveTab] = useState('mentees') // mentees, chats, group
+  const [chatSessionsCount, setChatSessionsCount] = useState(0)
+  const [groupSessionsCount, setGroupSessionsCount] = useState(0)
 
   // Fetch user data and connected mentees
   useEffect(() => {
@@ -70,6 +72,23 @@ const MentorDashboard = () => {
           )
           
           setConnectedMentees(menteesData)
+
+          // Fetch chat sessions count
+          const chatsQuery = query(
+            collection(db, 'chats'),
+            where('mentorId', '==', currentUser.uid)
+          )
+          const chatsSnapshot = await getDocs(chatsQuery)
+          setChatSessionsCount(chatsSnapshot.size)
+
+          // Fetch group sessions count
+          const groupSessionsQuery = query(
+            collection(db, 'sessions'),
+            where('mentorId', '==', currentUser.uid),
+            where('type', '==', 'group')
+          )
+          const groupSessionsSnapshot = await getDocs(groupSessionsQuery)
+          setGroupSessionsCount(groupSessionsSnapshot.size)
         } catch (error) {
           console.error('Error fetching data:', error)
         } finally {
@@ -105,7 +124,7 @@ const MentorDashboard = () => {
       description: "Individual mentoring conversations",
       icon: ChatBubbleLeftRightIcon,
       color: "from-pink-300 to-pink-400",
-      count: 8,
+      count: chatSessionsCount,
       action: () => setActiveTab('chats')
     },
     {
@@ -113,7 +132,7 @@ const MentorDashboard = () => {
       description: "Host group sessions and workshops",
       icon: VideoCameraIcon,
       color: "from-pink-100 to-pink-200",
-      count: 3,
+      count: groupSessionsCount,
       action: () => setActiveTab('group')
     }
   ]
