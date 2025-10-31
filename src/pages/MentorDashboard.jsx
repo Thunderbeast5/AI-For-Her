@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, getDoc, onSnapshot, orderBy, limit } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { useAuth } from '../context/AuthContext'
 import DashboardLayout from '../components/DashboardLayout'
@@ -25,25 +25,29 @@ const MentorDashboard = () => {
   const [chatSessionsCount, setChatSessionsCount] = useState(0)
   const [groupSessionsCount, setGroupSessionsCount] = useState(0)
   const [chatSessions, setChatSessions] = useState([])
+  const [sessionsThisMonth, setSessionsThisMonth] = useState(0)
+  const [averageRating, setAverageRating] = useState(0)
+  const [totalHours, setTotalHours] = useState(0)
 
-  // Fetch user data and connected mentees
+  // Fetch user data and connected mentees with real-time updates
   useEffect(() => {
-    const fetchData = async () => {
-      if (currentUser) {
-        try {
-          // Fetch user data
-          const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
-          if (userDoc.exists()) {
-            setUserData(userDoc.data())
-          }
+    if (!currentUser) return
 
-          // Fetch connected mentees from connections collection
-          const connectionsQuery = query(
-            collection(db, 'connections'),
-            where('mentorId', '==', currentUser.uid)
-          )
-          const connectionsSnapshot = await getDocs(connectionsQuery)
-          
+    const fetchData = async () => {
+      try {
+        // Fetch user data
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+        if (userDoc.exists()) {
+          setUserData(userDoc.data())
+        }
+
+        // Real-time listener for connections
+        const connectionsQuery = query(
+          collection(db, 'connections'),
+          where('mentorId', '==', currentUser.uid)
+        )
+        
+        const unsubscribeConnections = onSnapshot(connectionsQuery, async (connectionsSnapshot) => {
           const menteesData = await Promise.all(
             connectionsSnapshot.docs.map(async (connectionDoc) => {
               const connection = connectionDoc.data()
@@ -71,50 +75,109 @@ const MentorDashboard = () => {
               }
             })
           )
-          
           setConnectedMentees(menteesData)
 
-          // Fetch chat sessions - using connections to find mentees
+          // Count chat sessions - mentees who have sent messages
+          let activeChatCount = 0
           const chatSessionsData = []
           
-          for (const mentee of menteesData) {
-            // Check if there's a chat with this mentee
-            const chatQuery = query(
-              collection(db, 'chats'),
-              where('userId', '==', mentee.id.split('_')[1] || mentee.id) // Get mentee userId
-            )
-            const chatSnapshot = await getDocs(chatQuery)
+          for (const connection of connectionsSnapshot.docs) {
+            const menteeId = connection.data().menteeId
             
-            if (!chatSnapshot.empty) {
-              const chatDoc = chatSnapshot.docs[0]
-              const chat = chatDoc.data()
+            // Check messages collection for messages from this mentee
+            const messagesQuery = query(
+              collection(db, 'messages'),
+              where('senderId', '==', menteeId),
+              limit(1)
+            )
+            const messagesSnapshot = await getDocs(messagesQuery)
+            
+            if (!messagesSnapshot.empty) {
+              activeChatCount++
               
-              chatSessionsData.push({
-                id: chatDoc.id,
-                menteeName: mentee.name,
-                lastMessage: chat.lastMessage || 'No messages yet',
-                lastMessageTime: chat.lastMessageTime || chat.createdAt || 'Recently',
-                messageCount: chat.messages?.length || 0
-              })
+              // Get mentee data for display
+              const menteeData = menteesData.find(m => m.id === connection.id)
+              if (menteeData) {
+                // Get last message
+                const lastMessageQuery = query(
+                  collection(db, 'messages'),
+                  where('senderId', '==', menteeId),
+                  orderBy('timestamp', 'desc'),
+                  limit(1)
+                )
+                const lastMsgSnapshot = await getDocs(lastMessageQuery)
+                const lastMsg = lastMsgSnapshot.docs[0]?.data()
+                
+                chatSessionsData.push({
+                  id: connection.id,
+                  menteeName: menteeData.name,
+                  lastMessage: lastMsg?.text || 'No messages yet',
+                  lastMessageTime: lastMsg?.timestamp || 'Recently',
+                  messageCount: messagesSnapshot.size
+                })
+              }
             }
           }
           
           setChatSessions(chatSessionsData)
-          setChatSessionsCount(chatSessionsData.length)
+          setChatSessionsCount(activeChatCount)
+        })
 
-          // Fetch group sessions count
-          const groupSessionsQuery = query(
-            collection(db, 'sessions'),
-            where('mentorId', '==', currentUser.uid),
-            where('type', '==', 'group')
-          )
-          const groupSessionsSnapshot = await getDocs(groupSessionsQuery)
-          setGroupSessionsCount(groupSessionsSnapshot.size)
-        } catch (error) {
-          console.error('Error fetching data:', error)
-        } finally {
-          setLoading(false)
+        // Real-time listener for sessions this month
+        const now = new Date()
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        
+        const sessionsQuery = query(
+          collection(db, 'sessions'),
+          where('mentorId', '==', currentUser.uid),
+          where('createdAt', '>=', startOfMonth.toISOString())
+        )
+        
+        const unsubscribeSessions = onSnapshot(sessionsQuery, (snapshot) => {
+          setSessionsThisMonth(snapshot.size)
+        })
+
+        // Real-time listener for ratings
+        const ratingsQuery = query(
+          collection(db, 'ratings'),
+          where('mentorId', '==', currentUser.uid)
+        )
+        
+        const unsubscribeRatings = onSnapshot(ratingsQuery, (snapshot) => {
+          if (snapshot.size > 0) {
+            const ratings = snapshot.docs.map(doc => doc.data().rating || 0)
+            const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length
+            setAverageRating(avg.toFixed(1))
+          } else {
+            setAverageRating(0)
+          }
+        })
+
+        // Real-time listener for total hours
+        const hoursQuery = query(
+          collection(db, 'sessions'),
+          where('mentorId', '==', currentUser.uid)
+        )
+        
+        const unsubscribeHours = onSnapshot(hoursQuery, (snapshot) => {
+          const total = snapshot.docs.reduce((sum, doc) => {
+            return sum + (doc.data().duration || 0)
+          }, 0)
+          setTotalHours(Math.round(total / 60)) // Convert minutes to hours
+        })
+
+        setLoading(false)
+
+        // Cleanup listeners
+        return () => {
+          unsubscribeConnections()
+          unsubscribeSessions()
+          unsubscribeRatings()
+          unsubscribeHours()
         }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        setLoading(false)
       }
     }
 
@@ -231,15 +294,15 @@ const MentorDashboard = () => {
           <div className="text-sm text-gray-600">Active Mentees</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">24</div>
+          <div className="text-2xl font-bold text-gray-900">{sessionsThisMonth}</div>
           <div className="text-sm text-gray-600">Sessions This Month</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">4.8</div>
+          <div className="text-2xl font-bold text-gray-900">{averageRating || 'N/A'}</div>
           <div className="text-sm text-gray-600">Average Rating</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">156</div>
+          <div className="text-2xl font-bold text-gray-900">{totalHours}</div>
           <div className="text-sm text-gray-600">Total Hours Mentored</div>
         </div>
       </motion.div>
