@@ -148,7 +148,7 @@ const Navbar = () => {
   }
 
   return (
-    <div className="bg-white px-6 py-4 border-b-2 border-pink-200">
+    <div className="sticky top-0 z-50 bg-white px-6 py-4 border-b-2 border-pink-200">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Dashboard</h2>

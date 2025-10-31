@@ -3,11 +3,12 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { HandRaisedIcon, ChatBubbleLeftRightIcon, RocketLaunchIcon, SparklesIcon, UserGroupIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline'
 import GoogleTranslate from '../components/GoogleTranslate'
+import { useAuth } from '../context/AuthContext'
 
 const LandingPage = () => {
   const navigate = useNavigate()
+  const { currentUser } = useAuth()
   const [currentSlide, setCurrentSlide] = useState(0)
-  const [isScrolled, setIsScrolled] = useState(false)
 
   const heroSlides = [
     {
@@ -97,13 +98,6 @@ const LandingPage = () => {
     return () => clearInterval(timer)
   }, [])
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   return (
     <div className="min-h-screen bg-white">
@@ -128,50 +122,54 @@ const LandingPage = () => {
           border: none !important;
         }
       `}</style>
-      {/* Navbar - Scroll Responsive */}
-      <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
-        <div className="w-full flex justify-center transition-all duration-300" style={{ paddingTop: isScrolled ? '0.5rem' : '0' }}>
-          <div className={`w-full transition-all duration-300 ${
-            isScrolled 
-              ? 'max-w-4xl rounded-2xl bg-pink-200 shadow-2xl py-2' 
-              : 'bg-pink-200/95 backdrop-blur-sm py-4'
-          }`}>
-            <div className={`flex justify-between items-center transition-all duration-300 ${
-              isScrolled ? 'px-8' : 'px-6'
-            }`}>
+      {/* Navbar - Fixed Full Size */}
+      <header className="fixed top-0 left-0 right-0 z-50">
+        <div className="w-full bg-pink-200/95 backdrop-blur-sm py-4">
+          <div className="flex justify-between items-center px-6 max-w-7xl mx-auto">
           <motion.h1 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`font-bold text-gray-900 notranslate cursor-pointer hover:text-pink-600 transition-all duration-300 ${
-              isScrolled ? 'text-xl' : 'text-2xl'
-            }`}
+            className="font-bold text-2xl text-gray-900 notranslate cursor-pointer hover:text-pink-600 transition-colors"
             onClick={() => navigate('/')}
           >
             AI For Her
           </motion.h1>
           <div className="flex items-center space-x-4">
             <GoogleTranslate />
-            <motion.button
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              onClick={() => navigate('/signup')}
-              className="text-gray-900 font-semibold hover:text-pink-600 transition-colors"
-            >
-              Sign Up
-            </motion.button>
-            <motion.button
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              onClick={() => navigate('/login')}
-              className="text-gray-900 font-semibold hover:text-pink-600 transition-colors"
-            >
-              Sign In
-            </motion.button>
+            {currentUser ? (
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                onClick={() => navigate('/dashboard')}
+                className="text-gray-900 font-semibold hover:text-pink-600 transition-colors"
+              >
+                Dashboard
+              </motion.button>
+            ) : (
+              <>
+                <motion.button
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  onClick={() => navigate('/signup')}
+                  className="text-gray-900 font-semibold hover:text-pink-600 transition-colors"
+                >
+                  Sign Up
+                </motion.button>
+                <motion.button
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  onClick={() => navigate('/login')}
+                  className="text-gray-900 font-semibold hover:text-pink-600 transition-colors"
+                >
+                  Sign In
+                </motion.button>
+              </>
+            )}
           </div>
-            </div>
-          </div>
+        </div>
         </div>
       </header>
 
