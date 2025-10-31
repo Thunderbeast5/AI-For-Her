@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { HandRaisedIcon, ChatBubbleLeftRightIcon, RocketLaunchIcon, SparklesIcon, UserGroupIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline'
 import GoogleTranslate from '../components/GoogleTranslate'
 import { useAuth } from '../context/AuthContext'
+import carouselImage1 from '../assets/carousel_images/1.jpeg'
+import carouselImage2 from '../assets/carousel_images/2.jpeg'
 
 const LandingPage = () => {
   const navigate = useNavigate()
@@ -14,17 +16,17 @@ const LandingPage = () => {
     {
       title: "Empowering Women Entrepreneurs",
       subtitle: "Connect with mentors, access funding, and grow your business with AI-powered guidance",
-      imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&h=600&fit=crop"
+      imageUrl: carouselImage1
     },
     {
       title: "Find Your Perfect Mentor",
       subtitle: "Get matched with experienced entrepreneurs who understand your journey",
-      imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&h=600&fit=crop"
+      imageUrl: carouselImage2
     },
     {
       title: "Access Funding Opportunities",
       subtitle: "Discover grants, incubators, and investors tailored for women-led startups",
-      imageUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&h=600&fit=crop"
+      imageUrl: carouselImage2
     }
   ]
 

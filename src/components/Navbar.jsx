@@ -115,7 +115,8 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logout()
-      navigate('/')
+      // Force navigation to landing page
+      window.location.href = '/'
     } catch (error) {
       console.error('Failed to log out:', error)
     }
