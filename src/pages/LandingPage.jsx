@@ -6,6 +6,7 @@ import GoogleTranslate from '../components/GoogleTranslate'
 import { useAuth } from '../context/AuthContext'
 import carouselImage1 from '../assets/carousel_images/1.jpeg'
 import carouselImage2 from '../assets/carousel_images/2.jpeg'
+import carouselImage3 from '../assets/carousel_images/3.jpeg'
 
 const LandingPage = () => {
   const navigate = useNavigate()
@@ -26,7 +27,7 @@ const LandingPage = () => {
     {
       title: "Access Funding Opportunities",
       subtitle: "Discover grants, incubators, and investors tailored for women-led startups",
-      imageUrl: carouselImage2
+      imageUrl: carouselImage3
     }
   ]
 
