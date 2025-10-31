@@ -11,6 +11,7 @@ import CreateStartup from './pages/CreateStartup'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
 import RoleSelection from './pages/RoleSelection'
+import EmailVerification from './pages/EmailVerification'
 import ProtectedRoute from './components/ProtectedRoute'
 
 // Investor Pages
@@ -38,6 +39,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/verify-email" element={<EmailVerification />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />

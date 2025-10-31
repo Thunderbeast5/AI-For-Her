@@ -3,7 +3,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendEmailVerification
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
@@ -22,6 +23,16 @@ export const AuthProvider = ({ children }) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
+    // Send email verification
+    try {
+      await sendEmailVerification(user);
+      console.log('Verification email sent successfully');
+    } catch (error) {
+      console.error('Email verification error:', error.code, error.message);
+      // Don't throw error - allow signup to continue even if email fails
+      // User can resend verification email later
+    }
+
     // Store user data in Firestore
     await setDoc(doc(db, 'users', user.uid), {
       firstName,
@@ -29,7 +40,8 @@ export const AuthProvider = ({ children }) => {
       email,
       role,
       createdAt: new Date().toISOString(),
-      profileCompleted: false
+      profileCompleted: false,
+      emailVerified: false
     });
 
     // Set the role immediately in state
@@ -84,13 +96,21 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
+  // Resend verification email
+  const resendVerificationEmail = async () => {
+    if (auth.currentUser && !auth.currentUser.emailVerified) {
+      await sendEmailVerification(auth.currentUser);
+    }
+  };
+
   const value = {
     currentUser,
     userRole,
     loading,
     signup,
     login,
-    logout
+    logout,
+    resendVerificationEmail
   };
 
   return (

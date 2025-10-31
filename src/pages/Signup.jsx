@@ -137,7 +137,9 @@ const Signup = () => {
         formData.lastName,
         selectedRole
       );
-      navigate('/dashboard');
+      
+      // Redirect to email verification page
+      navigate('/verify-email');
     } catch (err) {
       setError(err.message || 'Failed to create an account');
     } finally {

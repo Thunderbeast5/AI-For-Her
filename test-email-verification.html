@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Email Verification</title>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+    // Your Firebase config (from src/firebase/config.js)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBz1msU7esogTNwhjBfyVX2dOrB4ZIeHbo",
+      authDomain: "aiforher.firebaseapp.com",
+      projectId: "aiforher",
+      storageBucket: "aiforher.firebasestorage.app",
+      messagingSenderId: "1091726642656",
+      appId: "1:1091726642656:web:2e1a9c8e3f0c0b0e8c8e3f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    window.testEmailVerification = async () => {
+      const email = document.getElementById('testEmail').value;
+      const password = 'Test123456';
+      const resultDiv = document.getElementById('result');
+      
+      try {
+        resultDiv.innerHTML = 'Creating test account...';
+        
+        // Create test user
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        resultDiv.innerHTML = 'Account created! Sending verification email...';
+        
+        // Try to send verification email
+        await sendEmailVerification(user);
+        
+        resultDiv.innerHTML = `
+          <div style="color: green; padding: 20px; background: #d4edda; border-radius: 8px;">
+            ✅ SUCCESS! Verification email sent to ${email}
+            <br><br>
+            Check your inbox (and spam folder) for the verification email.
+            <br><br>
+            <strong>Note:</strong> You can delete this test account from Firebase Console → Authentication → Users
+          </div>
+        `;
+        
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div style="color: red; padding: 20px; background: #f8d7da; border-radius: 8px;">
+            ❌ ERROR: ${error.message}
+            <br><br>
+            <strong>Error Code:</strong> ${error.code}
+            <br><br>
+            ${error.code === 'auth/operation-not-allowed' ? 
+              '<strong>Solution:</strong> Enable Email/Password authentication in Firebase Console → Authentication → Sign-in method' : 
+              error.code === 'auth/too-many-requests' ?
+              '<strong>Solution:</strong> Wait a few minutes and try again, or enable Email verification in Firebase Console → Authentication → Templates' :
+              '<strong>Solution:</strong> Check Firebase Console settings'}
+          </div>
+        `;
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #ec4899;
+      margin-bottom: 20px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #ec4899;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #db2777;
+    }
+    #result {
+      margin-top: 20px;
+    }
+    .info {
+      background: #e0f2fe;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      color: #0369a1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Test Email Verification</h1>
+    
+    <div class="info">
+      <strong>Instructions:</strong>
+      <ol style="margin: 10px 0; padding-left: 20px;">
+        <li>Enter a test email address (use a real email you can access)</li>
+        <li>Click "Test Email Verification"</li>
+        <li>Check if you receive the verification email</li>
+        <li>If successful, email verification is working!</li>
+      </ol>
+    </div>
+    
+    <label for="testEmail"><strong>Test Email Address:</strong></label>
+    <input 
+      type="email" 
+      id="testEmail" 
+      placeholder="your-email@example.com"
+      required
+    />
+    
+    <button onclick="testEmailVerification()">
+      🚀 Test Email Verification
+    </button>
+    
+    <div id="result"></div>
+  </div>
+</body>
+</html>
