@@ -127,7 +127,7 @@ const LandingPage = () => {
       `}</style>
       {/* Navbar - Fixed Full Size */}
       <header className="fixed top-0 left-0 right-0 z-50">
-        <div className="w-full bg-pink-200/95 backdrop-blur-sm py-4">
+        <div className="w-full bg-pink-300/95 backdrop-blur-sm py-4">
           <div className="flex justify-between items-center px-6 max-w-7xl mx-auto">
           <motion.h1 
             initial={{ opacity: 0, x: -20 }}
@@ -160,7 +160,7 @@ const LandingPage = () => {
                 >
                   Sign Up
                 </motion.button>
-                <motion.button
+                {/* <motion.button
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 }}
@@ -168,7 +168,7 @@ const LandingPage = () => {
                   className="text-gray-900 font-semibold hover:text-pink-600 transition-colors"
                 >
                   Sign In
-                </motion.button>
+                </motion.button> */}
               </>
             )}
           </div>

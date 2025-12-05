@@ -21,6 +21,7 @@ const Mentors = () => {
   const [userProfile, setUserProfile] = useState(null)
   const [connectingMentorId, setConnectingMentorId] = useState(null)
   const [connectionStatus, setConnectionStatus] = useState(new Map()) // mentorId -> status
+  const [matchThreshold, setMatchThreshold] = useState(50) // Minimum match percentage to show
 
   const sectors = [
     'Technology', 'Healthcare', 'Education', 'E-commerce', 'Food & Beverage', 
@@ -152,7 +153,10 @@ const Mentors = () => {
       // Sort by match score (highest first)
       mentorsList.sort((a, b) => b.matchScore - a.matchScore)
       
-      setMentors(mentorsList)
+      // Filter mentors based on match threshold (only show relevant matches)
+      const relevantMentors = mentorsList.filter(mentor => mentor.matchScore >= matchThreshold)
+      
+      setMentors(relevantMentors)
       
       // Check existing connections
       await checkExistingConnections(mentorsList)
@@ -308,7 +312,7 @@ const Mentors = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold text-gray-900">
                     Your Mentor Matches {mentors.length > 0 && `(${mentors.length} found)`}
                   </h2>
@@ -320,6 +324,27 @@ const Mentors = () => {
                   </button>
                 </div>
 
+                {/* Match Threshold Filter */}
+                <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Minimum Match Threshold: {matchThreshold}%
+                      </label>
+                      <p className="text-xs text-gray-500">Only showing mentors with {matchThreshold}% or higher match</p>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value={matchThreshold}
+                      onChange={(e) => setMatchThreshold(parseInt(e.target.value))}
+                      className="w-48 ml-4"
+                    />
+                  </div>
+                </div>
+
                 {loading ? (
                   <div className="text-center py-12">
                     <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400"></div>
@@ -327,8 +352,8 @@ const Mentors = () => {
                   </div>
                 ) : mentors.length === 0 ? (
                   <div className="bg-white rounded-2xl p-12 text-center">
-                    <p className="text-gray-600 mb-4">No mentors found matching your criteria.</p>
-                    <p className="text-sm text-gray-500">Try adjusting your search parameters or check back later.</p>
+                    <p className="text-gray-600 mb-4">No relevant mentors found with {matchThreshold}% or higher match.</p>
+                    <p className="text-sm text-gray-500">Try lowering the match threshold or adjusting your search parameters.</p>
                   </div>
                 ) : (
                   mentors.map((mentor, index) => (
