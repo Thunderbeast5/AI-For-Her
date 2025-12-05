@@ -15,7 +15,7 @@ import {
 const EntrepreneurSidebar = () => {
   const menuItems = [
     { icon: HomeIcon, label: 'Home', path: '/dashboard' },
-    { icon: UserIcon, label: 'Profile', path: '/settings' },
+    { icon: UserIcon, label: 'Profile', path: '/profile' },
     { icon: RocketLaunchIcon, label: 'Create Startup', path: '/create-startup' },
     { icon: AcademicCapIcon, label: 'Find Mentors', path: '/mentors' },
     { icon: UserGroupIcon, label: 'Chat Sessions', path: '/chat-sessions' },

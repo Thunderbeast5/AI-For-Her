@@ -13,7 +13,7 @@ import {
 const MentorSidebar = () => {
   const menuItems = [
     { icon: HomeIcon, label: 'Home', path: '/dashboard' },
-    { icon: UserIcon, label: 'Profile', path: '/settings' },
+    { icon: UserIcon, label: 'Profile', path: '/profile' },
     { icon: UserGroupIcon, label: 'My Mentees', path: '/mentees' },
     { icon: ChatBubbleLeftRightIcon, label: 'Chat Sessions', path: '/chat-sessions' },
     { icon: VideoCameraIcon, label: 'Group Mentoring', path: '/group-sessions' },

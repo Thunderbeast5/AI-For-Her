@@ -29,6 +29,7 @@ import Schedule from './pages/Schedule'
 // Shared Pages
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
+import Profile from './pages/Profile'
 
 function App() {
   return (
@@ -130,6 +131,11 @@ function App() {
             <Route path="/settings" element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             } />
           </Routes>
