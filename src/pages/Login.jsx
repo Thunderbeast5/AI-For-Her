@@ -27,11 +27,11 @@ const Login = () => {
     e.preventDefault();
 
     // Validate Gmail
-    const emailRegex = /^[^\s@]+@gmail\.com$/;
-    if (!emailRegex.test(formData.email)) {
-      setError('Please enter a valid Gmail address (must end with @gmail.com)');
-      return;
-    }
+    // const emailRegex = /^[^\s@]+@gmail\.com$/;
+    // if (!emailRegex.test(formData.email)) {
+    //   setError('Please enter a valid Gmail address (must end with @gmail.com)');
+    //   return;
+    // }
 
     try {
       setError('');
