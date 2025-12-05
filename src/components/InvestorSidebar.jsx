@@ -6,12 +6,14 @@ import {
   ChartBarIcon,
   BanknotesIcon,
   BookmarkIcon,
-  Cog6ToothIcon 
+  Cog6ToothIcon,
+  UserIcon
 } from '@heroicons/react/24/outline'
 
 const InvestorSidebar = () => {
   const menuItems = [
     { icon: HomeIcon, label: 'Home', path: '/dashboard' },
+    { icon: UserIcon, label: 'Profile', path: '/settings' },
     { icon: MagnifyingGlassIcon, label: 'Browse Projects', path: '/browse-projects' },
     { icon: BriefcaseIcon, label: 'My Portfolio', path: '/portfolio' },
     { icon: BookmarkIcon, label: 'Saved Projects', path: '/saved' },

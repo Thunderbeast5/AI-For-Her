@@ -6,12 +6,14 @@ import {
   VideoCameraIcon,
   CalendarIcon,
   ChartBarIcon,
-  Cog6ToothIcon 
+  Cog6ToothIcon, 
+  UserIcon
 } from '@heroicons/react/24/outline'
 
 const MentorSidebar = () => {
   const menuItems = [
     { icon: HomeIcon, label: 'Home', path: '/dashboard' },
+    { icon: UserIcon, label: 'Profile', path: '/settings' },
     { icon: UserGroupIcon, label: 'My Mentees', path: '/mentees' },
     { icon: ChatBubbleLeftRightIcon, label: 'Chat Sessions', path: '/chat-sessions' },
     { icon: VideoCameraIcon, label: 'Group Mentoring', path: '/group-sessions' },
