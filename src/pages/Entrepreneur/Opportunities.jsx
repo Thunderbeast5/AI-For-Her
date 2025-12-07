@@ -19,75 +19,133 @@ const Opportunities = () => {
   const opportunities = [
     {
       id: 1,
-      title: "SIDBI Women Entrepreneur Grant",
-      type: "Government",
-      category: "Grant",
-      amount: "₹10 Lakh",
-      deadline: "Nov 30, 2024",
-      description: "Financial assistance for women entrepreneurs in manufacturing and service sectors.",
-      eligibility: "Women-led startups, Manufacturing/Services, Annual turnover < ₹5 Cr",
-      tags: ["Manufacturing", "Services", "Women-led"],
-      status: "Open"
-    },
-    {
-      id: 2,
-      title: "Nasscom Women Startup Challenge",
-      type: "Private",
-      category: "Competition",
-      amount: "₹25 Lakh",
-      deadline: "Dec 15, 2024",
-      description: "Supporting women entrepreneurs in technology and innovation.",
-      eligibility: "Tech startups, Women founder/co-founder, Early to growth stage",
-      tags: ["Technology", "Innovation", "Women-led"],
-      status: "Open"
-    },
-    {
-      id: 3,
-      title: "T-Hub Women Entrepreneur Program",
-      type: "Incubator",
-      category: "Accelerator",
-      amount: "₹15 Lakh + Mentorship",
-      deadline: "Jan 10, 2025",
-      description: "6-month accelerator program with funding and mentorship for women entrepreneurs.",
-      eligibility: "Early-stage startups, Women leadership, Tech/Innovation focus",
-      tags: ["Accelerator", "Mentorship", "Technology"],
-      status: "Open"
-    },
-    {
-      id: 4,
-      title: "Stand Up India Loan Scheme",
+      title: "Stand-Up India Scheme",
       type: "Government",
       category: "Loan",
       amount: "₹10 Lakh - ₹1 Cr",
       deadline: "Ongoing",
-      description: "Bank loans for women entrepreneurs to start greenfield enterprises.",
-      eligibility: "Women entrepreneurs, 18+ years, Greenfield projects",
-      tags: ["Loan", "Greenfield", "Banking"],
-      status: "Ongoing"
+      description: "Government initiative providing loans ₹10 lakh to ₹1 crore. Specifically for women and SC/ST entrepreneurs.",
+      eligibility: "Women and SC/ST entrepreneurs, Greenfield projects, First-time business owners",
+      tags: ["Government Loan", "Women-led", "Greenfield"],
+      status: "Ongoing",
+      link: "https://standupmitra.in"
+    },
+    {
+      id: 2,
+      title: "Mahila Udyam Nidhi Scheme (SIDBI)",
+      type: "Government",
+      category: "Grant",
+      amount: "Up to ₹10 Lakh",
+      deadline: "Ongoing",
+      description: "Financial assistance up to ₹10 lakh for small-scale enterprises. Low interest rates + flexible repayment.",
+      eligibility: "Women entrepreneurs, Small-scale enterprises, Manufacturing/Services",
+      tags: ["SIDBI", "Low Interest", "Women-led"],
+      status: "Ongoing",
+      link: "https://sidbi.in"
+    },
+    {
+      id: 3,
+      title: "Mudra Loan – Women Entrepreneurship",
+      type: "Government",
+      category: "Loan",
+      amount: "Up to ₹10 Lakh",
+      deadline: "Ongoing",
+      description: "Loans under Shishu (up to ₹50,000), Kishore (₹50,000–₹5 lakh), Tarun (₹5–10 lakh). Special interest concessions for women.",
+      eligibility: "Women entrepreneurs, Non-corporate small businesses, All sectors",
+      tags: ["Mudra", "Interest Concession", "Women-led"],
+      status: "Ongoing",
+      link: "https://www.mudra.org.in"
+    },
+    {
+      id: 4,
+      title: "NITI Aayog Women Entrepreneurship Platform",
+      type: "Government",
+      category: "Accelerator",
+      amount: "Mentorship + Funding",
+      deadline: "Ongoing",
+      description: "Connects women founders with investors, mentors, corporate partners. Comprehensive ecosystem support.",
+      eligibility: "Women entrepreneurs, All stages, Technology and innovation focus",
+      tags: ["WEP", "Mentorship", "Networking"],
+      status: "Ongoing",
+      link: "https://wep.gov.in"
     },
     {
       id: 5,
-      title: "Facebook Women in Tech Grant",
-      type: "Private",
-      category: "Grant",
-      amount: "$50,000",
-      deadline: "Feb 28, 2025",
-      description: "Supporting women-led tech startups with funding and resources.",
-      eligibility: "Tech startups, Women founder, Product in development",
-      tags: ["Technology", "International", "Product"],
-      status: "Open"
+      title: "Annapurna Scheme",
+      type: "Government",
+      category: "Loan",
+      amount: "₹50,000 - ₹1 Lakh",
+      deadline: "Ongoing",
+      description: "Loans up to ₹50,000–₹1 lakh for women opening food-related businesses.",
+      eligibility: "Women entrepreneurs, Food sector, Catering/Restaurant/Food processing",
+      tags: ["Food Sector", "Small Loan", "Women-led"],
+      status: "Ongoing",
+      link: ""
     },
     {
       id: 6,
-      title: "BIRAC Women Scientist Scheme",
+      title: "Bharatiya Mahila Bank Business Loan",
+      type: "Government",
+      category: "Loan",
+      amount: "Up to ₹20 Crore",
+      deadline: "Ongoing",
+      description: "Loans up to ₹20 crore for manufacturing, service, or small business ventures.",
+      eligibility: "Women entrepreneurs, Manufacturing/Service sectors, Established businesses",
+      tags: ["Large Loan", "Manufacturing", "Services"],
+      status: "Ongoing",
+      link: ""
+    },
+    {
+      id: 7,
+      title: "Udyam Sakhi Portal",
       type: "Government",
       category: "Grant",
-      amount: "₹15 Lakh",
-      deadline: "Mar 15, 2025",
-      description: "Supporting women scientists and researchers in biotechnology ventures.",
-      eligibility: "Women scientists, Biotech/Life sciences, Research background",
-      tags: ["Biotechnology", "Research", "Life Sciences"],
-      status: "Open"
+      amount: "Funding + Training",
+      deadline: "Ongoing",
+      description: "Government platform providing funding, training & market linkages for women entrepreneurs.",
+      eligibility: "Women entrepreneurs, All sectors, MSMEs",
+      tags: ["Training", "Market Linkage", "Women-led"],
+      status: "Ongoing",
+      link: "https://udyamsakhi.gov.in"
+    },
+    {
+      id: 8,
+      title: "WE Hub - Telangana Government",
+      type: "Incubator",
+      category: "Accelerator",
+      amount: "Grants + Mentorship",
+      deadline: "Ongoing",
+      description: "Women-led incubator providing grants, mentorship, pre-seed funding and ecosystem support.",
+      eligibility: "Women-led startups, Telangana based (preferred), Early stage",
+      tags: ["Incubator", "Telangana", "Pre-seed"],
+      status: "Ongoing",
+      link: "https://wehub.telangana.gov.in"
+    },
+    {
+      id: 9,
+      title: "NSRCEL – IIM Bangalore Women Startup",
+      type: "Incubator",
+      category: "Accelerator",
+      amount: "Mentorship + Funding",
+      deadline: "Varies",
+      description: "Women Startup Program providing mentorship, funding opportunities and networking.",
+      eligibility: "Women entrepreneurs, Early to growth stage, All sectors",
+      tags: ["IIM Bangalore", "Mentorship", "Women-led"],
+      status: "Open",
+      link: "https://nsrcel.org"
+    },
+    {
+      id: 10,
+      title: "Sheroes Women Entrepreneurs Platform",
+      type: "Private",
+      category: "Accelerator",
+      amount: "Community + Resources",
+      deadline: "Ongoing",
+      description: "Platform connecting women entrepreneurs with resources, mentorship, and funding opportunities.",
+      eligibility: "Women entrepreneurs, All stages, Community-driven support",
+      tags: ["Community", "Networking", "Women-led"],
+      status: "Ongoing",
+      link: "https://sheroes.com"
     }
   ]
 
@@ -208,9 +266,20 @@ const Opportunities = () => {
                     ))}
                   </div>
 
-                  <button className="w-full bg-gradient-to-r from-primary to-accent text-gray-800 py-3 rounded-xl font-medium hover:shadow-md transition-all duration-200">
-                    Apply Now
-                  </button>
+                  {opportunity.link ? (
+                    <a
+                      href={opportunity.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full bg-gradient-to-r from-primary to-accent text-gray-800 py-3 rounded-xl font-medium hover:shadow-md transition-all duration-200 text-center"
+                    >
+                      Visit Website
+                    </a>
+                  ) : (
+                    <button className="w-full bg-gradient-to-r from-primary to-accent text-gray-800 py-3 rounded-xl font-medium hover:shadow-md transition-all duration-200">
+                      Learn More
+                    </button>
+                  )}
                 </motion.div>
               ))}
             </div>
