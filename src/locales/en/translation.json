@@ -1,0 +1,82 @@
+{
+  "nav": {
+    "language": "Language"
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "subtitle": "Ready to take your business to the next level?",
+    "mentorHub": "Your AI Mentor Hub",
+    "recentActivity": "Recent Activity",
+    "stats": {
+      "mentorConnections": "Mentor Connections",
+      "aiConversations": "AI Conversations",
+      "opportunitiesApplied": "Opportunities Applied",
+      "journeyProgress": "Journey Progress"
+    }
+  },
+  "actions": {
+    "findMentor": "Find Mentor",
+    "findMentorDesc": "Get matched with experienced entrepreneurs",
+    "askAI": "Ask AI Coach",
+    "askAIDesc": "Get instant business advice and insights",
+    "viewOpportunities": "View Opportunities",
+    "viewOpportunitiesDesc": "Discover funding and growth opportunities"
+  },
+  "mentor": {
+    "welcome": "Welcome",
+    "subtitle": "Empowering the next generation of women entrepreneurs",
+    "mentoringHub": "Mentoring Hub",
+    "connectedMentees": "Connected Mentees",
+    "connectedMenteesDesc": "View and manage your mentees",
+    "chatSessions": "Chat Sessions",
+    "chatSessionsDesc": "Individual mentoring conversations",
+    "groupMentoring": "Group Mentoring",
+    "groupMentoringDesc": "Host group sessions and workshops",
+    "stats": {
+      "activeMentees": "Active Mentees",
+      "sessionsThisMonth": "Sessions This Month",
+      "averageRating": "Average Rating",
+      "totalHours": "Total Hours Mentored"
+    }
+  },
+  "investor": {
+    "welcome": "Welcome",
+    "subtitle": "Discover and invest in innovative women-led startups",
+    "browseProjects": "Browse Investment Opportunities",
+    "searchPlaceholder": "Search for projects, founders, or ideas...",
+    "projectsFound": "Projects Found",
+    "investNow": "Invest Now",
+    "viewDetails": "View Details",
+    "stats": {
+      "activeInvestments": "Active Investments",
+      "totalInvested": "Total Invested",
+      "projectsReviewed": "Projects Reviewed",
+      "portfolioCompanies": "Portfolio Companies"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search",
+    "filter": "Filter",
+    "all": "All",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit"
+  },
+  "auth": {
+    "login": "Sign In",
+    "signup": "Sign Up",
+    "logout": "Logout",
+    "email": "Email Address",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?"
+  }
+}
