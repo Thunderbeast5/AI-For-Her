@@ -25,7 +25,7 @@ const Sidebar = () => {
     <div className="w-64 bg-white border-r border-gray-100 h-screen flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-gray-100">
-        <h1 className="text-xl font-bold text-gray-900">AI for Her</h1>
+        <h1 className="text-xl font-bold text-gray-900">Pratibhara</h1>
       </div>
 
       {/* Navigation */}

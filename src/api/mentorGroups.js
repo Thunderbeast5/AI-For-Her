@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from './index';
 
-const API_URL = 'http://localhost:5000/api/mentor-groups';
+const API_URL = `${API_BASE_URL}/mentor-groups`;
 
 export const mentorGroupsApi = {
   // Get all active groups (for entrepreneurs)

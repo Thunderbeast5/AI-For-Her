@@ -123,3 +123,14 @@ body.translated-ltr {
   color: #ec4899 !important;
   font-weight: 600 !important;
 }
+
+@font-face {
+  font-family: 'Fabrica Heavy';
+  src: url('./assets/fonts/Fabrica Heavy.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.logo-pratibhara {
+  font-family: 'Fabrica Heavy', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import InvestorSidebar from '../../components/InvestorSidebar';
+import { API_BASE_URL } from '../../api';
 import { 
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -52,7 +53,7 @@ const BrowseProjects = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/investment-projects');
+        const response = await fetch(`${API_BASE_URL}/investment-projects`);
         const data = await response.json();
         console.log('📦 Fetched investment projects:', data);
         setProjects(data);
@@ -81,7 +82,7 @@ const BrowseProjects = () => {
         const userId = localStorage.getItem('userId');
         if (!userId) return;
         
-        const response = await fetch(`http://localhost:5000/api/investors/${userId}/saved-projects`);
+        const response = await fetch(`${API_BASE_URL}/investors/${userId}/saved-projects`);
         if (response.ok) {
           const data = await response.json();
           setSavedProjects(data.map(p => p._id));
@@ -127,7 +128,7 @@ const BrowseProjects = () => {
 
     try {
       const userId = localStorage.getItem('userId');
-      const response = await fetch(`http://localhost:5000/api/investment-projects/${selectedProject._id}/invest`, {
+      const response = await fetch(`${API_BASE_URL}/investment-projects/${selectedProject._id}/invest`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -180,7 +181,7 @@ const BrowseProjects = () => {
       const isSaved = savedProjects.includes(projectId);
 
       const response = await fetch(
-        `http://localhost:5000/api/investors/${userId}/save-project/${projectId}`,
+        `${API_BASE_URL}/investors/${userId}/save-project/${projectId}`,
         {
           method: isSaved ? 'DELETE' : 'POST',
           headers: {

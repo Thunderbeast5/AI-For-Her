@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import InvestorSidebar from '../../components/InvestorSidebar';
+import { API_BASE_URL } from '../../api';
 import { 
   BookmarkIcon,
   StarIcon,
@@ -30,7 +31,7 @@ const SavedProjects = () => {
           return;
         }
 
-        const response = await fetch(`http://localhost:5000/api/investors/${userId}/saved-projects`);
+        const response = await fetch(`${API_BASE_URL}/investors/${userId}/saved-projects`);
         if (response.ok) {
           const data = await response.json();
           console.log('📚 Fetched saved projects:', data);
@@ -58,7 +59,7 @@ const SavedProjects = () => {
     try {
       const userId = localStorage.getItem('userId');
       const response = await fetch(
-        `http://localhost:5000/api/investors/${userId}/save-project/${projectId}`,
+        `${API_BASE_URL}/investors/${userId}/save-project/${projectId}`,
         { method: 'DELETE' }
       );
 

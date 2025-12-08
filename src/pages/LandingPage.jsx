@@ -132,10 +132,10 @@ const LandingPage = () => {
           <motion.h1 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="font-bold text-2xl text-gray-900 notranslate cursor-pointer hover:text-pink-600 transition-colors"
+            className="font-bold text-5xl text-gray-900 notranslate cursor-pointer hover:text-pink-600 transition-colors logo-pratibhara"
             onClick={() => navigate('/')}
           >
-            AI For Her
+            Prathibhara
           </motion.h1>
           <div className="flex items-center space-x-4">
             <GoogleTranslate />
@@ -206,12 +206,19 @@ const LandingPage = () => {
                 <p className="text-xl md:text-2xl text-white mb-8 max-w-3xl mx-auto drop-shadow-md">
                   {slide.subtitle}
                 </p>
-                <button
-                  onClick={() => navigate('/signup')}
-                  className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 rounded-xl text-lg font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-200"
-                >
-                  Get Started Free
-                </button>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={() => navigate('/signup')}
+                    className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 rounded-xl text-lg font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-200"
+                  >
+                    Get Started Free
+                  </button>
+                  <button
+                    onClick={() => navigate('/enterprise/store')}
+className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 rounded-xl text-lg font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-200"                  >
+                    Enterprise Store
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>

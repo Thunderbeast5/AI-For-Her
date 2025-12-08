@@ -19,12 +19,13 @@ const EntrepreneurSidebar = () => {
     { icon: UserIcon, label: 'Profile', path: '/profile' },
     { icon: RocketLaunchIcon, label: 'Create Startup', path: '/create-startup' },
     { icon: CurrencyRupeeIcon, label: 'List for Investment', path: '/list-project' },
+    { icon: CurrencyRupeeIcon, label: 'Manage Products', path: '/enterprise/products' },
     { icon: AcademicCapIcon, label: 'Find Mentors', path: '/mentors' },
     { icon: UserGroupIcon, label: 'Self Help Groups', path: '/shg' },
     { icon: LightBulbIcon, label: 'Opportunities', path: '/opportunities' },
     { icon: ChatBubbleLeftRightIcon, label: 'AI Coach', path: '/chat' },
     { icon: ChartBarIcon, label: 'Growth Journey', path: '/journey' },
-    { icon: Cog6ToothIcon, label: 'Settings', path: '/settings' },
+    // { icon: Cog6ToothIcon, label: 'Settings', path: '/settings' },
   ]
 
   return <SidebarLayout menuItems={menuItems} />

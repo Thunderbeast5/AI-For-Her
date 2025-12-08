@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { usersApi, startupsApi, connectionsApi } from '../../api'
+import { usersApi, startupsApi, connectionsApi, API_BASE_URL } from '../../api'
 import mentorGroupsApi from '../../api/mentorGroups'
 import groupSessionsApi from '../../api/groupSessions'
 import groupChatsApi from '../../api/groupChats'
@@ -74,6 +74,13 @@ const EntrepreneurDashboard = () => {
       icon: EyeIcon,
       color: "from-pink-200 to-pink-300",
       action: () => navigate('/opportunities')
+    },
+    {
+      title: 'Manage Products',
+      description: 'Add and manage products for your enterprise store',
+      icon: CurrencyDollarIcon,
+      color: "from-pink-200 to-pink-300",
+      action: () => navigate('/enterprise/products')
     }
   ]
 
@@ -199,7 +206,7 @@ const EntrepreneurDashboard = () => {
 
   const handleDeleteInvestmentProject = async (projectId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/investment-projects/${projectId}`, {
+      const response = await fetch(`${API_BASE_URL}/investment-projects/${projectId}`, {
         method: 'DELETE'
       })
       
@@ -299,7 +306,7 @@ const EntrepreneurDashboard = () => {
             // Fetch investment projects
             console.log('📡 Fetching investment projects for userId:', currentUser.userId)
             try {
-              const investmentResponse = await fetch(`http://localhost:5000/api/investment-projects/user/${currentUser.userId}`)
+              const investmentResponse = await fetch(`${API_BASE_URL}/investment-projects/user/${currentUser.userId}`)
               const investmentData = await investmentResponse.json()
               console.log('💰 Investment projects response:', investmentData)
               const projects = Array.isArray(investmentData) ? investmentData : investmentData.data || []

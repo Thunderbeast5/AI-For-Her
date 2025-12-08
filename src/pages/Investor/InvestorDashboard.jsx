@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import DashboardLayout from '../../components/DashboardLayout'
 import InvestorSidebar from '../../components/InvestorSidebar'
+import { API_BASE_URL } from '../../api'
 import { 
   BanknotesIcon,
   ChartBarIcon,
@@ -68,14 +69,14 @@ const InvestorDashboard = () => {
         }
 
         // Fetch investor profile
-        const profileResponse = await fetch(`http://localhost:5000/api/investors/${userId}`)
+        const profileResponse = await fetch(`${API_BASE_URL}/investors/${userId}`)
         if (profileResponse.ok) {
           const profile = await profileResponse.json()
           setInvestorProfile(profile)
         }
 
         // Fetch all investment projects
-        const projectsResponse = await fetch('http://localhost:5000/api/investment-projects')
+        const projectsResponse = await fetch(`${API_BASE_URL}/investment-projects`)
         const allProjects = await projectsResponse.json()
 
         // Calculate investments made by this investor
@@ -139,7 +140,7 @@ const InvestorDashboard = () => {
         setTrendingProjects(trending)
 
         // Fetch saved projects count
-        const savedResponse = await fetch(`http://localhost:5000/api/investors/${userId}/saved-projects`)
+        const savedResponse = await fetch(`${API_BASE_URL}/investors/${userId}/saved-projects`)
         const savedProjects = savedResponse.ok ? await savedResponse.json() : []
 
         // Calculate average equity

@@ -10,9 +10,9 @@ const SidebarLayout = ({ menuItems }) => {
       <div className="p-6">
         <h1 
           onClick={() => navigate('/')}
-          className="text-2xl font-bold text-gray-900 notranslate cursor-pointer hover:text-pink-400 transition-colors"
+          className="text-3xl font-bold text-gray-900 notranslate cursor-pointer hover:text-pink-400 transition-colors logo-pratibhara"
         >
-          AI For Her
+          Pratibhara
         </h1>
       </div>
 
