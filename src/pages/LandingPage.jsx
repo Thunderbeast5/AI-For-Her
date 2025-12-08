@@ -132,10 +132,10 @@ const LandingPage = () => {
           <motion.h1 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="font-bold text-2xl text-gray-900 notranslate cursor-pointer hover:text-pink-600 transition-colors"
+            className="font-bold text-5xl text-gray-900 notranslate cursor-pointer hover:text-pink-600 transition-colors logo-pratibhara"
             onClick={() => navigate('/')}
           >
-            AI For Her
+            Prathibhara
           </motion.h1>
           <div className="flex items-center space-x-4">
             <GoogleTranslate />
@@ -215,8 +215,7 @@ const LandingPage = () => {
                   </button>
                   <button
                     onClick={() => navigate('/enterprise/store')}
-                    className="px-8 py-4 bg-white/90 text-gray-900 rounded-xl text-lg font-semibold border border-pink-200 hover:bg-white hover:shadow-2xl hover:scale-105 transition-all duration-200"
-                  >
+className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 rounded-xl text-lg font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-200"                  >
                     Enterprise Store
                   </button>
                 </div>

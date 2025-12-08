@@ -25,7 +25,7 @@ const EntrepreneurSidebar = () => {
     { icon: LightBulbIcon, label: 'Opportunities', path: '/opportunities' },
     { icon: ChatBubbleLeftRightIcon, label: 'AI Coach', path: '/chat' },
     { icon: ChartBarIcon, label: 'Growth Journey', path: '/journey' },
-    { icon: Cog6ToothIcon, label: 'Settings', path: '/settings' },
+    // { icon: Cog6ToothIcon, label: 'Settings', path: '/settings' },
   ]
 
   return <SidebarLayout menuItems={menuItems} />

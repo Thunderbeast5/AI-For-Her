@@ -24,7 +24,7 @@ const MentorSidebar = () => {
     { icon: VideoCameraIcon, label: 'Group Mentoring', path: '/group-sessions' },
     { icon: CalendarIcon, label: 'Schedule', path: '/schedule' },
     { icon: ChartBarIcon, label: 'Analytics', path: '/analytics' },
-    { icon: Cog6ToothIcon, label: 'Settings', path: '/settings' },
+    // { icon: Cog6ToothIcon, label: 'Settings', path: '/settings' },
   ]
 
   return <SidebarLayout menuItems={menuItems} />

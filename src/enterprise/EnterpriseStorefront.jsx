@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import apiClient from '../api'
 import { ShoppingCartIcon } from '@heroicons/react/24/outline'
 
@@ -131,10 +132,12 @@ const EnterpriseStorefront = () => {
       {/* Top bar with AI For Her theme */}
       <header className="w-full bg-pink-300/95 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">AI For Her Store</h1>
+          <Link to="/" className="group flex flex-col">
+            <h1 className="text-3xl font-bold text-gray-900 group-hover:text-pink-700 transition-colors logo-pratibhara">
+              Pratibhara
+            </h1>
             <p className="text-sm text-gray-800">Discover products from women entrepreneurs</p>
-          </div>
+          </Link>
           <button
             type="button"
             onClick={() => setShowCheckout(true)}

@@ -15,7 +15,7 @@ const InvestorSidebar = () => {
     { icon: MagnifyingGlassIcon, label: 'Browse Projects', path: '/browse-projects' },
     { icon: BriefcaseIcon, label: 'My Portfolio', path: '/portfolio' },
     { icon: BookmarkIcon, label: 'Saved Projects', path: '/saved' },
-    { icon: Cog6ToothIcon, label: 'Settings', path: '/settings' },
+    // { icon: Cog6ToothIcon, label: 'Settings', path: '/settings' },
   ]
 
   return <SidebarLayout menuItems={menuItems} />
