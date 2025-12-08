@@ -585,7 +585,7 @@ const EntrepreneurDashboard = () => {
                         <TagIcon className="w-4 h-4" />
                         {startup.industry || startup.category}
                       </span>
-                      <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full flex items-center gap-1">
+                      <span className="px-3 py-1 bg-purple-600 text-white text-sm font-medium rounded-full flex items-center gap-1">
                         <TrophyIcon className="w-4 h-4" />
                         {startup.stage || 'Not specified'}
                       </span>
@@ -1143,26 +1143,26 @@ const EntrepreneurDashboard = () => {
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   {selectedStartup.founderName && (
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Founder Name</label>
-                      <p className="text-gray-900">{selectedStartup.founderName}</p>
+                      <label className="text-sm font-semibold text-gray-700">Founder Name</label>
+                      <p className="text-gray-900 font-medium">{selectedStartup.founderName}</p>
                     </div>
                   )}
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Tagline</label>
-                    <p className="text-gray-900">{selectedStartup.tagline || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Tagline</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.tagline || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Description</label>
-                    <p className="text-gray-900">{selectedStartup.description || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Description</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.description || 'Not provided'}</p>
                   </div>
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Location</label>
-                      <p className="text-gray-900">{selectedStartup.location || 'Not provided'}</p>
+                      <label className="text-sm font-semibold text-gray-700">Location</label>
+                      <p className="text-gray-900 font-medium">{selectedStartup.location || 'Not provided'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Founded Date</label>
-                      <p className="text-gray-900">
+                      <label className="text-sm font-semibold text-gray-700">Founded Date</label>
+                      <p className="text-gray-900 font-medium">
                         {selectedStartup.foundedDate 
                           ? new Date(selectedStartup.foundedDate).toLocaleDateString('en-IN', { 
                               day: '2-digit', 
@@ -1174,8 +1174,8 @@ const EntrepreneurDashboard = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Current Stage</label>
-                    <p className="text-gray-900">{selectedStartup.stage || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Current Stage</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.stage || 'Not provided'}</p>
                   </div>
                 </div>
               </div>
@@ -1188,24 +1188,24 @@ const EntrepreneurDashboard = () => {
                 </h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Problem Statement</label>
-                    <p className="text-gray-900">{selectedStartup.problemStatement || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Problem Statement</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.problemStatement || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Solution</label>
-                    <p className="text-gray-900">{selectedStartup.solution || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Solution</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.solution || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Target Market</label>
-                    <p className="text-gray-900">{selectedStartup.targetMarket || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Target Market</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.targetMarket || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Unique Selling Point</label>
-                    <p className="text-gray-900">{selectedStartup.uniqueSellingPoint || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Unique Selling Point</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.uniqueSellingPoint || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Value Proposition</label>
-                    <p className="text-gray-900">{selectedStartup.valueProposition || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Value Proposition</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.valueProposition || 'Not provided'}</p>
                   </div>
                 </div>
               </div>
@@ -1218,16 +1218,16 @@ const EntrepreneurDashboard = () => {
                 </h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Features</label>
-                    <p className="text-gray-900">
+                    <label className="text-sm font-semibold text-gray-700">Features</label>
+                    <p className="text-gray-900 font-medium">
                       {Array.isArray(selectedStartup.features) 
                         ? selectedStartup.features.join(', ') 
                         : selectedStartup.features || 'Not provided'}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Technology Stack</label>
-                    <p className="text-gray-900">
+                    <label className="text-sm font-semibold text-gray-700">Technology Stack</label>
+                    <p className="text-gray-900 font-medium">
                       {Array.isArray(selectedStartup.technology) 
                         ? selectedStartup.technology.join(', ') 
                         : selectedStartup.technology || 'Not provided'}
@@ -1245,31 +1245,31 @@ const EntrepreneurDashboard = () => {
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Funding Goal</label>
-                      <p className="text-gray-900 font-semibold text-lg">
+                      <label className="text-sm font-semibold text-gray-700">Funding Goal</label>
+                      <p className="text-gray-900 font-bold text-lg">
                         {selectedStartup.fundingGoal ? `₹${selectedStartup.fundingGoal.toLocaleString()}` : 'Not provided'}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Current Revenue</label>
-                      <p className="text-gray-900 font-semibold text-lg">
+                      <label className="text-sm font-semibold text-gray-700">Current Revenue</label>
+                      <p className="text-gray-900 font-bold text-lg">
                         {selectedStartup.currentRevenue ? `₹${selectedStartup.currentRevenue.toLocaleString()}` : 'Not provided'}
                       </p>
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Revenue Model</label>
-                    <p className="text-gray-900">{selectedStartup.revenueModel || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Revenue Model</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.revenueModel || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Projected Revenue</label>
-                    <p className="text-gray-900">
+                    <label className="text-sm font-semibold text-gray-700">Projected Revenue</label>
+                    <p className="text-gray-900 font-medium">
                       {selectedStartup.projectedRevenue ? `₹${selectedStartup.projectedRevenue.toLocaleString()}` : 'Not provided'}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Investment Use</label>
-                    <p className="text-gray-900">{selectedStartup.investmentUse || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Investment Use</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.investmentUse || 'Not provided'}</p>
                   </div>
                 </div>
               </div>
@@ -1282,12 +1282,12 @@ const EntrepreneurDashboard = () => {
                 </h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Team Size</label>
-                    <p className="text-gray-900">{selectedStartup.teamSize || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Team Size</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.teamSize || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Key Hires Needed</label>
-                    <p className="text-gray-900">
+                    <label className="text-sm font-semibold text-gray-700">Key Hires Needed</label>
+                    <p className="text-gray-900 font-medium">
                       {Array.isArray(selectedStartup.keyHires) 
                         ? selectedStartup.keyHires.join(', ') 
                         : selectedStartup.keyHires || 'Not provided'}
@@ -1305,29 +1305,29 @@ const EntrepreneurDashboard = () => {
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div className="grid md:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Customer Base</label>
-                      <p className="text-gray-900">{selectedStartup.customerBase || 'Not provided'}</p>
+                      <label className="text-sm font-semibold text-gray-700">Customer Base</label>
+                      <p className="text-gray-900 font-medium">{selectedStartup.customerBase || 'Not provided'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Monthly Active Users</label>
-                      <p className="text-gray-900">{selectedStartup.monthlyActiveUsers || 'Not provided'}</p>
+                      <label className="text-sm font-semibold text-gray-700">Monthly Active Users</label>
+                      <p className="text-gray-900 font-medium">{selectedStartup.monthlyActiveUsers || 'Not provided'}</p>
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Market Size</label>
-                    <p className="text-gray-900">{selectedStartup.marketSize || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Market Size</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.marketSize || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Competitors</label>
-                    <p className="text-gray-900">
+                    <label className="text-sm font-semibold text-gray-700">Competitors</label>
+                    <p className="text-gray-900 font-medium">
                       {Array.isArray(selectedStartup.competitors) 
                         ? selectedStartup.competitors.join(', ') 
                         : selectedStartup.competitors || 'Not provided'}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Competitive Advantage</label>
-                    <p className="text-gray-900">{selectedStartup.competitiveAdvantage || 'Not provided'}</p>
+                    <label className="text-sm font-semibold text-gray-700">Competitive Advantage</label>
+                    <p className="text-gray-900 font-medium">{selectedStartup.competitiveAdvantage || 'Not provided'}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-600">Key Achievements</label>
