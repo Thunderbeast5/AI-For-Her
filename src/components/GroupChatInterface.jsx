@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import groupChatsApi from '../api/groupChats';
 
-const GroupChatInterface = ({ groupId, groupName, currentUser, onClose }) => {
+const GroupChatInterface = ({ groupId, groupName, currentUser, onClose, groupType = 'mentor' }) => {
   const [groupChat, setGroupChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -11,6 +11,11 @@ const GroupChatInterface = ({ groupId, groupName, currentUser, onClose }) => {
   const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
   const pollIntervalRef = useRef(null);
+
+  // Determine API base URL based on group type
+  const apiBaseUrl = groupType === 'self-help' 
+    ? 'http://localhost:5000/api/self-help-group-chats'
+    : 'http://localhost:5000/api/group-chats';
 
   // Validate required props
   useEffect(() => {
@@ -31,14 +36,19 @@ const GroupChatInterface = ({ groupId, groupName, currentUser, onClose }) => {
     if (!currentUser?.userId) return;
     
     try {
-      const data = await groupChatsApi.getGroupChat(groupId);
+      const response = await fetch(`${apiBaseUrl}/group/${groupId}`);
+      const data = await response.json();
       setGroupChat(data);
       setMessages(data.messages || []);
       setLoading(false);
       
       // Mark messages as read
       if (currentUser?.userId) {
-        await groupChatsApi.markAsRead(groupId, currentUser.userId);
+        await fetch(`${apiBaseUrl}/group/${groupId}/read`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.userId })
+        });
       }
     } catch (error) {
       console.error('Error loading group chat:', error);
@@ -75,7 +85,15 @@ const GroupChatInterface = ({ groupId, groupName, currentUser, onClose }) => {
 
     setSending(true);
     try {
-      await groupChatsApi.sendMessage(groupId, currentUser.userId, currentUser.name, newMessage);
+      await fetch(`${apiBaseUrl}/group/${groupId}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderId: currentUser.userId,
+          senderName: currentUser.name,
+          message: newMessage
+        })
+      });
       setNewMessage('');
       await loadGroupChat(); // Refresh messages
     } catch (error) {

@@ -51,6 +51,12 @@ const Journey = () => {
     }
 
     fetchStartup()
+
+    // Poll for stage updates every 5 seconds
+    const pollInterval = setInterval(fetchStartup, 5000)
+
+    // Cleanup interval on unmount
+    return () => clearInterval(pollInterval)
   }, [])
 
   const overallProgress = stageToProgress[startupStage] || 12.5
@@ -298,9 +304,9 @@ const Journey = () => {
                 </div>
                 <span className="text-2xl font-bold text-gray-900">{Math.round(overallProgress)}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
+              <div className="w-full bg-gray-200 rounded-full h-4">
                 <div 
-                  className="bg-gradient-to-r from-primary to-accent h-3 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 h-4 rounded-full transition-all duration-500 shadow-md"
                   style={{ width: `${overallProgress}%` }}
                 />
               </div>
@@ -347,9 +353,9 @@ const Journey = () => {
                         <p className="text-gray-600 mb-4">{milestone.description}</p>
 
                         {/* Progress Bar */}
-                        <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                        <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
                           <div 
-                            className="bg-gradient-to-r from-primary to-accent h-2 rounded-full transition-all duration-500"
+                            className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 h-3 rounded-full transition-all duration-500 shadow-sm"
                             style={{ width: `${milestone.progress}%` }}
                           />
                         </div>
