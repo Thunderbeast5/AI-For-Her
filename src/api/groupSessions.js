@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from './index';
 
-const API_URL = 'http://localhost:5000/api/group-sessions';
+const API_URL = `${API_BASE_URL}/group-sessions`;
 
 export const groupSessionsApi = {
   // Get all active group sessions (for entrepreneurs)

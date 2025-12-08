@@ -37,6 +37,8 @@ import MyGroups from './pages/Mentor/MyGroups'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 import Profile from './pages/Profile'
+import EnterpriseProducts from './enterprise/EnterpriseProducts'
+import EnterpriseStorefront from './enterprise/EnterpriseStorefront'
 
 function App() {
   return (
@@ -168,6 +170,12 @@ function App() {
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/enterprise/store" element={<EnterpriseStorefront />} />
+            <Route path="/enterprise/products" element={
+              <ProtectedRoute>
+                <EnterpriseProducts />
               </ProtectedRoute>
             } />
           </Routes>

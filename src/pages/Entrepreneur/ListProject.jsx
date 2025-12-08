@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
 import { useAuth } from '../../context/AuthContext'
+import { API_BASE_URL } from '../../api'
 import {
   CurrencyRupeeIcon,
   RocketLaunchIcon,
@@ -113,7 +114,7 @@ const ListProject = () => {
           return
         }
         
-        const url = `http://localhost:5000/api/startups/user/${userId}`
+        const url = `${API_BASE_URL}/startups/user/${userId}`
         console.log('2. Fetching from URL:', url)
         
         const response = await fetch(url)
@@ -140,7 +141,7 @@ const ListProject = () => {
           
           // Try fetching all startups to debug
           console.log('10. Attempting to fetch ALL startups for debugging...')
-          const allResponse = await fetch('http://localhost:5000/api/startups')
+          const allResponse = await fetch(`${API_BASE_URL}/startups`)
           const allStartups = await allResponse.json()
           console.log('11. All startups in database:', allStartups)
         }
@@ -285,8 +286,8 @@ const ListProject = () => {
       }
 
       const url = isEditMode 
-        ? `http://localhost:5000/api/investment-projects/${editingProjectId}`
-        : 'http://localhost:5000/api/investment-projects'
+        ? `${API_BASE_URL}/investment-projects/${editingProjectId}`
+        : `${API_BASE_URL}/investment-projects`
       
       const method = isEditMode ? 'PUT' : 'POST'
 

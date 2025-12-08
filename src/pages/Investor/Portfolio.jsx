@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/DashboardLayout';
 import InvestorSidebar from '../../components/InvestorSidebar';
+import { API_BASE_URL } from '../../api';
 import { 
   BriefcaseIcon,
   ChartBarIcon,
@@ -42,7 +43,7 @@ const Portfolio = () => {
         }
 
         // Fetch all investment projects
-        const response = await fetch('http://localhost:5000/api/investment-projects');
+        const response = await fetch(`${API_BASE_URL}/investment-projects`);
         const allProjects = await response.json();
 
         // Filter investments by this investor

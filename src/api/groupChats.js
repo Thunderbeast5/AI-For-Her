@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from './index';
 
-const API_URL = 'http://localhost:5000/api/group-chats';
+const API_URL = `${API_BASE_URL}/group-chats`;
 
 export const groupChatsApi = {
   // Get or create group chat

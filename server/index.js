@@ -26,9 +26,11 @@ import mentorGroupRoutes from './routes/mentorGroups.js';
 import groupChatRoutes from './routes/groupChats.js';
 import groupSessionRoutes from './routes/groupSessions.js';
 import investmentProjectRoutes from './routes/investmentProjects.js';
+import productRoutes from './routes/products.js';
+import orderRoutes from './routes/orders.js';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
@@ -56,6 +58,8 @@ app.use('/api/mentor-groups', mentorGroupRoutes);
 app.use('/api/group-chats', groupChatRoutes);
 app.use('/api/group-sessions', groupSessionRoutes);
 app.use('/api/investment-projects', investmentProjectRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

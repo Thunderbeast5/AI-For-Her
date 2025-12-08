@@ -206,12 +206,20 @@ const LandingPage = () => {
                 <p className="text-xl md:text-2xl text-white mb-8 max-w-3xl mx-auto drop-shadow-md">
                   {slide.subtitle}
                 </p>
-                <button
-                  onClick={() => navigate('/signup')}
-                  className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 rounded-xl text-lg font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-200"
-                >
-                  Get Started Free
-                </button>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={() => navigate('/signup')}
+                    className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 rounded-xl text-lg font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-200"
+                  >
+                    Get Started Free
+                  </button>
+                  <button
+                    onClick={() => navigate('/enterprise/store')}
+                    className="px-8 py-4 bg-white/90 text-gray-900 rounded-xl text-lg font-semibold border border-pink-200 hover:bg-white hover:shadow-2xl hover:scale-105 transition-all duration-200"
+                  >
+                    Enterprise Store
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
