@@ -19,6 +19,7 @@ const EnterpriseProducts = () => {
     name: '',
     description: '',
     price: '',
+    category: '',
     imageUrl: '',
     tags: [],
   })
@@ -75,6 +76,7 @@ const EnterpriseProducts = () => {
       name: form.name,
       description: form.description,
       price: Number(form.price) || 0,
+      category: form.category,
       imageUrl: form.imageUrl,
       tags: form.tags,
     }
@@ -85,7 +87,7 @@ const EnterpriseProducts = () => {
       await apiClient.post('/products', payload)
     }
 
-    setForm({ name: '', description: '', price: '', imageUrl: '', tags: [] })
+    setForm({ name: '', description: '', price: '', category: '', imageUrl: '', tags: [] })
     setEditingProductId(null)
     await loadProducts()
   }
@@ -102,6 +104,7 @@ const EnterpriseProducts = () => {
       name: product.name || '',
       description: product.description || '',
       price: product.price != null ? String(product.price) : '',
+      category: product.category || '',
       imageUrl: product.imageUrl || '',
       tags: product.tags || [],
     })
@@ -211,6 +214,24 @@ const EnterpriseProducts = () => {
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <select
+                required
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+              >
+                <option value="">Select a category</option>
+                <option value="Clothing">Clothing</option>
+                <option value="Accessories">Accessories</option>
+                <option value="Home & Living">Home & Living</option>
+                <option value="Food & Beverages">Food & Beverages</option>
+                <option value="Beauty & Wellness">Beauty & Wellness</option>
+                <option value="Services">Services</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
@@ -372,23 +393,38 @@ const EnterpriseProducts = () => {
               <p className="text-gray-500 text-sm">No orders have been placed yet.</p>
             ) : (
               <div className="space-y-3 max-h-[480px] overflow-y-auto text-sm">
-                {orders.map((order) => (
-                  <div
-                    key={order._id}
-                    className="border border-gray-100 rounded-xl p-3"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-gray-900">{order.orderNumber}</span>
-                      <span className="text-pink-600 font-bold">₹{order.totalAmount}</span>
+                {orders.map((order) => {
+                  const customerName =
+                    order.customer?.fullName ||
+                    (order.customer?.firstName || order.customer?.lastName
+                      ? `${order.customer.firstName || ''} ${order.customer.lastName || ''}`.trim()
+                      : order.customer?.name || order.customerName)
+                  const customerCity = order.customer?.city || order.city
+
+                  return (
+                    <div
+                      key={order._id}
+                      className="border border-gray-100 rounded-xl p-3"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold text-gray-900">{order.orderNumber}</span>
+                        <span className="text-pink-600 font-bold">₹{order.totalAmount}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mb-1">
+                        {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
+                      </p>
+                      {customerName && (
+                        <p className="text-xs text-gray-600 mb-1">
+                          Customer: {customerName}
+                          {customerCity ? ` · ${customerCity}` : ''}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-600">
+                        {order.items?.map((it) => `${it.name} (x${it.quantity})`).join(', ')}
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-500 mb-1">
-                      {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      {order.items?.map((it) => `${it.name} (x${it.quantity})`).join(', ')}
-                    </p>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

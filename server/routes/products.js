@@ -33,10 +33,10 @@ router.get('/', async (req, res) => {
 // POST /api/products
 router.post('/', async (req, res) => {
   try {
-    const { userId, name, description, price, imageUrl, tags } = req.body;
+    const { userId, name, description, price, category, imageUrl, tags } = req.body;
 
-    if (!userId || !name || price == null) {
-      return res.status(400).json({ message: 'userId, name and price are required' });
+    if (!userId || !name || price == null || !category) {
+      return res.status(400).json({ message: 'userId, name, price and category are required' });
     }
 
     const product = new Product({
@@ -44,6 +44,7 @@ router.post('/', async (req, res) => {
       name,
       description: description || '',
       price,
+      category,
       imageUrl: imageUrl || '',
       tags: Array.isArray(tags) ? tags : [],
     });
@@ -77,12 +78,13 @@ router.delete('/:id', async (req, res) => {
 // PUT /api/products/:id - update product
 router.put('/:id', async (req, res) => {
   try {
-    const { name, description, price, imageUrl, tags } = req.body;
+    const { name, description, price, category, imageUrl, tags } = req.body;
 
     const update = {
       ...(name != null && { name }),
       ...(description != null && { description }),
       ...(price != null && { price }),
+      ...(category != null && { category }),
       ...(imageUrl != null && { imageUrl }),
       ...(tags != null && { tags }),
     };

@@ -132,7 +132,7 @@ const LandingPage = () => {
           <motion.h1 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="font-bold text-5xl text-gray-900 notranslate cursor-pointer hover:text-pink-600 transition-colors logo-pratibhara"
+            className="font-bold text-3xl text-gray-900 notranslate cursor-pointer hover:text-pink-600 transition-colors logo-pratibhara"
             onClick={() => navigate('/')}
           >
             Prathibhara
