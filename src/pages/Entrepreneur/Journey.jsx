@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import DashboardLayout from '../../components/DashboardLayout'
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
+import { startupsApi } from '../../api'
 import { 
   CheckCircleIcon, 
   ClockIcon, 
@@ -15,93 +16,218 @@ import {
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid'
 
 const Journey = () => {
+  const [startupStage, setStartupStage] = useState('Ideation')
+  const [loading, setLoading] = useState(true)
+
+  // Stage to progress percentage mapping (matching CreateStartup)
+  const stageToProgress = {
+    'Ideation': 12.5,
+    'Concept Research': 25,
+    'Prototype / MVP': 37.5,
+    'Validation': 50,
+    'Launch': 62.5,
+    'Growth': 75,
+    'Expansion / Funding': 87.5,
+    'Scaling / Maturity': 100
+  }
+
+  // Fetch user's startup to get the current stage
+  useEffect(() => {
+    const fetchStartup = async () => {
+      try {
+        const userId = localStorage.getItem('userId')
+        if (userId) {
+          const response = await startupsApi.getByUserId(userId)
+          if (response.data && response.data.length > 0) {
+            // Get the first startup's stage
+            setStartupStage(response.data[0].stage || 'Ideation')
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching startup:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStartup()
+  }, [])
+
+  const overallProgress = stageToProgress[startupStage] || 12.5
+
+  // Map milestones based on current stage
+  const getCurrentMilestoneStatus = (milestoneStage) => {
+    const currentProgress = stageToProgress[startupStage] || 12.5
+    const milestoneProgress = stageToProgress[milestoneStage] || 0
+    
+    if (currentProgress >= milestoneProgress) {
+      return currentProgress === milestoneProgress ? 'in_progress' : 'completed'
+    } else if (currentProgress >= milestoneProgress - 12.5) {
+      return 'pending'
+    }
+    return 'locked'
+  }
+
   const milestones = [
     {
       id: 1,
-      title: "Validate Product Idea",
-      description: "Conduct market research and validate your business concept",
-      status: "completed",
+      title: "Ideation",
+      stage: "Ideation",
+      description: "Define your business idea and identify the problem you're solving",
+      status: getCurrentMilestoneStatus("Ideation"),
       icon: LightBulbIcon,
-      progress: 100,
+      progress: startupStage === 'Ideation' ? 50 : (stageToProgress[startupStage] >= 12.5 ? 100 : 0),
       tasks: [
-        { name: "Market research", completed: true },
-        { name: "Customer interviews", completed: true },
-        { name: "Competitor analysis", completed: true },
-        { name: "Problem-solution fit", completed: true }
+        { name: "Identify problem to solve", completed: stageToProgress[startupStage] >= 12.5 },
+        { name: "Define target audience", completed: stageToProgress[startupStage] >= 12.5 },
+        { name: "Brainstorm solutions", completed: stageToProgress[startupStage] >= 12.5 },
+        { name: "Create initial concept", completed: stageToProgress[startupStage] >= 12.5 }
       ],
       recommendations: [
-        "Great job validating your idea! Your market research shows strong demand.",
-        "Consider expanding your target market based on interview insights."
+        "Start by identifying a real problem faced by your target market.",
+        "Talk to potential customers to validate your idea.",
+        "Document your concept clearly before moving forward."
       ]
     },
     {
       id: 2,
-      title: "Build MVP",
-      description: "Develop a minimum viable product to test with early customers",
-      status: "in_progress",
+      title: "Concept Research",
+      stage: "Concept Research",
+      description: "Conduct market research and validate your business concept",
+      status: getCurrentMilestoneStatus("Concept Research"),
       icon: CogIcon,
-      progress: 75,
+      progress: startupStage === 'Concept Research' ? 50 : (stageToProgress[startupStage] >= 25 ? 100 : 0),
       tasks: [
-        { name: "Define core features", completed: true },
-        { name: "Create wireframes", completed: true },
-        { name: "Develop prototype", completed: true },
-        { name: "User testing", completed: false },
-        { name: "Iterate based on feedback", completed: false }
+        { name: "Market research", completed: stageToProgress[startupStage] >= 25 },
+        { name: "Customer interviews", completed: stageToProgress[startupStage] >= 25 },
+        { name: "Competitor analysis", completed: stageToProgress[startupStage] >= 25 },
+        { name: "Problem-solution fit", completed: stageToProgress[startupStage] >= 25 }
       ],
       recommendations: [
-        "Focus on completing user testing to gather valuable feedback.",
-        "Consider using no-code tools to speed up development.",
-        "Plan for at least 2-3 iterations based on user feedback."
+        "Research your competitors and identify gaps in the market.",
+        "Conduct at least 10-15 customer interviews.",
+        "Validate that your solution addresses a real need."
       ]
     },
     {
       id: 3,
-      title: "Apply for Grants",
-      description: "Secure initial funding through grants and competitions",
-      status: "pending",
-      icon: CurrencyRupeeIcon,
-      progress: 0,
+      title: "Prototype / MVP",
+      stage: "Prototype / MVP",
+      description: "Develop a minimum viable product to test with early customers",
+      status: getCurrentMilestoneStatus("Prototype / MVP"),
+      icon: CogIcon,
+      progress: startupStage === 'Prototype / MVP' ? 50 : (stageToProgress[startupStage] >= 37.5 ? 100 : 0),
       tasks: [
-        { name: "Research grant opportunities", completed: false },
-        { name: "Prepare business plan", completed: false },
-        { name: "Submit applications", completed: false },
-        { name: "Follow up on applications", completed: false }
+        { name: "Define core features", completed: stageToProgress[startupStage] >= 37.5 },
+        { name: "Create wireframes/prototype", completed: stageToProgress[startupStage] >= 37.5 },
+        { name: "Develop MVP", completed: stageToProgress[startupStage] >= 37.5 },
+        { name: "Initial user testing", completed: stageToProgress[startupStage] >= 37.5 }
       ],
       recommendations: [
-        "Start with SIDBI Women Entrepreneur Grant - good fit for your profile.",
-        "Prepare a compelling pitch deck highlighting your unique value proposition.",
-        "Consider applying to multiple grants to increase chances of success."
+        "Focus on building only the essential features first.",
+        "Use no-code tools if possible to speed up development.",
+        "Get feedback from real users as early as possible."
       ]
     },
     {
       id: 4,
-      title: "Scale Operations",
-      description: "Expand your team and operations to handle growth",
-      status: "locked",
-      icon: ChartBarIcon,
-      progress: 0,
+      title: "Validation",
+      stage: "Validation",
+      description: "Test your product with real users and gather feedback",
+      status: getCurrentMilestoneStatus("Validation"),
+      icon: CheckCircleIcon,
+      progress: startupStage === 'Validation' ? 50 : (stageToProgress[startupStage] >= 50 ? 100 : 0),
       tasks: [
-        { name: "Hire key team members", completed: false },
-        { name: "Set up operations processes", completed: false },
-        { name: "Implement growth strategies", completed: false },
-        { name: "Monitor key metrics", completed: false }
+        { name: "Beta testing", completed: stageToProgress[startupStage] >= 50 },
+        { name: "Gather user feedback", completed: stageToProgress[startupStage] >= 50 },
+        { name: "Iterate based on feedback", completed: stageToProgress[startupStage] >= 50 },
+        { name: "Validate product-market fit", completed: stageToProgress[startupStage] >= 50 }
       ],
-      recommendations: []
+      recommendations: [
+        "Run a beta program with at least 20-30 early adopters.",
+        "Track key metrics like user engagement and retention.",
+        "Be ready to pivot based on feedback."
+      ]
     },
     {
       id: 5,
-      title: "Launch & Market",
+      title: "Launch",
+      stage: "Launch",
       description: "Launch your product and execute marketing strategies",
-      status: "locked",
+      status: getCurrentMilestoneStatus("Launch"),
       icon: RocketLaunchIcon,
-      progress: 0,
+      progress: startupStage === 'Launch' ? 50 : (stageToProgress[startupStage] >= 62.5 ? 100 : 0),
       tasks: [
-        { name: "Plan launch strategy", completed: false },
-        { name: "Execute marketing campaigns", completed: false },
-        { name: "Build customer base", completed: false },
-        { name: "Gather customer feedback", completed: false }
+        { name: "Plan launch strategy", completed: stageToProgress[startupStage] >= 62.5 },
+        { name: "Execute marketing campaigns", completed: stageToProgress[startupStage] >= 62.5 },
+        { name: "Build customer base", completed: stageToProgress[startupStage] >= 62.5 },
+        { name: "Monitor launch metrics", completed: stageToProgress[startupStage] >= 62.5 }
       ],
-      recommendations: []
+      recommendations: [
+        "Create buzz before launch through social media and press.",
+        "Offer early bird discounts to drive initial adoption.",
+        "Have customer support ready from day one."
+      ]
+    },
+    {
+      id: 6,
+      title: "Growth",
+      stage: "Growth",
+      description: "Focus on customer acquisition and revenue growth",
+      status: getCurrentMilestoneStatus("Growth"),
+      icon: ChartBarIcon,
+      progress: startupStage === 'Growth' ? 50 : (stageToProgress[startupStage] >= 75 ? 100 : 0),
+      tasks: [
+        { name: "Scale marketing efforts", completed: stageToProgress[startupStage] >= 75 },
+        { name: "Optimize conversion funnel", completed: stageToProgress[startupStage] >= 75 },
+        { name: "Expand customer base", completed: stageToProgress[startupStage] >= 75 },
+        { name: "Improve unit economics", completed: stageToProgress[startupStage] >= 75 }
+      ],
+      recommendations: [
+        "Focus on channels that show the best ROI.",
+        "Implement referral programs to boost growth.",
+        "Monitor your CAC and LTV metrics closely."
+      ]
+    },
+    {
+      id: 7,
+      title: "Expansion / Funding",
+      stage: "Expansion / Funding",
+      description: "Secure funding and expand operations",
+      status: getCurrentMilestoneStatus("Expansion / Funding"),
+      icon: CurrencyRupeeIcon,
+      progress: startupStage === 'Expansion / Funding' ? 50 : (stageToProgress[startupStage] >= 87.5 ? 100 : 0),
+      tasks: [
+        { name: "Prepare pitch deck", completed: stageToProgress[startupStage] >= 87.5 },
+        { name: "Approach investors", completed: stageToProgress[startupStage] >= 87.5 },
+        { name: "Secure funding", completed: stageToProgress[startupStage] >= 87.5 },
+        { name: "Plan expansion strategy", completed: stageToProgress[startupStage] >= 87.5 }
+      ],
+      recommendations: [
+        "Apply for government grants and women entrepreneur schemes.",
+        "Build relationships with angel investors and VCs.",
+        "Have strong financial projections ready."
+      ]
+    },
+    {
+      id: 8,
+      title: "Scaling / Maturity",
+      stage: "Scaling / Maturity",
+      description: "Scale operations and establish market leadership",
+      status: getCurrentMilestoneStatus("Scaling / Maturity"),
+      icon: ChartBarIcon,
+      progress: startupStage === 'Scaling / Maturity' ? 100 : 0,
+      tasks: [
+        { name: "Scale team and operations", completed: stageToProgress[startupStage] >= 100 },
+        { name: "Expand to new markets", completed: stageToProgress[startupStage] >= 100 },
+        { name: "Build strategic partnerships", completed: stageToProgress[startupStage] >= 100 },
+        { name: "Achieve sustainable profitability", completed: stageToProgress[startupStage] >= 100 }
+      ],
+      recommendations: [
+        "Focus on building a strong company culture.",
+        "Invest in automation and processes.",
+        "Consider strategic acquisitions or partnerships."
+      ]
     }
   ]
 
@@ -135,12 +261,18 @@ const Journey = () => {
     }
   }
 
-  const overallProgress = Math.round(
-    milestones.reduce((acc, milestone) => acc + milestone.progress, 0) / milestones.length
-  )
-
   // Memoize sidebar to prevent re-rendering
   const sidebar = useMemo(() => <EntrepreneurSidebar />, [])
+
+  if (loading) {
+    return (
+      <DashboardLayout sidebar={sidebar}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading your journey...</div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout sidebar={sidebar}>
@@ -160,8 +292,11 @@ const Journey = () => {
               className="bg-white rounded-2xl p-6 shadow-sm mb-8"
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Overall Progress</h2>
-                <span className="text-2xl font-bold text-gray-900">{overallProgress}%</span>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Overall Progress</h2>
+                  <p className="text-sm text-gray-600 mt-1">Current Stage: {startupStage}</p>
+                </div>
+                <span className="text-2xl font-bold text-gray-900">{Math.round(overallProgress)}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
                 <div 
@@ -170,7 +305,11 @@ const Journey = () => {
                 />
               </div>
               <p className="text-sm text-gray-600 mt-2">
-                You're making great progress! Keep up the momentum.
+                {overallProgress < 50 
+                  ? "You're off to a great start! Keep building momentum." 
+                  : overallProgress < 100 
+                    ? "You're making excellent progress! Keep pushing forward."
+                    : "Amazing! You've reached the scaling stage. Continue growing!"}
               </p>
             </motion.div>
 

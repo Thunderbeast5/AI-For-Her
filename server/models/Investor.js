@@ -36,6 +36,7 @@ const investorSchema = new mongoose.Schema({
   investmentStage: [String],
   bio: String,
   firm: String,
+  savedProjects: [{ type: mongoose.Schema.Types.ObjectId, ref: 'InvestmentProject' }],
   
   // Optional Fields
   investmentCount: { type: Number, default: 0 },

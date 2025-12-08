@@ -49,6 +49,9 @@ const EntrepreneurDashboard = () => {
   const [selectedGroupChat, setSelectedGroupChat] = useState(null)
   const [selectedStartup, setSelectedStartup] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
+  const [investmentProjects, setInvestmentProjects] = useState([])
+  const [selectedInvestmentProject, setSelectedInvestmentProject] = useState(null)
+  const [showDeleteProjectConfirm, setShowDeleteProjectConfirm] = useState(null)
 
   const quickActions = [
     {
@@ -194,6 +197,25 @@ const EntrepreneurDashboard = () => {
     navigate('/create-startup', { state: { startup } })
   }
 
+  const handleDeleteInvestmentProject = async (projectId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/investment-projects/${projectId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete project')
+      }
+      
+      setInvestmentProjects(prev => prev.filter(p => p._id !== projectId))
+      setShowDeleteProjectConfirm(null)
+      alert('Investment project deleted successfully')
+    } catch (error) {
+      console.error('Error deleting investment project:', error)
+      alert('Failed to delete project. Please try again.')
+    }
+  }
+
 
   // Fetch user data and stats from MongoDB
   useEffect(() => {
@@ -233,14 +255,31 @@ const EntrepreneurDashboard = () => {
             // Fetch connections for mentor connections count
             let mentorConnectionsCount = 0
             try {
+              console.log('📡 Fetching connections for userId:', currentUser.userId)
               const connectionsResponse = await connectionsApi.getByUser(currentUser.userId, 'entrepreneur')
-              const connections = connectionsResponse?.data || connectionsResponse || []
-              const connectionsArray = Array.isArray(connections) ? connections : []
-              // Count accepted connections
-              mentorConnectionsCount = connectionsArray.filter(conn => conn.status === 'accepted').length
+              console.log('🔗 Raw connections response:', connectionsResponse)
+              
+              // Handle response - it comes as { success: true, data: [...] }
+              let connectionsArray = []
+              if (connectionsResponse?.success && connectionsResponse?.data) {
+                connectionsArray = Array.isArray(connectionsResponse.data) ? connectionsResponse.data : []
+              } else if (Array.isArray(connectionsResponse)) {
+                connectionsArray = connectionsResponse
+              } else if (connectionsResponse?.data && Array.isArray(connectionsResponse.data)) {
+                connectionsArray = connectionsResponse.data
+              }
+              
+              console.log('🔗 Connections array:', connectionsArray)
+              
+              // Count active connections (active = accepted and ongoing)
+              mentorConnectionsCount = connectionsArray.filter(conn => {
+                console.log('🔍 Connection:', conn._id, 'Status:', conn.status)
+                return conn.status === 'active' || conn.status === 'completed'
+              }).length
               console.log('✅ Mentor connections count:', mentorConnectionsCount)
             } catch (error) {
-              console.error('Error fetching connections:', error)
+              console.error('❌ Error fetching connections:', error.message, error)
+              mentorConnectionsCount = 0
             }
 
             // Fetch free groups
@@ -257,6 +296,20 @@ const EntrepreneurDashboard = () => {
             const groupSessions = Array.isArray(sessionsResponse) ? sessionsResponse : []
             setMyGroupSessions(groupSessions)
 
+            // Fetch investment projects
+            console.log('📡 Fetching investment projects for userId:', currentUser.userId)
+            try {
+              const investmentResponse = await fetch(`http://localhost:5000/api/investment-projects/user/${currentUser.userId}`)
+              const investmentData = await investmentResponse.json()
+              console.log('💰 Investment projects response:', investmentData)
+              const projects = Array.isArray(investmentData) ? investmentData : investmentData.data || []
+              setInvestmentProjects(projects)
+              console.log('✅ Investment projects set:', projects.length, 'items')
+            } catch (error) {
+              console.error('❌ Error fetching investment projects:', error)
+              setInvestmentProjects([])
+            }
+
             // Calculate opportunities applied (startups created + groups joined)
             const opportunitiesApplied = startups.length + freeGroups.length + groupSessions.length
 
@@ -265,7 +318,7 @@ const EntrepreneurDashboard = () => {
               mentorConnections: mentorConnectionsCount,
               aiConversations: 0, // This would need chat API integration
               opportunitiesApplied: opportunitiesApplied,
-              journeyProgress: calculateProgress(currentUser)
+              journeyProgress: calculateJourneyProgress(startups)
             })
             console.log('✅ Stats updated with real data')
             
@@ -312,6 +365,34 @@ const EntrepreneurDashboard = () => {
 
     fetchUserData()
   }, [currentUser])
+
+  // Calculate journey progress based on startup stages
+  const calculateJourneyProgress = (startups) => {
+    if (!startups || startups.length === 0) return 0
+    
+    // Stage to progress mapping (matching the 8 stages from CreateStartup)
+    const stageToProgress = {
+      'Ideation': 12.5,
+      'Concept Research': 25,
+      'Prototype / MVP': 37.5,
+      'Validation': 50,
+      'Launch': 62.5,
+      'Growth': 75,
+      'Expansion / Funding': 87.5,
+      'Scaling / Maturity': 100
+    }
+    
+    // Get the highest stage progress from all startups
+    let maxProgress = 0
+    startups.forEach(startup => {
+      const progress = stageToProgress[startup.stage] || 0
+      if (progress > maxProgress) {
+        maxProgress = progress
+      }
+    })
+    
+    return maxProgress
+  }
 
   // Calculate profile progress
   const calculateProgress = (user) => {
@@ -546,23 +627,97 @@ const EntrepreneurDashboard = () => {
 
                 <p className="text-sm text-gray-700 mb-4 leading-relaxed line-clamp-2">{startup.description}</p>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-gray-600 mb-1">
-                      <UsersIcon className="w-4 h-4" />
-                      <span className="text-xs font-semibold">Target Market</span>
+                {/* All Startup Fields */}
+                <div className="grid md:grid-cols-3 gap-3 mb-4">
+                  {startup.targetMarket && (
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-gray-600 mb-1">
+                        <UsersIcon className="w-4 h-4" />
+                        <span className="text-xs font-semibold">Target Market</span>
+                      </div>
+                      <p className="text-sm text-gray-800">{startup.targetMarket}</p>
                     </div>
-                    <p className="text-sm text-gray-800">{startup.targetMarket || 'Not specified'}</p>
-                  </div>
+                  )}
                   
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-gray-600 mb-1">
-                      <CurrencyDollarIcon className="w-4 h-4" />
-                      <span className="text-xs font-semibold">Funding Goal</span>
+                  {startup.fundingGoal && (
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-gray-600 mb-1">
+                        <CurrencyDollarIcon className="w-4 h-4" />
+                        <span className="text-xs font-semibold">Funding Goal</span>
+                      </div>
+                      <p className="text-sm text-gray-800">₹{startup.fundingGoal.toLocaleString()}</p>
                     </div>
-                    <p className="text-sm text-gray-800">{startup.fundingGoal ? `₹${startup.fundingGoal.toLocaleString()}` : startup.fundingRequired || 'Not specified'}</p>
-                  </div>
+                  )}
+                  
+                  {startup.teamSize && (
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-gray-600 mb-1">
+                        <UsersIcon className="w-4 h-4" />
+                        <span className="text-xs font-semibold">Team Size</span>
+                      </div>
+                      <p className="text-sm text-gray-800">{startup.teamSize} members</p>
+                    </div>
+                  )}
                 </div>
+
+                {/* Additional Fields Row */}
+                <div className="grid md:grid-cols-2 gap-3 mb-4">
+                  {startup.revenueModel && (
+                    <div className="bg-blue-50 rounded-lg p-3">
+                      <span className="text-xs font-semibold text-blue-900">Revenue Model</span>
+                      <p className="text-sm text-blue-800 mt-1">{startup.revenueModel}</p>
+                    </div>
+                  )}
+                  
+                  {startup.uniqueSellingPoint && (
+                    <div className="bg-purple-50 rounded-lg p-3">
+                      <span className="text-xs font-semibold text-purple-900">USP</span>
+                      <p className="text-sm text-purple-800 mt-1">{startup.uniqueSellingPoint}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Checkboxes Section */}
+                {(startup.hasWebsite || startup.hasPrototype || startup.hasMinimumViableProduct || startup.hasRevenue || startup.hasFunding) && (
+                  <div className="bg-green-50 rounded-lg p-3 mb-4">
+                    <span className="text-xs font-semibold text-green-900 block mb-2">Milestones Achieved</span>
+                    <div className="flex flex-wrap gap-2">
+                      {startup.hasWebsite && (
+                        <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">✓ Website</span>
+                      )}
+                      {startup.hasPrototype && (
+                        <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">✓ Prototype</span>
+                      )}
+                      {startup.hasMinimumViableProduct && (
+                        <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">✓ MVP</span>
+                      )}
+                      {startup.hasRevenue && (
+                        <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">✓ Revenue</span>
+                      )}
+                      {startup.hasFunding && (
+                        <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">✓ Funding</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Revenue Info */}
+                {(startup.currentRevenue || startup.projectedRevenue) && (
+                  <div className="grid md:grid-cols-2 gap-3 mb-4">
+                    {startup.currentRevenue > 0 && (
+                      <div className="bg-yellow-50 rounded-lg p-3">
+                        <span className="text-xs font-semibold text-yellow-900">Current Revenue</span>
+                        <p className="text-sm text-yellow-800 mt-1">₹{startup.currentRevenue.toLocaleString()}</p>
+                      </div>
+                    )}
+                    {startup.projectedRevenue > 0 && (
+                      <div className="bg-orange-50 rounded-lg p-3">
+                        <span className="text-xs font-semibold text-orange-900">Projected Revenue</span>
+                        <p className="text-sm text-orange-800 mt-1">₹{startup.projectedRevenue.toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-200">
                   <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -604,6 +759,167 @@ const EntrepreneurDashboard = () => {
               className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all font-medium"
             >
               Create Your First Startup
+            </button>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Investment Projects Listed for Funding */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.65 }}
+        className="bg-white rounded-2xl p-6 shadow-sm mb-8"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Projects Listed for Investment ({investmentProjects.length})</h3>
+            <p className="text-sm text-gray-600">Track your funding progress</p>
+          </div>
+          <button
+            onClick={() => navigate('/list-project')}
+            className="text-sm text-pink-600 hover:text-pink-700 font-medium"
+          >
+            List New Project +
+          </button>
+        </div>
+        
+        {console.log('💰 Rendering investment projects section, length:', investmentProjects.length)}
+        {console.log('💰 Investment projects data:', investmentProjects)}
+        
+        {investmentProjects.length > 0 ? (
+          <div className="space-y-4">
+            {investmentProjects.map((project) => {
+              const fundingPercentage = project.fundingPercentage || 0
+              const remainingAmount = project.fundingGoal - (project.currentFunding || 0)
+              const daysLeft = project.fundingDeadline 
+                ? Math.max(0, Math.ceil((new Date(project.fundingDeadline) - new Date()) / (1000 * 60 * 60 * 24)))
+                : 0
+              
+              return (
+                <div 
+                  key={project._id}
+                  className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <h4 className="text-xl font-semibold text-gray-900 mb-2">{project.projectName}</h4>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className={`px-3 py-1 text-sm rounded-full flex items-center gap-1 ${
+                          project.status === 'active' ? 'bg-green-100 text-green-700' :
+                          project.status === 'funded' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          <CurrencyDollarIcon className="w-4 h-4" />
+                          {project.status?.charAt(0).toUpperCase() + project.status?.slice(1)}
+                        </span>
+                        {daysLeft > 0 && project.status === 'active' && (
+                          <span className="px-3 py-1 bg-orange-100 text-orange-700 text-sm rounded-full flex items-center gap-1">
+                            <ClockIcon className="w-4 h-4" />
+                            {daysLeft} days left
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedInvestmentProject(project)}
+                        className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                      >
+                        <EyeIcon className="w-4 h-4" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => navigate('/list-project', { state: { editProject: project } })}
+                        className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1"
+                      >
+                        <PencilIcon className="w-4 h-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setShowDeleteProjectConfirm(project._id)}
+                        className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-700 mb-4 leading-relaxed line-clamp-2">
+                    {project.projectDescription}
+                  </p>
+
+                  {/* Funding Progress */}
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-semibold text-gray-700">Funding Progress</span>
+                      <span className="text-sm font-bold text-pink-600">{fundingPercentage.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-pink-500 to-purple-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(fundingPercentage, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Funding Stats */}
+                  <div className="grid md:grid-cols-3 gap-4 mb-4">
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-green-700 mb-1">
+                        <CurrencyDollarIcon className="w-4 h-4" />
+                        <span className="text-xs font-semibold">Raised</span>
+                      </div>
+                      <p className="text-sm font-bold text-green-900">₹{(project.currentFunding || 0).toLocaleString()}</p>
+                    </div>
+                    
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-blue-700 mb-1">
+                        <UsersIcon className="w-4 h-4" />
+                        <span className="text-xs font-semibold">Investors</span>
+                      </div>
+                      <p className="text-sm font-bold text-blue-900">{project.investors?.length || 0}</p>
+                    </div>
+                    
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-purple-700 mb-1">
+                        <CurrencyDollarIcon className="w-4 h-4" />
+                        <span className="text-xs font-semibold">Remaining</span>
+                      </div>
+                      <p className="text-sm font-bold text-purple-900">₹{remainingAmount.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {/* Goal Info */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600">
+                      Goal: <span className="font-bold text-gray-900">₹{project.fundingGoal?.toLocaleString()}</span>
+                      {' • '}
+                      Equity: <span className="font-bold text-gray-900">{project.equityOffered}%</span>
+                    </div>
+                    {project.status === 'funded' && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">
+                        ✓ Fully Funded
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="w-20 h-20 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CurrencyDollarIcon className="w-10 h-10 text-pink-500" />
+            </div>
+            <h4 className="text-lg font-semibold text-gray-900 mb-2">No Projects Listed Yet</h4>
+            <p className="text-gray-600 mb-6">List your startup for investment to attract investors!</p>
+            <button
+              onClick={() => navigate('/list-project')}
+              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all font-medium"
+            >
+              List Your First Project
             </button>
           </div>
         )}
@@ -825,6 +1141,12 @@ const EntrepreneurDashboard = () => {
                   Basic Information
                 </h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  {selectedStartup.founderName && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Founder Name</label>
+                      <p className="text-gray-900">{selectedStartup.founderName}</p>
+                    </div>
+                  )}
                   <div>
                     <label className="text-sm font-medium text-gray-600">Tagline</label>
                     <p className="text-gray-900">{selectedStartup.tagline || 'Not provided'}</p>
@@ -840,8 +1162,20 @@ const EntrepreneurDashboard = () => {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600">Founded Date</label>
-                      <p className="text-gray-900">{selectedStartup.foundedDate || 'Not provided'}</p>
+                      <p className="text-gray-900">
+                        {selectedStartup.foundedDate 
+                          ? new Date(selectedStartup.foundedDate).toLocaleDateString('en-IN', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric' 
+                            })
+                          : 'Not provided'}
+                      </p>
                     </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Current Stage</label>
+                    <p className="text-gray-900">{selectedStartup.stage || 'Not provided'}</p>
                   </div>
                 </div>
               </div>
@@ -884,16 +1218,20 @@ const EntrepreneurDashboard = () => {
                 </h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Product Status</label>
-                    <p className="text-gray-900">{selectedStartup.productStatus || 'Not provided'}</p>
-                  </div>
-                  <div>
                     <label className="text-sm font-medium text-gray-600">Features</label>
-                    <p className="text-gray-900">{selectedStartup.features || 'Not provided'}</p>
+                    <p className="text-gray-900">
+                      {Array.isArray(selectedStartup.features) 
+                        ? selectedStartup.features.join(', ') 
+                        : selectedStartup.features || 'Not provided'}
+                    </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Technology</label>
-                    <p className="text-gray-900">{selectedStartup.technology || 'Not provided'}</p>
+                    <label className="text-sm font-medium text-gray-600">Technology Stack</label>
+                    <p className="text-gray-900">
+                      {Array.isArray(selectedStartup.technology) 
+                        ? selectedStartup.technology.join(', ') 
+                        : selectedStartup.technology || 'Not provided'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -949,7 +1287,11 @@ const EntrepreneurDashboard = () => {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-600">Key Hires Needed</label>
-                    <p className="text-gray-900">{selectedStartup.keyHires || 'Not provided'}</p>
+                    <p className="text-gray-900">
+                      {Array.isArray(selectedStartup.keyHires) 
+                        ? selectedStartup.keyHires.join(', ') 
+                        : selectedStartup.keyHires || 'Not provided'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -977,15 +1319,23 @@ const EntrepreneurDashboard = () => {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-600">Competitors</label>
-                    <p className="text-gray-900">{selectedStartup.competitors || 'Not provided'}</p>
+                    <p className="text-gray-900">
+                      {Array.isArray(selectedStartup.competitors) 
+                        ? selectedStartup.competitors.join(', ') 
+                        : selectedStartup.competitors || 'Not provided'}
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-600">Competitive Advantage</label>
                     <p className="text-gray-900">{selectedStartup.competitiveAdvantage || 'Not provided'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Achievements</label>
-                    <p className="text-gray-900">{selectedStartup.achievements || 'Not provided'}</p>
+                    <label className="text-sm font-medium text-gray-600">Key Achievements</label>
+                    <p className="text-gray-900">
+                      {Array.isArray(selectedStartup.achievements) 
+                        ? selectedStartup.achievements.join(', ') 
+                        : selectedStartup.achievements || 'Not provided'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1018,7 +1368,7 @@ const EntrepreneurDashboard = () => {
                   {selectedStartup.website && (
                     <div>
                       <label className="text-sm font-medium text-gray-600">Website</label>
-                      <a href={selectedStartup.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      <a href={selectedStartup.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline block">
                         {selectedStartup.website}
                       </a>
                     </div>
@@ -1026,29 +1376,427 @@ const EntrepreneurDashboard = () => {
                   {selectedStartup.pitchDeck && (
                     <div>
                       <label className="text-sm font-medium text-gray-600">Pitch Deck</label>
-                      <a href={selectedStartup.pitchDeck} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      <a href={selectedStartup.pitchDeck} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline block">
                         View Pitch Deck
                       </a>
                     </div>
                   )}
-                  {selectedStartup.linkedIn && (
+                  {selectedStartup.socialMedia?.linkedIn && (
                     <div>
                       <label className="text-sm font-medium text-gray-600">LinkedIn</label>
-                      <a href={selectedStartup.linkedIn} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {selectedStartup.linkedIn}
+                      <a href={selectedStartup.socialMedia.linkedIn} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline block">
+                        {selectedStartup.socialMedia.linkedIn}
                       </a>
                     </div>
                   )}
-                  {selectedStartup.twitter && (
+                  {selectedStartup.socialMedia?.twitter && (
                     <div>
                       <label className="text-sm font-medium text-gray-600">Twitter</label>
-                      <a href={selectedStartup.twitter} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {selectedStartup.twitter}
+                      <a href={selectedStartup.socialMedia.twitter} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline block">
+                        {selectedStartup.socialMedia.twitter}
                       </a>
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Contact Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <div className="w-1 h-6 bg-pink-500 rounded"></div>
+                  Contact Information
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  {selectedStartup.email && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Email</label>
+                      <a href={`mailto:${selectedStartup.email}`} className="text-blue-600 hover:underline block">
+                        {selectedStartup.email}
+                      </a>
+                    </div>
+                  )}
+                  {selectedStartup.phone && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Phone</label>
+                      <a href={`tel:${selectedStartup.phone}`} className="text-blue-600 hover:underline block">
+                        {selectedStartup.phone}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Looking For */}
+              {selectedStartup.lookingFor && selectedStartup.lookingFor.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-1 h-6 bg-pink-500 rounded"></div>
+                    What We're Looking For
+                  </h3>
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {selectedStartup.lookingFor.map((item, index) => (
+                        <span 
+                          key={index}
+                          className="px-4 py-2 bg-white text-purple-700 rounded-full text-sm font-medium shadow-sm border border-purple-200"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Delete Investment Project Confirmation Modal */}
+      {showDeleteProjectConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <TrashIcon className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Investment Project?</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this investment project? All associated data will be permanently removed.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteProjectConfirm(null)}
+                  className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-all font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeleteInvestmentProject(showDeleteProjectConfirm)}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Investment Project Detail Modal */}
+      {selectedInvestmentProject && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto my-8"
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-pink-500 to-purple-500 text-white p-6 rounded-t-2xl flex justify-between items-center z-10">
+              <div>
+                <h2 className="text-2xl font-bold mb-1">{selectedInvestmentProject.projectName}</h2>
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
+                    selectedInvestmentProject.status === 'active' ? 'bg-green-500 text-white' :
+                    selectedInvestmentProject.status === 'funded' ? 'bg-blue-500 text-white' :
+                    'bg-gray-500 text-white'
+                  }`}>
+                    {selectedInvestmentProject.status?.charAt(0).toUpperCase() + selectedInvestmentProject.status?.slice(1)}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedInvestmentProject(null)}
+                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    navigate('/list-project', { state: { editProject: selectedInvestmentProject } })
+                    setSelectedInvestmentProject(null)
+                  }}
+                  className="flex-1 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-all flex items-center justify-center gap-2 font-medium"
+                >
+                  <PencilIcon className="w-5 h-5" />
+                  Edit Project
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteProjectConfirm(selectedInvestmentProject._id)
+                    setSelectedInvestmentProject(null)
+                  }}
+                  className="flex-1 bg-red-500 text-white px-4 py-3 rounded-lg hover:bg-red-600 transition-all flex items-center justify-center gap-2 font-medium"
+                >
+                  <TrashIcon className="w-5 h-5" />
+                  Delete Project
+                </button>
+              </div>
+
+              {/* Funding Overview */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <div className="w-1 h-6 bg-pink-500 rounded"></div>
+                  Funding Overview
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Funding Goal</label>
+                      <p className="text-xl font-bold text-gray-900">₹{selectedInvestmentProject.fundingGoal?.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Current Funding</label>
+                      <p className="text-xl font-bold text-green-600">₹{selectedInvestmentProject.currentFunding?.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Remaining</label>
+                      <p className="text-xl font-bold text-gray-900">₹{(selectedInvestmentProject.fundingGoal - selectedInvestmentProject.currentFunding)?.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div 
+                      className="bg-gradient-to-r from-pink-500 to-purple-500 h-3 rounded-full transition-all"
+                      style={{ width: `${Math.min(selectedInvestmentProject.fundingPercentage || 0, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="grid md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="text-xs text-gray-500">Min. Investment</label>
+                      <p className="font-semibold text-gray-900">₹{selectedInvestmentProject.minimumInvestment?.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500">Equity Offered</label>
+                      <p className="font-semibold text-gray-900">{selectedInvestmentProject.equityOffered}%</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500">Valuation</label>
+                      <p className="font-semibold text-gray-900">₹{(selectedInvestmentProject.valuationAmount / 10000000).toFixed(1)}Cr</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500">Total Investors</label>
+                      <p className="font-semibold text-gray-900">{selectedInvestmentProject.totalInvestors || 0}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Project Description */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <div className="w-1 h-6 bg-pink-500 rounded"></div>
+                  Project Description
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-gray-900">{selectedInvestmentProject.projectDescription}</p>
+                </div>
+              </div>
+
+              {/* Funding Details */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <div className="w-1 h-6 bg-pink-500 rounded"></div>
+                  Funding Details
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {selectedInvestmentProject.fundingDeadline && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Deadline</label>
+                        <p className="text-gray-900">
+                          {new Date(selectedInvestmentProject.fundingDeadline).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    )}
+                    {selectedInvestmentProject.maximumInvestment && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Max Investment</label>
+                        <p className="text-gray-900">₹{selectedInvestmentProject.maximumInvestment?.toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+                  {selectedInvestmentProject.fundingPurpose && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Funding Purpose</label>
+                      <p className="text-gray-900">{selectedInvestmentProject.fundingPurpose}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Financial Information */}
+              {(selectedInvestmentProject.revenueModel || selectedInvestmentProject.currentRevenue !== undefined) && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-1 h-6 bg-pink-500 rounded"></div>
+                    Financial Information
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="grid md:grid-cols-2 gap-3">
+                      {selectedInvestmentProject.currentRevenue !== undefined && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Current Revenue</label>
+                          <p className="text-gray-900">₹{selectedInvestmentProject.currentRevenue?.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {selectedInvestmentProject.projectedRevenue && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Projected Revenue</label>
+                          <p className="text-gray-900">₹{selectedInvestmentProject.projectedRevenue?.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {selectedInvestmentProject.revenueModel && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Revenue Model</label>
+                          <p className="text-gray-900">{selectedInvestmentProject.revenueModel}</p>
+                        </div>
+                      )}
+                      {selectedInvestmentProject.monthlyBurnRate && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Monthly Burn Rate</label>
+                          <p className="text-gray-900">₹{selectedInvestmentProject.monthlyBurnRate?.toLocaleString()}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Milestones & Timeline */}
+              {(selectedInvestmentProject.milestones?.length > 0 || selectedInvestmentProject.timeline) && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-1 h-6 bg-pink-500 rounded"></div>
+                    Milestones & Timeline
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    {selectedInvestmentProject.milestones?.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Key Milestones</label>
+                        <ul className="mt-2 space-y-1">
+                          {selectedInvestmentProject.milestones.map((milestone, idx) => (
+                            <li key={idx} className="text-gray-900 flex items-start gap-2">
+                              <span className="text-pink-500">•</span>
+                              <span>{milestone}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {selectedInvestmentProject.timeline && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Timeline</label>
+                        <p className="text-gray-900">{selectedInvestmentProject.timeline}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Market & Traction */}
+              {(selectedInvestmentProject.marketSize || selectedInvestmentProject.customerBase) && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-1 h-6 bg-pink-500 rounded"></div>
+                    Market & Traction
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="grid md:grid-cols-2 gap-3">
+                      {selectedInvestmentProject.marketSize && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Market Size</label>
+                          <p className="text-gray-900">{selectedInvestmentProject.marketSize}</p>
+                        </div>
+                      )}
+                      {selectedInvestmentProject.customerBase !== undefined && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Customer Base</label>
+                          <p className="text-gray-900">{selectedInvestmentProject.customerBase?.toLocaleString()} customers</p>
+                        </div>
+                      )}
+                    </div>
+                    {selectedInvestmentProject.competitiveAdvantage && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Competitive Advantage</label>
+                        <p className="text-gray-900">{selectedInvestmentProject.competitiveAdvantage}</p>
+                      </div>
+                    )}
+                    {selectedInvestmentProject.growthRate && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Growth Rate</label>
+                        <p className="text-gray-900">{selectedInvestmentProject.growthRate}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Team */}
+              {(selectedInvestmentProject.teamSize || selectedInvestmentProject.keyTeamMembers?.length > 0) && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-1 h-6 bg-pink-500 rounded"></div>
+                    Team Information
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    {selectedInvestmentProject.teamSize && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Team Size</label>
+                        <p className="text-gray-900">{selectedInvestmentProject.teamSize} members</p>
+                      </div>
+                    )}
+                    {selectedInvestmentProject.keyTeamMembers?.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">Key Team Members</label>
+                        <ul className="mt-2 space-y-1">
+                          {selectedInvestmentProject.keyTeamMembers.map((member, idx) => (
+                            <li key={idx} className="text-gray-900">{member}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Investors List */}
+              {selectedInvestmentProject.investors?.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-1 h-6 bg-pink-500 rounded"></div>
+                    Current Investors ({selectedInvestmentProject.investors.length})
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="space-y-3">
+                      {selectedInvestmentProject.investors.map((investor, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-lg">
+                          <div>
+                            <p className="font-semibold text-gray-900">{investor.investorName}</p>
+                            <p className="text-sm text-gray-600">{investor.investorEmail}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-green-600">₹{investor.amount?.toLocaleString()}</p>
+                            <p className="text-xs text-gray-500">{investor.equityPercentage?.toFixed(2)}% equity</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>

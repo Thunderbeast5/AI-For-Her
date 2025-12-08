@@ -8,7 +8,8 @@ import {
   ChartBarIcon, 
   Cog6ToothIcon,
   RocketLaunchIcon,
-  UserIcon
+  UserIcon,
+  CurrencyRupeeIcon
 } from '@heroicons/react/24/outline'
 
 
@@ -17,6 +18,7 @@ const EntrepreneurSidebar = () => {
     { icon: HomeIcon, label: 'Home', path: '/dashboard' },
     { icon: UserIcon, label: 'Profile', path: '/profile' },
     { icon: RocketLaunchIcon, label: 'Create Startup', path: '/create-startup' },
+    { icon: CurrencyRupeeIcon, label: 'List for Investment', path: '/list-project' },
     { icon: AcademicCapIcon, label: 'Find Mentors', path: '/mentors' },
     { icon: UserGroupIcon, label: 'Self Help Groups', path: '/shg' },
     { icon: LightBulbIcon, label: 'Opportunities', path: '/opportunities' },

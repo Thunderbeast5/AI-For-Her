@@ -40,4 +40,69 @@ router.delete('/:userId', async (req, res) => {
   }
 });
 
+// Save a project
+router.post('/:userId/save-project/:projectId', async (req, res) => {
+  try {
+    const investor = await Investor.findOne({ userId: req.params.userId });
+    if (!investor) {
+      return res.status(404).json({ message: 'Investor not found' });
+    }
+
+    // Check if project is already saved
+    if (investor.savedProjects.includes(req.params.projectId)) {
+      return res.status(400).json({ message: 'Project already saved' });
+    }
+
+    investor.savedProjects.push(req.params.projectId);
+    investor.updatedAt = new Date();
+    await investor.save();
+
+    res.json({ message: 'Project saved successfully', savedProjects: investor.savedProjects });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Unsave a project
+router.delete('/:userId/save-project/:projectId', async (req, res) => {
+  try {
+    const investor = await Investor.findOne({ userId: req.params.userId });
+    if (!investor) {
+      return res.status(404).json({ message: 'Investor not found' });
+    }
+
+    investor.savedProjects = investor.savedProjects.filter(
+      id => id.toString() !== req.params.projectId
+    );
+    investor.updatedAt = new Date();
+    await investor.save();
+
+    res.json({ message: 'Project unsaved successfully', savedProjects: investor.savedProjects });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get saved projects
+router.get('/:userId/saved-projects', async (req, res) => {
+  try {
+    const investor = await Investor.findOne({ userId: req.params.userId })
+      .populate({
+        path: 'savedProjects',
+        populate: {
+          path: 'startupId',
+          model: 'Startup'
+        }
+      });
+    
+    if (!investor) {
+      return res.status(404).json({ message: 'Investor not found' });
+    }
+
+    res.json(investor.savedProjects || []);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;

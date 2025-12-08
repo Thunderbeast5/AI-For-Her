@@ -28,7 +28,7 @@ const CreateStartup = () => {
     tagline: '',
     description: '',
     industry: 'Technology',
-    stage: 'Seed',
+    stage: 'Ideation',
     location: '',
     foundedDate: '',
     
@@ -45,7 +45,6 @@ const CreateStartup = () => {
     valueProposition: '',
     
     // Product Information
-    productStatus: 'In Development',
     features: '',
     technology: '',
     
@@ -89,9 +88,28 @@ const CreateStartup = () => {
     'Education & Training', 'Technology', 'Finance', 'Other'
   ];
 
-  const stages = ['Idea', 'Prototype', 'Seed', 'Early Stage', 'Growth', 'Series A', 'Series B', 'Series C+'];
+  const stages = [
+    'Ideation',
+    'Concept Research',
+    'Prototype / MVP',
+    'Validation',
+    'Launch',
+    'Growth',
+    'Expansion / Funding',
+    'Scaling / Maturity'
+  ];
   
-  const productStatuses = ['Idea', 'In Development', 'MVP Ready', 'Launched', 'Scaling'];
+  // Stage to progress percentage mapping
+  const stageToProgress = {
+    'Ideation': 12.5,
+    'Concept Research': 25,
+    'Prototype / MVP': 37.5,
+    'Validation': 50,
+    'Launch': 62.5,
+    'Growth': 75,
+    'Expansion / Funding': 87.5,
+    'Scaling / Maturity': 100
+  };
   
   const lookingForOptions = ['Funding', 'Mentorship', 'Partnership', 'Advisory', 'Talent', 'Market Access'];
 
@@ -102,15 +120,22 @@ const CreateStartup = () => {
       setIsEditMode(true);
       setEditingStartupId(startup._id || startup.id);
       
+      // Convert date to YYYY-MM-DD format for date input
+      let formattedDate = '';
+      if (startup.foundedDate) {
+        const date = new Date(startup.foundedDate);
+        formattedDate = date.toISOString().split('T')[0];
+      }
+      
       // Convert arrays back to comma-separated strings if needed
       setFormData({
         name: startup.name || '',
         tagline: startup.tagline || '',
         description: startup.description || '',
         industry: startup.industry || 'Technology',
-        stage: startup.stage || 'Seed',
+        stage: startup.stage || 'Ideation',
         location: startup.location || '',
-        foundedDate: startup.foundedDate || '',
+        foundedDate: formattedDate,
         founderName: startup.founderName || '',
         email: startup.email || currentUser?.email || '',
         phone: startup.phone || '',
@@ -119,7 +144,6 @@ const CreateStartup = () => {
         targetMarket: startup.targetMarket || '',
         uniqueSellingPoint: startup.uniqueSellingPoint || '',
         valueProposition: startup.valueProposition || '',
-        productStatus: startup.productStatus || 'In Development',
         features: Array.isArray(startup.features) ? startup.features.join(', ') : startup.features || '',
         technology: Array.isArray(startup.technology) ? startup.technology.join(', ') : startup.technology || '',
         fundingGoal: startup.fundingGoal || '',
@@ -314,7 +338,7 @@ const CreateStartup = () => {
       tagline: '',
       description: '',
       industry: 'Technology',
-      stage: 'Seed',
+      stage: 'Ideation',
       location: '',
       foundedDate: '',
       founderName: '',
@@ -325,7 +349,6 @@ const CreateStartup = () => {
       targetMarket: '',
       uniqueSellingPoint: '',
       valueProposition: '',
-      productStatus: 'In Development',
       features: '',
       technology: '',
       fundingGoal: '',
@@ -584,21 +607,6 @@ const CreateStartup = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Product Status
-                </label>
-                <select
-                  name="productStatus"
-                  value={formData.productStatus}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
-                >
-                  {productStatuses.map(status => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-              </div>
             </div>
           </div>
         )}

@@ -15,6 +15,7 @@ import Journey from './pages/Entrepreneur/Journey'
 import Mentors from './pages/Entrepreneur/Mentors'
 import Opportunities from './pages/Entrepreneur/Opportunities'
 import SelfHelpGroups from './pages/Entrepreneur/SelfHelpGroups'
+import ListProject from './pages/Entrepreneur/ListProject'
 
 // Investor Pages
 import BrowseProjects from './pages/Investor/BrowseProjects'
@@ -80,6 +81,11 @@ function App() {
             <Route path="/create-startup" element={
               <ProtectedRoute>
                 <CreateStartup />
+              </ProtectedRoute>
+            } />
+            <Route path="/list-project" element={
+              <ProtectedRoute>
+                <ListProject />
               </ProtectedRoute>
             } />
             <Route path="/role-selection" element={<RoleSelection />} />

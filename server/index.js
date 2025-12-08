@@ -25,6 +25,7 @@ import notificationRoutes from './routes/notifications.js';
 import mentorGroupRoutes from './routes/mentorGroups.js';
 import groupChatRoutes from './routes/groupChats.js';
 import groupSessionRoutes from './routes/groupSessions.js';
+import investmentProjectRoutes from './routes/investmentProjects.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -54,6 +55,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/mentor-groups', mentorGroupRoutes);
 app.use('/api/group-chats', groupChatRoutes);
 app.use('/api/group-sessions', groupSessionRoutes);
+app.use('/api/investment-projects', investmentProjectRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
