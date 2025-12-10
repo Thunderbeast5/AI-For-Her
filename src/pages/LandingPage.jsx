@@ -247,6 +247,33 @@ className="px-8 py-4 bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 roun
         </div>
       </section>
 
+      {/* About Pratibhara Section */}
+      <section className="px-6 py-16 bg-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-6"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">
+              About Pratibhara
+            </h2>
+            <div className="space-y-4 text-xl md:text-2xl text-gray-700 leading-relaxed">
+              <p>
+                Pratibhara is an AI-powered digital ecosystem designed to help women turn their ideas into sustainable and growth-oriented enterprises.
+              </p>
+              <p>
+                The platform supports women at every step—right from discovering business ideas to getting mentorship, accessing funding, finding customers, and scaling their enterprise.
+              </p>
+              <p>
+                With the help of an intelligent AI assistant, women receive personalised, location-based guidance that simplifies decision-making, reduces confusion, and builds confidence.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Feature Cards with Pink Accents */}
       <section className="px-6 py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto">
