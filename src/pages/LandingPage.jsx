@@ -7,6 +7,7 @@ import { useAuth } from '../context/authContext'
 import carouselImage1 from '../assets/carousel_images/1.jpeg'
 import carouselImage2 from '../assets/carousel_images/2.jpeg'
 import carouselImage3 from '../assets/carousel_images/3.jpeg'
+import logo from '../../logo1.png'
 
 const LandingPage = () => {
   const navigate = useNavigate()
@@ -97,9 +98,10 @@ const LandingPage = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
-    }, 5000)
+    }, 4000)
+
     return () => clearInterval(timer)
-  }, [])
+  }, [heroSlides.length])
 
 
   return (
@@ -127,16 +129,23 @@ const LandingPage = () => {
       `}</style>
       {/* Navbar - Fixed Full Size */}
       <header className="fixed top-0 left-0 right-0 z-50">
-        <div className="w-full bg-pink-300/95 backdrop-blur-sm py-4">
-          <div className="flex justify-between items-center px-6 max-w-7xl mx-auto">
-          <motion.h1 
+        <div className="w-full bg-pink-300/95 backdrop-blur-sm py-3">
+          <div className="flex justify-between items-center px-6 max-w-7xl mx-auto h-14"> {/* Matching storefront height */}
+          <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="font-bold text-3xl text-gray-900 notranslate cursor-pointer hover:text-pink-600 transition-colors logo-pratibhara"
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigate('/')}
           >
-            Prathibhara
-          </motion.h1>
+            <img 
+              src={logo} 
+              alt="AI For Her Logo" 
+              className="h-24 w-auto object-contain"
+            />
+            {/* <h1 className="font-bold text-3xl text-gray-900 notranslate logo-pratibhara">
+              Prathibhara
+            </h1> */}
+          </motion.div>
           <div className="flex items-center space-x-4">
             <GoogleTranslate />
             {currentUser ? (
@@ -177,7 +186,7 @@ const LandingPage = () => {
       </header>
 
       {/* Hero Carousel - Full Width with Text Overlay */}
-      <section className="relative h-screen overflow-hidden" style={{ marginTop: '72px' }}>
+      <section className="relative h-screen overflow-hidden" style={{ marginTop: '56px' }}>
         {heroSlides.map((slide, index) => (
           <motion.div
             key={index}
@@ -209,13 +218,13 @@ const LandingPage = () => {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <button
                     onClick={() => navigate('/signup')}
-                    className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 rounded-xl text-lg font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-200"
+                    className="px-8 py-4 bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 rounded-xl text-lg font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-200"
                   >
                     Get Started Free
                   </button>
                   <button
                     onClick={() => navigate('/enterprise/store')}
-className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 rounded-xl text-lg font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-200"                  >
+className="px-8 py-4 bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 rounded-xl text-lg font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-200"                  >
                     Enterprise Store
                   </button>
                 </div>
@@ -260,7 +269,7 @@ className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 ro
                 transition={{ delay: 0.2 + index * 0.1 }}
                 className="bg-white rounded-2xl p-8 border-2 border-pink-300 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-200"
               >
-                <div className="w-14 h-14 bg-gradient-to-r from-pink-200 to-pink-300 rounded-xl flex items-center justify-center mb-6">
+                <div className="w-14 h-14 bg-linear-to-r from-pink-200 to-pink-300 rounded-xl flex items-center justify-center mb-6">
                   <feature.icon className="w-7 h-7 text-gray-700" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">{feature.title}</h3>
@@ -283,9 +292,9 @@ className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 ro
           
           <div className="space-y-4 overflow-hidden relative">
             {/* Left fade overlay */}
-            <div className="absolute left-0 top-0 w-32 h-full bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute left-0 top-0 w-32 h-full bg-linear-to-r from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
             {/* Right fade overlay */}
-            <div className="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 w-32 h-full bg-linear-to-l from-white via-white/80 to-transparent z-10 pointer-events-none"></div>
             
             {/* Row 1 - Left to Right */}
             <div className="animate-carousel-right">
@@ -296,7 +305,7 @@ className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 ro
                       "{testimonial.text}"
                     </p>
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 bg-gradient-to-br ${testimonial.gradient} rounded-full flex items-center justify-center text-white font-semibold`}>
+                      <div className={`w-10 h-10 bg-linear-to-br ${testimonial.gradient} rounded-full flex items-center justify-center text-white font-semibold`}>
                         {testimonial.initial}
                       </div>
                       <div>
@@ -318,7 +327,7 @@ className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 ro
                       "{testimonial.text}"
                     </p>
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 bg-gradient-to-br ${testimonial.gradient} rounded-full flex items-center justify-center text-white font-semibold`}>
+                      <div className={`w-10 h-10 bg-linear-to-br ${testimonial.gradient} rounded-full flex items-center justify-center text-white font-semibold`}>
                         {testimonial.initial}
                       </div>
                       <div>
@@ -359,7 +368,7 @@ className="px-8 py-4 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 ro
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
                 onClick={() => navigate('/signup')}
-                className="bg-gradient-to-r from-pink-200 to-pink-300 hover:shadow-xl text-gray-900 font-semibold py-3 px-8 rounded-xl transition-all duration-300 shadow-md"
+                className="bg-linear-to-r from-pink-200 to-pink-300 hover:shadow-xl text-gray-900 font-semibold py-3 px-8 rounded-xl transition-all duration-300 shadow-md"
               >
                 Get Started Free
               </button>
