@@ -132,9 +132,11 @@ const EntrepreneurDashboard = () => {
     yPosition += lineHeight
 
     addText('Startup Name:', startup.name || 'Not provided')
-    addText('Category:', startup.category || 'Not provided')
+    addText('Industry:', startup.industry || 'Not provided')
     addText('Stage:', startup.stage || 'Not provided')
     addText('Description:', startup.description || 'Not provided')
+    addText('Tagline:', startup.tagline || 'Not provided')
+    addText('Location:', startup.location || 'Not provided')
 
     // Business Details
     doc.setFontSize(14)
@@ -146,7 +148,8 @@ const EntrepreneurDashboard = () => {
     addText('Problem Statement:', startup.problemStatement || 'Not provided')
     addText('Solution:', startup.solution || 'Not provided')
     addText('Target Market:', startup.targetMarket || 'Not provided')
-    addText('Unique Value Proposition:', startup.uniqueValue || 'Not provided')
+    addText('Unique Selling Point:', startup.uniqueSellingPoint || 'Not provided')
+    addText('Value Proposition:', startup.valueProposition || 'Not provided')
 
     // Financial Information
     doc.setFontSize(14)
@@ -155,9 +158,11 @@ const EntrepreneurDashboard = () => {
     doc.text('Financial Information', 20, yPosition)
     yPosition += lineHeight
 
-    addText('Funding Required:', startup.fundingRequired || 'Not provided')
+    addText('Funding Goal:', startup.fundingGoal || 'Not provided')
     addText('Current Revenue:', startup.currentRevenue || 'Not provided')
     addText('Revenue Model:', startup.revenueModel || 'Not provided')
+    addText('Projected Revenue:', startup.projectedRevenue || 'Not provided')
+    addText('Investment Use:', startup.investmentUse || 'Not provided')
 
     // Team Information
     doc.setFontSize(14)
@@ -166,6 +171,9 @@ const EntrepreneurDashboard = () => {
     doc.text('Team Information', 20, yPosition)
     yPosition += lineHeight
 
+    addText('Founder Name:', startup.founderName || 'Not provided')
+    addText('Email:', startup.email || 'Not provided')
+    addText('Phone:', startup.phone || 'Not provided')
     addText('Team Size:', startup.teamSize || 'Not provided')
     addText('Team Members:', startup.teamMembers || 'Not provided')
 
@@ -176,10 +184,12 @@ const EntrepreneurDashboard = () => {
     doc.text('Additional Information', 20, yPosition)
     yPosition += lineHeight
 
-    addText('Competitors:', startup.competitors || 'Not provided')
-    addText('Challenges:', startup.challenges || 'Not provided')
-    addText('Milestones:', startup.milestones || 'Not provided')
-    addText('Additional Notes:', startup.additionalNotes || 'Not provided')
+    addText('Features:', startup.features || 'Not provided')
+    addText('Technology:', startup.technology || 'Not provided')
+    addText('Customer Base:', startup.customerBase || 'Not provided')
+    addText('Market Size:', startup.marketSize || 'Not provided')
+    addText('Competitive Advantage:', startup.competitiveAdvantage || 'Not provided')
+    addText('Founded Date:', startup.foundedDate || 'Not provided')
 
     // Footer
     const fileName = `${startup.name?.replace(/\s+/g, '_') || 'startup'}_proposal.pdf`

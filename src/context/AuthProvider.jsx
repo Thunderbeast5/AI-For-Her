@@ -39,8 +39,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Login function
-  const login = (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password);
+  const login = async (email, password) => {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    
+    // Get user role from Firestore
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      // Attach role to user object for immediate access
+      user.role = userData.role;
+      setUserRole(userData.role);
+    }
+    
+    return userCredential;
   };
 
   // Logout function

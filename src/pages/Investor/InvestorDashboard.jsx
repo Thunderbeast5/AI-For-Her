@@ -32,7 +32,7 @@ const InvestorDashboard = () => {
     savedProjects: 0,
     portfolioCompanies: 0,
     totalReturns: 0,
-    averageEquity: 0
+    totalEquity: 0
   })
   const [recentInvestments, setRecentInvestments] = useState([])
   const [trendingProjects, setTrendingProjects] = useState([])
@@ -96,8 +96,8 @@ const InvestorDashboard = () => {
           const myInvestmentsInProject = project.investors?.filter(inv => inv.investorId === currentUser.uid) || [];
           
           myInvestmentsInProject.forEach(investment => {
-            const investmentAmount = investment.amount;
-            const equityPercent = investment.equityPercentage;
+            const investmentAmount = Number(investment.amount) || 0;
+            const equityPercent = Number(investment.equityPercentage) || 0;
             
             let growthRate = 0;
             if (project.fundingPercentage >= 80) {
@@ -138,15 +138,13 @@ const InvestorDashboard = () => {
 
         const savedProjects = investorProfile?.savedProjects || [];
 
-        const avgEquity = investmentCount > 0 ? totalEquity / investmentCount : 0;
-
         setStats({
           totalInvested,
           activeInvestments: investmentCount,
           savedProjects: savedProjects.length,
           portfolioCompanies: portfolioCompanies.size,
           totalReturns: totalReturns,
-          averageEquity: avgEquity,
+          totalEquity: totalEquity,
         });
 
       } catch (error) {
@@ -200,7 +198,7 @@ const InvestorDashboard = () => {
       </div>
 
       {/* Key Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         <div className="bg-linear-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
           <BanknotesIcon className="w-8 h-8 mb-2 opacity-80" />
           <div className="text-2xl font-bold">₹{stats.totalInvested.toLocaleString()}</div>
@@ -225,16 +223,10 @@ const InvestorDashboard = () => {
           <div className="text-sm opacity-90">Saved Projects</div>
         </div>
 
-        <div className="bg-linear-to-br from-orange-500 to-orange-600 rounded-xl p-4 text-white shadow-lg">
-          <SparklesIcon className="w-8 h-8 mb-2 opacity-80" />
-          <div className="text-2xl font-bold">₹{Math.round(stats.totalReturns).toLocaleString()}</div>
-          <div className="text-sm opacity-90">Expected Returns</div>
-        </div>
-
         <div className="bg-linear-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg">
           <ArrowTrendingUpIcon className="w-8 h-8 mb-2 opacity-80" />
-          <div className="text-2xl font-bold">{stats.averageEquity.toFixed(2)}%</div>
-          <div className="text-sm opacity-90">Avg. Equity</div>
+          <div className="text-2xl font-bold">{stats.totalEquity.toFixed(2)}%</div>
+          <div className="text-sm opacity-90">Total Equity</div>
         </div>
       </div>
 
@@ -352,26 +344,20 @@ const InvestorDashboard = () => {
                 <span className="text-sm text-gray-600">Active Projects</span>
                 <span className="font-semibold text-gray-900">{stats.activeInvestments}</span>
               </div>
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              {/* <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Portfolio Value</span>
                 <span className="font-semibold text-green-600">₹{Math.round(stats.totalInvested + stats.totalReturns).toLocaleString()}</span>
-              </div>
+              </div> */}
               <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Avg Investment</span>
                 <span className="font-semibold text-gray-900">
                   ₹{stats.activeInvestments > 0 ? Math.round(stats.totalInvested / stats.activeInvestments).toLocaleString() : 0}
                 </span>
               </div>
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              {/* <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Total Returns</span>
                 <span className="font-semibold text-purple-600">₹{Math.round(stats.totalReturns).toLocaleString()}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">ROI</span>
-                <span className={`font-semibold ${stats.totalInvested > 0 ? 'text-green-600' : 'text-gray-600'}`}>
-                  {stats.totalInvested > 0 ? `+${((stats.totalReturns / stats.totalInvested) * 100).toFixed(1)}%` : '0%'}
-                </span>
-              </div>
+              </div> */}
             </div>
           </div>
 

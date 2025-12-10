@@ -36,10 +36,11 @@ const Login = () => {
     try {
       setError('');
       setLoading(true);
-      const user = await login(formData.email, formData.password);
+      const userCredential = await login(formData.email, formData.password);
+      const user = userCredential.user;
       
       // Wait for state to update before navigating
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Redirect based on user role
       const role = user?.role || localStorage.getItem('userRole');

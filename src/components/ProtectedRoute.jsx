@@ -21,8 +21,9 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
   
-  // Check if email is verified (MongoDB field)
-  if (!currentUser.emailVerified) {
+  // Check if email is verified (Firebase property)
+  // Add a small delay to ensure Firebase auth state is fully loaded
+  if (currentUser && !currentUser.emailVerified) {
     // Redirect to email verification page if email is not verified
     return <Navigate to="/verify-email" replace />;
   }

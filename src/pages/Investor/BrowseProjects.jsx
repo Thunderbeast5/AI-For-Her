@@ -761,34 +761,34 @@ const BrowseProjects = () => {
                     Problem & Solution
                   </h3>
                   <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                    {viewingProject.startupId?.problemStatement && (
+                    {(viewingProject.problemStatement || viewingProject.startupId?.problemStatement) && (
                       <div>
                         <label className="text-sm font-medium text-gray-600">Problem Statement</label>
-                        <p className="text-gray-900">{viewingProject.startupId.problemStatement}</p>
+                        <p className="text-gray-900">{viewingProject.problemStatement || viewingProject.startupId?.problemStatement}</p>
                       </div>
                     )}
-                    {viewingProject.startupId?.solution && (
+                    {(viewingProject.solution || viewingProject.startupId?.solution) && (
                       <div>
                         <label className="text-sm font-medium text-gray-600">Solution</label>
-                        <p className="text-gray-900">{viewingProject.startupId.solution}</p>
+                        <p className="text-gray-900">{viewingProject.solution || viewingProject.startupId?.solution}</p>
                       </div>
                     )}
-                    {viewingProject.startupId?.targetMarket && (
+                    {(viewingProject.targetMarket || viewingProject.startupId?.targetMarket) && (
                       <div>
                         <label className="text-sm font-medium text-gray-600">Target Market</label>
-                        <p className="text-gray-900">{viewingProject.startupId.targetMarket}</p>
+                        <p className="text-gray-900">{viewingProject.targetMarket || viewingProject.startupId?.targetMarket}</p>
                       </div>
                     )}
-                    {viewingProject.startupId?.uniqueSellingPoint && (
+                    {(viewingProject.uniqueSellingPoint || viewingProject.startupId?.uniqueSellingPoint) && (
                       <div>
                         <label className="text-sm font-medium text-gray-600">Unique Selling Point</label>
-                        <p className="text-gray-900">{viewingProject.startupId.uniqueSellingPoint}</p>
+                        <p className="text-gray-900">{viewingProject.uniqueSellingPoint || viewingProject.startupId?.uniqueSellingPoint}</p>
                       </div>
                     )}
-                    {viewingProject.startupId?.valueProposition && (
+                    {(viewingProject.valueProposition || viewingProject.startupId?.valueProposition) && (
                       <div>
                         <label className="text-sm font-medium text-gray-600">Value Proposition</label>
-                        <p className="text-gray-900">{viewingProject.startupId.valueProposition}</p>
+                        <p className="text-gray-900">{viewingProject.valueProposition || viewingProject.startupId?.valueProposition}</p>
                       </div>
                     )}
                   </div>
@@ -834,41 +834,41 @@ const BrowseProjects = () => {
                   </h3>
                   <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                     <div className="grid md:grid-cols-2 gap-3">
-                      {viewingProject.startupId?.currentRevenue !== undefined && (
+                      {(viewingProject.currentRevenue !== undefined || viewingProject.startupId?.currentRevenue !== undefined) && (
                         <div>
                           <label className="text-sm font-medium text-gray-600">Current Revenue</label>
-                          <p className="text-gray-900">₹{viewingProject.startupId.currentRevenue?.toLocaleString()}</p>
+                          <p className="text-gray-900">₹{(viewingProject.currentRevenue ?? viewingProject.startupId?.currentRevenue)?.toLocaleString()}</p>
                         </div>
                       )}
-                      {viewingProject.startupId?.projectedRevenue && (
+                      {(viewingProject.projectedRevenue || viewingProject.startupId?.projectedRevenue) && (
                         <div>
                           <label className="text-sm font-medium text-gray-600">Projected Revenue</label>
-                          <p className="text-gray-900">₹{viewingProject.startupId.projectedRevenue?.toLocaleString()}</p>
+                          <p className="text-gray-900">₹{(viewingProject.projectedRevenue || viewingProject.startupId?.projectedRevenue)?.toLocaleString()}</p>
                         </div>
                       )}
-                      {viewingProject.startupId?.revenueModel && (
+                      {(viewingProject.revenueModel || viewingProject.startupId?.revenueModel) && (
                         <div>
                           <label className="text-sm font-medium text-gray-600">Revenue Model</label>
-                          <p className="text-gray-900">{viewingProject.startupId.revenueModel}</p>
+                          <p className="text-gray-900">{viewingProject.revenueModel || viewingProject.startupId?.revenueModel}</p>
                         </div>
                       )}
-                      {viewingProject.startupId?.businessModel && (
+                      {(viewingProject.businessModel || viewingProject.startupId?.businessModel) && (
                         <div>
                           <label className="text-sm font-medium text-gray-600">Business Model</label>
-                          <p className="text-gray-900">{viewingProject.startupId.businessModel}</p>
+                          <p className="text-gray-900">{viewingProject.businessModel || viewingProject.startupId?.businessModel}</p>
                         </div>
                       )}
                     </div>
-                    {viewingProject.startupId?.investmentUse && (
+                    {(viewingProject.investmentUse || viewingProject.startupId?.investmentUse) && (
                       <div>
                         <label className="text-sm font-medium text-gray-600">How Funds Will Be Used</label>
-                        <p className="text-gray-900">{viewingProject.startupId.investmentUse}</p>
+                        <p className="text-gray-900">{viewingProject.investmentUse || viewingProject.startupId?.investmentUse}</p>
                       </div>
                     )}
-                    {viewingProject.startupId?.pricingStrategy && (
+                    {(viewingProject.pricingStrategy || viewingProject.startupId?.pricingStrategy) && (
                       <div>
                         <label className="text-sm font-medium text-gray-600">Pricing Strategy</label>
-                        <p className="text-gray-900">{viewingProject.startupId.pricingStrategy}</p>
+                        <p className="text-gray-900">{viewingProject.pricingStrategy || viewingProject.startupId?.pricingStrategy}</p>
                       </div>
                     )}
                   </div>
@@ -910,39 +910,39 @@ const BrowseProjects = () => {
                   </h3>
                   <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                     <div className="grid md:grid-cols-2 gap-3">
-                      {viewingProject.startupId?.marketSize && (
+                      {(viewingProject.marketSize || viewingProject.startupId?.marketSize) && (
                         <div>
                           <label className="text-sm font-medium text-gray-600">Market Size</label>
-                          <p className="text-gray-900">{viewingProject.startupId.marketSize}</p>
+                          <p className="text-gray-900">{viewingProject.marketSize || viewingProject.startupId?.marketSize}</p>
                         </div>
                       )}
-                      {viewingProject.startupId?.customerBase !== undefined && (
+                      {(viewingProject.customerBase !== undefined || viewingProject.startupId?.customerBase !== undefined) && (
                         <div>
                           <label className="text-sm font-medium text-gray-600">Customer Base</label>
-                          <p className="text-gray-900">{viewingProject.startupId.customerBase?.toLocaleString()} customers</p>
+                          <p className="text-gray-900">{(viewingProject.customerBase ?? viewingProject.startupId?.customerBase)?.toLocaleString()} customers</p>
                         </div>
                       )}
-                      {viewingProject.startupId?.monthlyActiveUsers !== undefined && (
+                      {(viewingProject.monthlyActiveUsers !== undefined || viewingProject.startupId?.monthlyActiveUsers !== undefined) && (
                         <div>
                           <label className="text-sm font-medium text-gray-600">Monthly Active Users</label>
-                          <p className="text-gray-900">{viewingProject.startupId.monthlyActiveUsers?.toLocaleString()}</p>
+                          <p className="text-gray-900">{(viewingProject.monthlyActiveUsers ?? viewingProject.startupId?.monthlyActiveUsers)?.toLocaleString()}</p>
                         </div>
                       )}
                     </div>
-                    {viewingProject.startupId?.competitors && (
+                    {(viewingProject.competitors || viewingProject.startupId?.competitors) && (
                       <div>
                         <label className="text-sm font-medium text-gray-600">Competitors</label>
                         <p className="text-gray-900">
-                          {Array.isArray(viewingProject.startupId.competitors)
-                            ? viewingProject.startupId.competitors.join(', ')
-                            : viewingProject.startupId.competitors}
+                          {Array.isArray(viewingProject.competitors || viewingProject.startupId?.competitors)
+                            ? (viewingProject.competitors || viewingProject.startupId?.competitors).join(', ')
+                            : (viewingProject.competitors || viewingProject.startupId?.competitors)}
                         </p>
                       </div>
                     )}
-                    {viewingProject.startupId?.competitiveAdvantage && (
+                    {(viewingProject.competitiveAdvantage || viewingProject.startupId?.competitiveAdvantage) && (
                       <div>
                         <label className="text-sm font-medium text-gray-600">Competitive Advantage</label>
-                        <p className="text-gray-900">{viewingProject.startupId.competitiveAdvantage}</p>
+                        <p className="text-gray-900">{viewingProject.competitiveAdvantage || viewingProject.startupId?.competitiveAdvantage}</p>
                       </div>
                     )}
                     {viewingProject.startupId?.achievements && (

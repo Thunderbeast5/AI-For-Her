@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import DashboardLayout from '../../components/DashboardLayout';
 import InvestorSidebar from '../../components/InvestorSidebar';
 import { db } from '../../firebase';
-import { collection, query, getDocs, doc, getDoc, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, onSnapshot } from 'firebase/firestore';
 import {
   BriefcaseIcon,
   ChartBarIcon,
@@ -64,7 +63,14 @@ const Portfolio = () => {
             
             investorData.forEach(investment => {
               const investmentAmount = investment.amount;
-              const equityPercent = investment.equityPercentage;
+              const equityPercent = Number(investment.equityPercentage) || 0;
+              
+              console.log('Debug investment:', {
+                investmentId: investment.id,
+                amount: investmentAmount,
+                equityPercentage: investment.equityPercentage,
+                parsedEquity: equityPercent
+              });
               
               let growthRate = 0;
               if (project.fundingPercentage >= 80) {
@@ -80,6 +86,13 @@ const Portfolio = () => {
               
               totalInv += investmentAmount;
               totalEq += equityPercent;
+
+              console.log('Debug totals:', {
+                totalInv,
+                totalEq,
+                investmentAmount,
+                equityPercent
+              });
 
               myInvestments.push({
                 investmentId: investment.id,
@@ -120,6 +133,14 @@ const Portfolio = () => {
             avgInvestment: totalTransactions > 0 ? totalInv / totalTransactions : 0
           });
 
+          console.log('Final stats:', {
+            totalInv,
+            totalEq,
+            portfolioValue,
+            totalReturns,
+            myInvestmentsCount: myInvestments.length
+          });
+
           setLoading(false);
         });
 
@@ -156,24 +177,12 @@ const Portfolio = () => {
         <p className="text-gray-600">Track your investments and returns across all projects</p>
       </div>
 
-      {/* Stats Overview - 6 Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      {/* Stats Overview - Only key metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 mb-8">
         <div className="bg-linear-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">
           <BanknotesIcon className="w-8 h-8 mb-2 opacity-80" />
           <div className="text-2xl font-bold">₹{Math.round(stats.totalInvested).toLocaleString()}</div>
           <div className="text-sm opacity-90">Total Invested</div>
-        </div>
-
-        <div className="bg-linear-to-br from-green-500 to-green-600 rounded-xl p-4 text-white shadow-lg">
-          <ChartBarIcon className="w-8 h-8 mb-2 opacity-80" />
-          <div className="text-2xl font-bold">₹{Math.round(stats.portfolioValue).toLocaleString()}</div>
-          <div className="text-sm opacity-90">Portfolio Value</div>
-        </div>
-
-        <div className="bg-linear-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white shadow-lg">
-          <ArrowTrendingUpIcon className="w-8 h-8 mb-2 opacity-80" />
-          <div className="text-2xl font-bold">₹{Math.round(stats.totalReturns || 0).toLocaleString()}</div>
-          <div className="text-sm opacity-90">Total Returns</div>
         </div>
 
         <div className="bg-linear-to-br from-pink-500 to-pink-600 rounded-xl p-4 text-white shadow-lg">
@@ -186,16 +195,6 @@ const Portfolio = () => {
           <BriefcaseIcon className="w-8 h-8 mb-2 opacity-80" />
           <div className="text-2xl font-bold">{stats.activeProjects}</div>
           <div className="text-sm opacity-90">Active Projects</div>
-        </div>
-
-        <div className="bg-linear-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg">
-          <TrophyIcon className="w-8 h-8 mb-2 opacity-80" />
-          <div className="text-2xl font-bold">
-            {stats.totalInvested > 0
-              ? `+${(((Number(stats.totalReturns) || 0) / stats.totalInvested) * 100).toFixed(1)}%`
-              : '0%'}
-          </div>
-          <div className="text-sm opacity-90">ROI</div>
         </div>
       </div>
 
@@ -270,7 +269,7 @@ const Portfolio = () => {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
-            {investments.map((investment, index) => (
+            {investments.map((investment) => (
               <div key={investment.investmentId} onClick={() => setSelectedInvestment(investment)} className="p-5 bg-linear-to-br from-gray-50 to-gray-100 rounded-xl hover:shadow-lg transition-all cursor-pointer border border-gray-200">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
@@ -325,10 +324,10 @@ const Portfolio = () => {
 
       {/* Investment Detail Modal */}
       {selectedInvestment && (
-        <div onClick={() => setSelectedInvestment(null)} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div onClick={() => setSelectedInvestment(null)} className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-linear-to-r from-pink-500 to-purple-500 text-white p-6 rounded-t-2xl flex justify-between items-center z-10">
+            <div className="sticky top-0 bg-pink-400 text-white p-6 rounded-t-2xl flex justify-between items-center z-10">
               <div>
                 <h2 className="text-2xl font-bold mb-1">{selectedInvestment.projectName}</h2>
                 <p className="text-sm opacity-90">{selectedInvestment.startupName}</p>
