@@ -883,7 +883,7 @@ const EntrepreneurDashboard = () => {
                     <div className="space-y-2 text-xs text-gray-700 mb-3">
                       <div className="flex items-center">
                         <CalendarIcon className="w-4 h-4 mr-2 text-gray-500" />
-                        <span><strong>{session.schedule?.day}s</strong> at {session.schedule?.time}</span>
+                        <span><strong>{session.schedule?.day}</strong> at {session.schedule?.time}</span>
                       </div>
                       <div className="flex items-center">
                         <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

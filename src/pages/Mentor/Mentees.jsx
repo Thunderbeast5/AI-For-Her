@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../../components/DashboardLayout';
 import MentorSidebar from '../../components/MentorSidebar';
-import PersonalChatInterface from '../../components/PersonalChatInterface';
+import UnifiedChat from '../../components/UnifiedChat';
 import { 
   UserGroupIcon,
   ChatBubbleLeftRightIcon,
@@ -53,6 +53,31 @@ const Mentees = () => {
             <p className="mt-4 text-gray-600">Loading mentees...</p>
           </div>
         </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (selectedConnection) {
+    return (
+      <DashboardLayout sidebar={sidebar}>
+        <UnifiedChat
+          chatInfo={{
+            type: 'personal',
+            id: selectedConnection.id,
+            otherPersonName:
+              selectedConnection.entrepreneurName ||
+              selectedConnection.entrepreneurEmail?.split('@')[0] ||
+              'Entrepreneur',
+          }}
+          currentUser={{
+            uid: currentUser.uid,
+            name:
+              currentUser.displayName ||
+              currentUser.email?.split('@')[0] ||
+              'Mentor',
+          }}
+          onBack={() => setSelectedConnection(null)}
+        />
       </DashboardLayout>
     );
   }
@@ -142,17 +167,6 @@ const Mentees = () => {
         )}
       </div>
 
-      {selectedConnection && (
-        <PersonalChatInterface
-          connection={selectedConnection}
-          currentUser={{
-            userId: currentUser.uid,
-            name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Mentor'
-          }}
-          userRole="mentor"
-          onClose={() => setSelectedConnection(null)}
-        />
-      )}
     </DashboardLayout>
   );
 };

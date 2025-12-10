@@ -43,6 +43,8 @@ const EnterpriseStorefront = () => {
     cardExpiry: '',
     cardCvv: '',
   })
+  const [customerErrors, setCustomerErrors] = useState({})
+  const [paymentErrors, setPaymentErrors] = useState({})
   const [checkingOut, setCheckingOut] = useState(false)
   const [orderNumber, setOrderNumber] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -112,16 +114,79 @@ const EnterpriseStorefront = () => {
     [cartItems]
   )
 
+  const validateCustomerDetails = () => {
+    const errors = {}
+
+    if (!customerDetails.firstName?.trim()) errors.firstName = 'First name is required'
+    if (!customerDetails.lastName?.trim()) errors.lastName = 'Last name is required'
+    if (!customerDetails.email?.trim()) {
+      errors.email = 'Email is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerDetails.email)) {
+      errors.email = 'Enter a valid email address'
+    }
+
+    if (!customerDetails.phone?.trim()) {
+      errors.phone = 'Mobile number is required'
+    } else if (!/^\d{10}$/.test(customerDetails.phone.replace(/\D/g, ''))) {
+      errors.phone = 'Enter a valid 10-digit mobile number'
+    }
+
+    if (!customerDetails.addressLine1?.trim()) errors.addressLine1 = 'Address Line 1 is required'
+    if (!customerDetails.city?.trim()) errors.city = 'City is required'
+    if (!customerDetails.state?.trim()) errors.state = 'State is required'
+    if (!customerDetails.postalCode?.trim()) {
+      errors.postalCode = 'PIN code is required'
+    } else if (!/^\d{4,6}$/.test(customerDetails.postalCode.replace(/\D/g, ''))) {
+      errors.postalCode = 'Enter a valid PIN code'
+    }
+
+    setCustomerErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const validatePaymentDetails = () => {
+    const errors = {}
+
+    if (paymentMethod === 'upi') {
+      if (!paymentDetails.upiId?.trim()) {
+        errors.upiId = 'UPI ID is required'
+      }
+    }
+
+    if (paymentMethod === 'card') {
+      if (!paymentDetails.cardHolder?.trim()) errors.cardHolder = 'Name on card is required'
+
+      const number = paymentDetails.cardNumber?.replace(/\s+/g, '') || ''
+      if (!number) {
+        errors.cardNumber = 'Card number is required'
+      } else if (!/^\d{12,19}$/.test(number)) {
+        errors.cardNumber = 'Enter a valid card number'
+      }
+
+      if (!paymentDetails.cardExpiry?.trim()) {
+        errors.cardExpiry = 'Expiry is required'
+      } else if (!/^(0[1-9]|1[0-2])\/(\d{2})$/.test(paymentDetails.cardExpiry)) {
+        errors.cardExpiry = 'Use MM/YY format'
+      }
+
+      const cvv = paymentDetails.cardCvv?.trim() || ''
+      if (!cvv) {
+        errors.cardCvv = 'CVV is required'
+      } else if (!/^\d{3,4}$/.test(cvv)) {
+        errors.cardCvv = 'Enter a valid CVV'
+      }
+    }
+
+    setPaymentErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleCheckout = async () => {
     if (cartItems.length === 0) return
-    if (
-      !customerDetails.firstName ||
-      !customerDetails.lastName ||
-      !customerDetails.email ||
-      !customerDetails.phone ||
-      !customerDetails.addressLine1 ||
-      !customerDetails.city
-    ) {
+
+    const customerOk = validateCustomerDetails()
+    const paymentOk = validatePaymentDetails()
+    if (!customerOk || !paymentOk) {
       return
     }
     setCheckingOut(true)
@@ -168,7 +233,7 @@ const EnterpriseStorefront = () => {
 
       const docRef = await addDoc(collection(db, 'orders'), payload);
       setOrderNumber(docRef.id);
-            setCartItems([])
+      setCartItems([])
       setCheckoutStep('success')
     } catch (error) {
       console.error('Error creating order:', error)
@@ -604,7 +669,13 @@ const EnterpriseStorefront = () => {
 
             {/* --- All Products Grid --- */}
             <section className="mb-8">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">All Products</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">All Products</h2>
+                {selectedCategory && selectedCategory !== 'all' && !loading && (
+                  <p className="mb-3 text-xs text-gray-600">
+                    Showing results for <span className="font-semibold">{selectedCategory}</span>
+                    {` (${filteredProducts.length} product${filteredProducts.length === 1 ? '' : 's'})`}
+                  </p>
+                )}
                 {loading ? (
                 <div className="text-center py-12 text-gray-500">Loading products...</div>
                 ) : filteredProducts.length === 0 ? (
@@ -778,18 +849,36 @@ const EnterpriseStorefront = () => {
                       <input
                         type="text"
                         value={customerDetails.firstName}
-                        onChange={(e) => setCustomerDetails({ ...customerDetails, firstName: e.target.value })}
+                        onChange={(e) => {
+                          setCustomerDetails({ ...customerDetails, firstName: e.target.value })
+                          if (customerErrors.firstName) {
+                            setCustomerErrors({ ...customerErrors, firstName: undefined })
+                          }
+                        }}
+                        required
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                       />
+                      {customerErrors.firstName && (
+                        <p className="mt-1 text-[11px] text-red-500">{customerErrors.firstName}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
                       <input
                         type="text"
                         value={customerDetails.lastName}
-                        onChange={(e) => setCustomerDetails({ ...customerDetails, lastName: e.target.value })}
+                        onChange={(e) => {
+                          setCustomerDetails({ ...customerDetails, lastName: e.target.value })
+                          if (customerErrors.lastName) {
+                            setCustomerErrors({ ...customerErrors, lastName: undefined })
+                          }
+                        }}
+                        required
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                       />
+                      {customerErrors.lastName && (
+                        <p className="mt-1 text-[11px] text-red-500">{customerErrors.lastName}</p>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -797,27 +886,54 @@ const EnterpriseStorefront = () => {
                     <input
                       type="email"
                       value={customerDetails.email}
-                      onChange={(e) => setCustomerDetails({ ...customerDetails, email: e.target.value })}
+                      onChange={(e) => {
+                        setCustomerDetails({ ...customerDetails, email: e.target.value })
+                        if (customerErrors.email) {
+                          setCustomerErrors({ ...customerErrors, email: undefined })
+                        }
+                      }}
+                      required
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                     />
+                    {customerErrors.email && (
+                      <p className="mt-1 text-[11px] text-red-500">{customerErrors.email}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Mobile Number</label>
                     <input
                       type="tel"
                       value={customerDetails.phone}
-                      onChange={(e) => setCustomerDetails({ ...customerDetails, phone: e.target.value })}
+                      onChange={(e) => {
+                        setCustomerDetails({ ...customerDetails, phone: e.target.value })
+                        if (customerErrors.phone) {
+                          setCustomerErrors({ ...customerErrors, phone: undefined })
+                        }
+                      }}
+                      required
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                     />
+                    {customerErrors.phone && (
+                      <p className="mt-1 text-[11px] text-red-500">{customerErrors.phone}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Address Line 1</label>
                     <textarea
                       rows={2}
                       value={customerDetails.addressLine1}
-                      onChange={(e) => setCustomerDetails({ ...customerDetails, addressLine1: e.target.value })}
+                      onChange={(e) => {
+                        setCustomerDetails({ ...customerDetails, addressLine1: e.target.value })
+                        if (customerErrors.addressLine1) {
+                          setCustomerErrors({ ...customerErrors, addressLine1: undefined })
+                        }
+                      }}
+                      required
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                     />
+                    {customerErrors.addressLine1 && (
+                      <p className="mt-1 text-[11px] text-red-500">{customerErrors.addressLine1}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Address Line 2 (optional)</label>
@@ -834,18 +950,36 @@ const EnterpriseStorefront = () => {
                       <input
                         type="text"
                         value={customerDetails.city}
-                        onChange={(e) => setCustomerDetails({ ...customerDetails, city: e.target.value })}
+                        onChange={(e) => {
+                          setCustomerDetails({ ...customerDetails, city: e.target.value })
+                          if (customerErrors.city) {
+                            setCustomerErrors({ ...customerErrors, city: undefined })
+                          }
+                        }}
+                        required
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                       />
+                      {customerErrors.city && (
+                        <p className="mt-1 text-[11px] text-red-500">{customerErrors.city}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">State</label>
                       <input
                         type="text"
                         value={customerDetails.state}
-                        onChange={(e) => setCustomerDetails({ ...customerDetails, state: e.target.value })}
+                        onChange={(e) => {
+                          setCustomerDetails({ ...customerDetails, state: e.target.value })
+                          if (customerErrors.state) {
+                            setCustomerErrors({ ...customerErrors, state: undefined })
+                          }
+                        }}
+                        required
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                       />
+                      {customerErrors.state && (
+                        <p className="mt-1 text-[11px] text-red-500">{customerErrors.state}</p>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -853,9 +987,18 @@ const EnterpriseStorefront = () => {
                     <input
                       type="text"
                       value={customerDetails.postalCode}
-                      onChange={(e) => setCustomerDetails({ ...customerDetails, postalCode: e.target.value })}
+                      onChange={(e) => {
+                        setCustomerDetails({ ...customerDetails, postalCode: e.target.value })
+                        if (customerErrors.postalCode) {
+                          setCustomerErrors({ ...customerErrors, postalCode: undefined })
+                        }
+                      }}
+                      required
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                     />
+                    {customerErrors.postalCode && (
+                      <p className="mt-1 text-[11px] text-red-500">{customerErrors.postalCode}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -903,9 +1046,18 @@ const EnterpriseStorefront = () => {
                           type="text"
                           placeholder="yourname@upi"
                           value={paymentDetails.upiId}
-                          onChange={(e) => setPaymentDetails({ ...paymentDetails, upiId: e.target.value })}
+                          onChange={(e) => {
+                            setPaymentDetails({ ...paymentDetails, upiId: e.target.value })
+                            if (paymentErrors.upiId) {
+                              setPaymentErrors({ ...paymentErrors, upiId: undefined })
+                            }
+                          }}
+                          required
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                         />
+                        {paymentErrors.upiId && (
+                          <p className="mt-1 text-[11px] text-red-500">{paymentErrors.upiId}</p>
+                        )}
                         <p className="text-[11px] text-gray-500">You will see a payment request in your UPI app in a real integration.</p>
                       </div>
                     )}
@@ -917,9 +1069,18 @@ const EnterpriseStorefront = () => {
                           <input
                             type="text"
                             value={paymentDetails.cardHolder}
-                            onChange={(e) => setPaymentDetails({ ...paymentDetails, cardHolder: e.target.value })}
+                            onChange={(e) => {
+                              setPaymentDetails({ ...paymentDetails, cardHolder: e.target.value })
+                              if (paymentErrors.cardHolder) {
+                                setPaymentErrors({ ...paymentErrors, cardHolder: undefined })
+                              }
+                            }}
+                            required
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                           />
+                          {paymentErrors.cardHolder && (
+                            <p className="mt-1 text-[11px] text-red-500">{paymentErrors.cardHolder}</p>
+                          )}
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">Card Number</label>
@@ -927,9 +1088,18 @@ const EnterpriseStorefront = () => {
                             type="text"
                             maxLength={19}
                             value={paymentDetails.cardNumber}
-                            onChange={(e) => setPaymentDetails({ ...paymentDetails, cardNumber: e.target.value })}
+                            onChange={(e) => {
+                              setPaymentDetails({ ...paymentDetails, cardNumber: e.target.value })
+                              if (paymentErrors.cardNumber) {
+                                setPaymentErrors({ ...paymentErrors, cardNumber: undefined })
+                              }
+                            }}
+                            required
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                           />
+                          {paymentErrors.cardNumber && (
+                            <p className="mt-1 text-[11px] text-red-500">{paymentErrors.cardNumber}</p>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
@@ -938,9 +1108,18 @@ const EnterpriseStorefront = () => {
                               type="text"
                               maxLength={5}
                               value={paymentDetails.cardExpiry}
-                              onChange={(e) => setPaymentDetails({ ...paymentDetails, cardExpiry: e.target.value })}
+                              onChange={(e) => {
+                                setPaymentDetails({ ...paymentDetails, cardExpiry: e.target.value })
+                                if (paymentErrors.cardExpiry) {
+                                  setPaymentErrors({ ...paymentErrors, cardExpiry: undefined })
+                                }
+                              }}
+                              required
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                             />
+                            {paymentErrors.cardExpiry && (
+                              <p className="mt-1 text-[11px] text-red-500">{paymentErrors.cardExpiry}</p>
+                            )}
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">CVV</label>
@@ -948,9 +1127,18 @@ const EnterpriseStorefront = () => {
                               type="password"
                               maxLength={4}
                               value={paymentDetails.cardCvv}
-                              onChange={(e) => setPaymentDetails({ ...paymentDetails, cardCvv: e.target.value })}
+                              onChange={(e) => {
+                                setPaymentDetails({ ...paymentDetails, cardCvv: e.target.value })
+                                if (paymentErrors.cardCvv) {
+                                  setPaymentErrors({ ...paymentErrors, cardCvv: undefined })
+                                }
+                              }}
+                              required
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
                             />
+                            {paymentErrors.cardCvv && (
+                              <p className="mt-1 text-[11px] text-red-500">{paymentErrors.cardCvv}</p>
+                            )}
                           </div>
                         </div>
                         <p className="text-[11px] text-gray-500">Card details are for demo only and are not processed.</p>
@@ -990,16 +1178,8 @@ const EnterpriseStorefront = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    if (
-                      !customerDetails.firstName ||
-                      !customerDetails.lastName ||
-                      !customerDetails.email ||
-                      !customerDetails.phone ||
-                      !customerDetails.addressLine1 ||
-                      !customerDetails.city
-                    ) {
-                      return
-                    }
+                    const ok = validateCustomerDetails()
+                    if (!ok) return
                     setCheckoutStep('payment')
                   }}
                   className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-pink-500 hover:bg-pink-600 transition-colors"
@@ -1013,7 +1193,10 @@ const EnterpriseStorefront = () => {
               <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-3">
                 <button
                   type="button"
-                  onClick={() => setCheckoutStep('details')}
+                  onClick={() => {
+                    setPaymentErrors({})
+                    setCheckoutStep('details')
+                  }}
                   className="px-3 py-2 rounded-lg text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   Back

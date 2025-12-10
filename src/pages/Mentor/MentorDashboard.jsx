@@ -49,13 +49,24 @@ const MentorDashboard = () => {
         const pending = connectionsData.filter(conn => conn.status === 'pending' && conn.paymentStatus === 'pending' && conn.mentorType === 'personal').length;
         setPendingRequests(pending);
 
-        const menteesData = connectionsData.map(conn => ({
-          id: conn.id,
-          name: conn.menteeName || 'Mentee',
-          email: conn.menteeEmail || '',
-          status: conn.status || 'pending',
-          since: new Date(conn.createdAt.toDate()).toLocaleDateString(),
-        }));
+        const menteesData = connectionsData.map(conn => {
+          const createdAt = conn.createdAt;
+          let since = '-';
+          if (createdAt?.toDate) {
+            since = createdAt.toDate().toLocaleDateString();
+          } else if (createdAt) {
+            const t = new Date(createdAt).getTime();
+            since = Number.isNaN(t) ? '-' : new Date(t).toLocaleDateString();
+          }
+
+          return {
+            id: conn.id,
+            name: conn.entrepreneurName || conn.menteeName || 'Mentee',
+            email: conn.entrepreneurEmail || conn.menteeEmail || '',
+            status: conn.status || 'pending',
+            since,
+          };
+        });
         setConnectedMentees(menteesData);
 
         // Fetch free groups
@@ -405,7 +416,7 @@ const MentorDashboard = () => {
                     <div className="space-y-2 text-xs text-gray-700 mb-3">
                       <div className="flex items-center">
                         <CalendarIcon className="w-4 h-4 mr-2 text-gray-500" />
-                        <span><strong>{session.schedule?.day}s</strong> at {session.schedule?.time}</span>
+                        <span><strong>{session.schedule?.day}</strong> at {session.schedule?.time}</span>
                       </div>
                       <div className="flex items-center">
                         <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

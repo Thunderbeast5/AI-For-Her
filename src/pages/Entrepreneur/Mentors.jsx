@@ -926,7 +926,7 @@ export default function Mentors() {
                               <span>Open Chat</span>
                             </button>
                             <button
-                              onClick={() => handleLeaveGroup(group._id)}
+                              onClick={() => handleLeaveGroup(group.id)}
                               className="w-full border border-red-300 text-red-600 py-2 rounded-lg font-medium hover:bg-red-50 transition-colors text-sm"
                             >
                               Leave Group
@@ -967,7 +967,7 @@ export default function Mentors() {
                 <h2 className="text-2xl font-bold mb-4">My Joined Free Groups</h2>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {myFreeGroups.map((group) => (
-                    <div key={group._id} className="bg-white rounded-lg shadow-lg p-6 ">
+                    <div key={group.id} className="bg-white rounded-lg shadow-lg p-6 ">
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h3 className="text-lg font-bold text-gray-900 mb-1">{group.groupName}</h3>
@@ -1028,13 +1028,13 @@ className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center s
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {groupSessions.map((session) => {
-                  const isEnrolled = myGroupSessions.some(s => s._id === session._id);
+                  const isEnrolled = myGroupSessions.some(s => s.id === session.id);
                   const enrolledCount = session.currentParticipants?.length || 0;
                   const maxParticipants = session.maxParticipants || 0;
                   const isFull = maxParticipants > 0 && enrolledCount >= maxParticipants;
                   
                   return (
-                    <div key={session._id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-2 border-blue-100">
+                    <div key={session.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-2 border-blue-100">
                       <div className="p-6">
                         <div className="flex items-start justify-between mb-3">
                           <h3 className="text-xl font-bold text-gray-900">{session.groupName}</h3>
@@ -1061,7 +1061,7 @@ className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center s
                             <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <span><strong>{session.schedule.day}s</strong> at {session.schedule.time} ({session.schedule.frequency})</span>
+                            <span><strong>{session.schedule.day}</strong> at {session.schedule.time} ({session.schedule.frequency})</span>
                           </div>
                           <div className="flex items-center text-sm text-gray-700">
                             <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1139,7 +1139,7 @@ className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center s
                 <h2 className="text-2xl font-bold mb-4">My Enrolled Group Sessions</h2>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {myGroupSessions.map((session) => (
-                    <div key={session._id} className="bg-whiterounded-lg shadow-lg p-6 ">
+                    <div key={session.id} className="bg-whiterounded-lg shadow-lg p-6 ">
                       <h3 className="text-lg font-bold text-gray-900 mb-2">{session.groupName}</h3>
                       <p className="text-sm text-pink-600 font-semibold mb-3">by {session.mentorName}</p>
                       <p className="text-sm text-gray-700 mb-2">
@@ -1166,9 +1166,9 @@ className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center s
         )}
 
         {/* My Mentors Tab */}
-        {activeTab === 'myMentors' && (
-          <div>
-            {connections.length === 0 ? (
+        {activeTab === 'myMentors' && (() => {
+          if (connections.length === 0) {
+            return (
               <div className="text-center py-12 bg-white rounded-lg shadow">
                 <p className="text-gray-500 text-lg mb-4">You haven't connected with any mentors yet</p>
                 <button
@@ -1178,68 +1178,120 @@ className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center s
                   Find Mentors
                 </button>
               </div>
-            ) : (
+            );
+          }
+
+          // Deduplicate connections per mentor + mentorType, preferring paid + active and latest
+          const rankedStatus = (conn) => {
+            if (conn.status === 'active' && conn.paymentStatus === 'completed') return 3;
+            if (conn.status === 'active') return 2;
+            if (conn.status === 'accepted') return 1;
+            return 0; // pending / others
+          };
+
+          const getTime = (createdAt) => {
+            if (!createdAt) return 0;
+            if (createdAt.toDate) {
+              // Firestore Timestamp
+              return createdAt.toDate().getTime();
+            }
+            const t = new Date(createdAt).getTime();
+            return Number.isNaN(t) ? 0 : t;
+          };
+
+          const deduped = [];
+          const indexByKey = new Map();
+
+          connections.forEach((conn) => {
+            const key = `${conn.mentorId || ''}-${conn.mentorType || ''}`;
+            const existingIndex = indexByKey.get(key);
+            if (existingIndex === undefined) {
+              indexByKey.set(key, deduped.length);
+              deduped.push(conn);
+            } else {
+              const existing = deduped[existingIndex];
+              const existingRank = rankedStatus(existing);
+              const newRank = rankedStatus(conn);
+              const existingTime = getTime(existing.createdAt);
+              const newTime = getTime(conn.createdAt);
+
+              if (
+                newRank > existingRank ||
+                (newRank === existingRank && newTime > existingTime)
+              ) {
+                deduped[existingIndex] = conn;
+              }
+            }
+          });
+
+          return (
+            <div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {connections.map((connection) => {
+                {deduped.map((connection) => {
+                  const createdAtMs = getTime(connection.createdAt);
+                  const createdAtLabel = createdAtMs
+                    ? new Date(createdAtMs).toLocaleDateString()
+                    : '-';
+
                   return (
-                  <div key={connection.id} className="bg-white rounded-lg shadow-md p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-800">
-                          {connection.mentorName || 'Mentor'}
-                        </h3>
-                        <p className="text-sm text-gray-500">{connection.mentorSector || connection.sector || ''}</p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        connection.mentorType === 'personal' ? 'bg-blue-100 text-blue-700' :
-                        'bg-green-100 text-green-700'
-                      }`}>
-                        {connection.mentorType}
-                      </span>
-                    </div>
-                    
-                    <p className="text-gray-600 text-sm mb-4">{connection.mentorExpertise || connection.expertise || ''}</p>
-                    
-                    <div className="border-t pt-4 mb-4 space-y-2 text-sm">
-                      <p>
-                        <span className="font-semibold">Status:</span>{' '}
-                        <span className={connection.status === 'active' ? 'text-green-600' : 'text-yellow-600'}>
-                          {connection.status}
+                    <div key={connection.id} className="bg-white rounded-lg shadow-md p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            {connection.mentorName || 'Mentor'}
+                          </h3>
+                          <p className="text-sm text-gray-500">{connection.mentorSector || connection.sector || ''}</p>
+                        </div>
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          connection.mentorType === 'personal' ? 'bg-blue-100 text-blue-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {connection.mentorType}
                         </span>
-                      </p>
-                      {connection.sessionCount > 0 && (
-                        <p>
-                          <span className="font-semibold">Sessions:</span> {connection.sessionCount}
-                        </p>
-                      )}
-                      <p>
-                        <span className="font-semibold">Connected:</span>{' '}
-                        {new Date(connection.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    {connection.status === 'active' ? (
-                      <button
-                        onClick={() => {
-                          console.log('💬 Chat button clicked for connection:', connection.id);
-                          openChat(connection);
-                        }}
-                        className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 px-4 rounded-lg font-semibold transition"
-                      >
-                        💬 Open Chat
-                      </button>
-                    ) : (
-                      <div className="text-center text-sm text-gray-500 py-2">
-                        {connection.paymentStatus === 'pending' ? 'Payment pending...' : 'Connection pending...'}
                       </div>
-                    )}
-                  </div>
+                      
+                      <p className="text-gray-600 text-sm mb-4">{connection.mentorExpertise || connection.expertise || ''}</p>
+                      
+                      <div className="border-t pt-4 mb-4 space-y-2 text-sm">
+                        <p>
+                          <span className="font-semibold">Status:</span>{' '}
+                          <span className={connection.status === 'active' ? 'text-green-600' : 'text-yellow-600'}>
+                            {connection.status}
+                          </span>
+                        </p>
+                        {connection.sessionCount > 0 && (
+                          <p>
+                            <span className="font-semibold">Sessions:</span> {connection.sessionCount}
+                          </p>
+                        )}
+                        <p>
+                          <span className="font-semibold">Connected:</span>{' '}
+                          {createdAtLabel}
+                        </p>
+                      </div>
+                      
+                      {connection.status === 'active' ? (
+                        <button
+                          onClick={() => {
+                            console.log('💬 Chat button clicked for connection:', connection.id);
+                            openChat(connection);
+                          }}
+                          className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 px-4 rounded-lg font-semibold transition"
+                        >
+                           Open Chat
+                        </button>
+                      ) : (
+                        <div className="text-center text-sm text-gray-500 py-2">
+                          {connection.paymentStatus === 'pending' ? 'Payment pending...' : 'Connection pending...'}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          );
+        })()}
 
         {/* Chat Tab */}
         {activeTab === 'chat' && selectedConnection && (
@@ -1247,7 +1299,7 @@ className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center s
             {/* Chat Header */}
             <div className="bg-pink-500 text-white p-4 rounded-t-lg flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold">{selectedConnection.mentorId?.name}</h2>
+                <h2 className="text-xl font-semibold">{selectedConnection.mentorName || 'Mentor'}</h2>
                 <p className="text-sm opacity-90">{selectedConnection.mentorType} Mentor</p>
               </div>
               <button
@@ -1270,7 +1322,7 @@ className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center s
               ) : (
                 messages.map((msg) => (
                   <div
-                    key={msg._id}
+                    key={msg.id}
                     className={`flex ${msg.senderId === currentUser.userId ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
@@ -1338,7 +1390,10 @@ className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center s
 
             <div className="flex space-x-4">
               <button
-                onClick={handlePayment}
+                onClick={async () => {
+                  const paymentId = `PAY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                  await handlePaymentSuccess(paymentId);
+                }}
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg font-semibold transition"
               >
                 Pay Now

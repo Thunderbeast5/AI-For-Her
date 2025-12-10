@@ -57,7 +57,7 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (currentUser && userRole) {
+      if (currentUser) {
         try {
           const userDocRef = doc(db, 'users', currentUser.uid);
           const userDoc = await getDoc(userDocRef);
@@ -97,7 +97,7 @@ const Profile = () => {
             firstName: '',
             lastName: '',
             email: currentUser?.email || '',
-            role: userRole,
+            role: userRole || 'entrepreneur',
             phone: '',
             alternatePhone: '',
             profilePhoto: '',
@@ -144,7 +144,7 @@ const Profile = () => {
       const dataToSave = {
         ...profileData,
         email: currentUser.email,
-        role: userRole,
+        role: profileData.role || userRole || 'entrepreneur',
         updatedAt: new Date()
       };
       
