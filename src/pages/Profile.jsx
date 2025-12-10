@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '../components/DashboardLayout';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/authContext';
 import EntrepreneurSidebar from '../components/EntrepreneurSidebar';
 import MentorSidebar from '../components/MentorSidebar';
 import InvestorSidebar from '../components/InvestorSidebar';
-import { usersApi } from '../api';
+import { db } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const toastVariants = {
   initial: { opacity: 0, x: 100 },
@@ -34,7 +35,6 @@ const Profile = () => {
     'Malayalam', 'Bengali', 'Gujarati', 'Punjabi', 'Urdu', 'Other'
   ];
 
-  const mentorTypes = ['personal', 'group', 'both'];
   
   const experienceLevels = [
     'Beginner (0-2 years)', 
@@ -59,10 +59,9 @@ const Profile = () => {
     const fetchUserProfile = async () => {
       if (currentUser && userRole) {
         try {
-          const userId = localStorage.getItem('userId');
-          
-          // Fetch from MongoDB via API
-          const data = await usersApi.getUser(userId, userRole);
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          const data = userDoc.data();
           
           console.log('Profile data loaded from MongoDB:', data);
           
@@ -93,9 +92,8 @@ const Profile = () => {
         } catch (error) {
           console.error('Error fetching profile:', error);
           // Create default profile data
-          const userId = localStorage.getItem('userId');
           const defaultData = {
-            userId,
+            userId: currentUser.uid,
             firstName: '',
             lastName: '',
             email: currentUser?.email || '',
@@ -142,8 +140,7 @@ const Profile = () => {
     try {
       setSaving(true);
       
-      const userId = localStorage.getItem('userId');
-      
+            
       const dataToSave = {
         ...profileData,
         email: currentUser.email,
@@ -152,14 +149,14 @@ const Profile = () => {
       };
       
       console.log('Saving profile data to MongoDB:', dataToSave);
-      console.log('User ID:', userId, 'Role:', userRole);
+      console.log('User ID:', currentUser.uid, 'Role:', userRole);
       
-      await usersApi.saveUser(userId, dataToSave, userRole);
+      await setDoc(doc(db, 'users', currentUser.uid), dataToSave, { merge: true });
       
       console.log('Profile data saved successfully');
       setOriginalData(profileData); // Update original data after successful save
       setIsEditing(false); // Exit edit mode
-      setMessage('Profile updated successfully! ✅');
+      setMessage('Profile updated successfully! ');
       setTimeout(() => setMessage(''), 3000);
       
     } catch (error) {
@@ -232,7 +229,7 @@ const Profile = () => {
               {/* Profile Header with Edit Button */}
               <div className="flex items-center justify-between pb-6 border-b border-gray-200">
                 <div className="flex items-center space-x-4">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-white text-2xl font-bold">
+                  <div className="w-20 h-20 rounded-full bg-linear-to-br from-pink-200 to-pink-400 flex items-center justify-center text-white text-2xl font-bold">
                     {profileData?.firstName?.[0]}{profileData?.lastName?.[0]}
                   </div>
                   <div>
@@ -977,7 +974,7 @@ const Profile = () => {
             animate="animate"
             exit="exit"
             transition={{ duration: 0.3 }}
-            className="fixed top-6 right-6 z-[60] w-full max-w-sm"
+            className="fixed top-6 right-6 z-60 w-full max-w-sm"
           >
             <div className={`p-4 rounded-lg shadow-lg text-sm font-medium ${
               message.includes('success') 

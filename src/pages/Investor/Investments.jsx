@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { startupsApi, usersApi } from '../../api';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../firebase';
+import { collection, query, getDocs } from 'firebase/firestore';
 import DashboardLayout from '../../components/DashboardLayout';
 import InvestorSidebar from '../../components/InvestorSidebar';
 import { 
@@ -23,64 +23,64 @@ const Investments = () => {
 
   useEffect(() => {
     const fetchInvestments = async () => {
-      if (currentUser) {
-        try {
-          // Fetch all investments for this investor
-          const investmentsQuery = query(
-            collection(db, 'investments'),
-            where('investorId', '==', currentUser.uid)
+      if (!currentUser?.uid) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Mirror the logic from InvestorDashboard: read from investment-projects and
+        // derive this investor's investments from the investors array on each project.
+        const projectsQuery = query(collection(db, 'investment-projects'));
+        const projectsSnapshot = await getDocs(projectsQuery);
+        const allProjects = projectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        let totalInv = 0;
+        let pendingCount = 0;
+
+        const investmentsData = allProjects.flatMap(project => {
+          const projectInvestors = Array.isArray(project.investors)
+            ? project.investors
+            : [];
+
+          const myInvestmentsInProject = projectInvestors.filter(
+            inv => inv.investorId === currentUser.uid
           );
-          const investmentsSnapshot = await getDocs(investmentsQuery);
-          
-          let totalInv = 0;
-          let completedCount = 0;
-          let pendingCount = 0;
-          
-          const investmentsData = await Promise.all(
-            investmentsSnapshot.docs.map(async (investmentDoc) => {
-              const investment = investmentDoc.data();
-              
-              // Fetch startup details
-              let startupName = 'Unknown Startup';
-              if (investment.startupId) {
-                const startupDoc = await getDoc(doc(db, 'startups', investment.startupId));
-                if (startupDoc.exists()) {
-                  startupName = startupDoc.data().name;
-                }
-              }
-              
-              const amount = investment.amount || 0;
-              const status = investment.status || 'pending';
-              const returns = investment.currentValue || 0;
-              const roi = amount > 0 && returns > 0 ? (((returns - amount) / amount) * 100).toFixed(1) : 0;
-              
-              totalInv += amount;
-              if (status === 'completed') completedCount++;
-              else pendingCount++;
-              
-              return {
-                id: investmentDoc.id,
-                projectName: startupName,
-                amount: `₹${amount.toLocaleString('en-IN')}`,
-                date: investment.investedDate || 'Recently',
-                status: status === 'completed' ? 'Completed' : 'Pending',
-                returns: status === 'completed' ? `₹${returns.toLocaleString('en-IN')}` : '-',
-                roi: status === 'completed' ? `${roi > 0 ? '+' : ''}${roi}%` : '-'
-              };
-            })
-          );
-          
-          setInvestments(investmentsData);
-          setStats({
-            totalInvested: totalInv,
-            completed: completedCount,
-            pending: pendingCount
+
+          if (myInvestmentsInProject.length === 0) return [];
+
+          return myInvestmentsInProject.map((inv, index) => {
+            const amount = Number(inv.amount) || 0;
+            totalInv += amount;
+            pendingCount += 1;
+
+            const jsDate = inv.date?.toDate?.();
+            const displayDate = jsDate
+              ? jsDate.toLocaleDateString('en-IN')
+              : 'Recently';
+
+            return {
+              id: `${project.id}-${inv.date?.toMillis?.() || index}`,
+              projectName: project.projectName || project.startupId?.name || 'Untitled Project',
+              amount: `₹${amount.toLocaleString('en-IN')}`,
+              date: displayDate,
+              status: 'Pending',
+              returns: '-',
+              roi: '-',
+            };
           });
-        } catch (error) {
-          console.error('Error fetching investments:', error);
-        } finally {
-          setLoading(false);
-        }
+        });
+
+        setInvestments(investmentsData);
+        setStats({
+          totalInvested: totalInv,
+          completed: 0,
+          pending: pendingCount,
+        });
+      } catch (error) {
+        console.error('Error fetching investments:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -102,22 +102,13 @@ const Investments = () => {
 
   return (
     <DashboardLayout sidebar={<InvestorSidebar />}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Investment History</h1>
         <p className="text-gray-600">Track all your investment transactions</p>
-      </motion.div>
+      </div>
 
       {/* Investment Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid md:grid-cols-3 gap-6 mb-8"
-      >
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <div className="flex items-center space-x-3 mb-2">
             <BanknotesIcon className="w-6 h-6 text-pink-400" />
@@ -141,15 +132,10 @@ const Investments = () => {
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
         </div>
-      </motion.div>
+      </div>
 
       {/* Investment List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-white rounded-2xl p-6 shadow-sm"
-      >
+      <div className="bg-white rounded-2xl p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-gray-900 mb-6">All Investments</h2>
         {investments.length === 0 ? (
           <div className="text-center py-12">
@@ -159,45 +145,39 @@ const Investments = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {investments.map((investment, index) => (
-            <motion.div
-              key={investment.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 + index * 0.1 }}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-2">{investment.projectName}</h3>
-                <div className="flex items-center space-x-4 text-sm text-gray-600">
-                  <span className="flex items-center">
-                    <CalendarIcon className="w-4 h-4 mr-1" />
-                    {investment.date}
-                  </span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    investment.status === 'Completed' 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {investment.status}
-                  </span>
+            {investments.map((investment) => (
+              <div key={investment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-2">{investment.projectName}</h3>
+                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    <span className="flex items-center">
+                      <CalendarIcon className="w-4 h-4 mr-1" />
+                      {investment.date}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      investment.status === 'Completed' 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {investment.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-lg font-bold text-gray-900 mb-1">{investment.amount}</p>
+                  {investment.status === 'Completed' && (
+                    <>
+                      <p className="text-sm text-gray-600">Returns: {investment.returns}</p>
+                      <p className="text-sm font-semibold text-green-600">{investment.roi}</p>
+                    </>
+                  )}
                 </div>
               </div>
-
-              <div className="text-right">
-                <p className="text-lg font-bold text-gray-900 mb-1">{investment.amount}</p>
-                {investment.status === 'Completed' && (
-                  <>
-                    <p className="text-sm text-gray-600">Returns: {investment.returns}</p>
-                    <p className="text-sm font-semibold text-green-600">{investment.roi}</p>
-                  </>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
+            ))}
+          </div>
         )}
-      </motion.div>
+      </div>
     </DashboardLayout>
   );
 };

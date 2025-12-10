@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { startupsApi } from '../../api';
-import { useAuth } from '../../context/AuthContext';
+import { db } from '../../firebase';
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { useAuth } from '../../hooks/useAuth';
 import DashboardLayout from '../../components/DashboardLayout';
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar';
 import { 
@@ -12,10 +14,17 @@ import {
 } from '@heroicons/react/24/outline';
 import jsPDF from 'jspdf';
 
+const toastVariants = {
+  initial: { opacity: 0, x: 100 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: 100 },
+};
+
 const CreateStartup = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -99,18 +108,6 @@ const CreateStartup = () => {
     'Scaling / Maturity'
   ];
   
-  // Stage to progress percentage mapping
-  const stageToProgress = {
-    'Ideation': 12.5,
-    'Concept Research': 25,
-    'Prototype / MVP': 37.5,
-    'Validation': 50,
-    'Launch': 62.5,
-    'Growth': 75,
-    'Expansion / Funding': 87.5,
-    'Scaling / Maturity': 100
-  };
-  
   const lookingForOptions = ['Funding', 'Mentorship', 'Partnership', 'Advisory', 'Talent', 'Market Access'];
 
   // Load startup data if editing
@@ -128,6 +125,8 @@ const CreateStartup = () => {
       }
       
       // Convert arrays back to comma-separated strings if needed
+      const arrayToString = (arr) => Array.isArray(arr) ? arr.join(', ') : arr || '';
+
       setFormData({
         name: startup.name || '',
         tagline: startup.tagline || '',
@@ -144,21 +143,21 @@ const CreateStartup = () => {
         targetMarket: startup.targetMarket || '',
         uniqueSellingPoint: startup.uniqueSellingPoint || '',
         valueProposition: startup.valueProposition || '',
-        features: Array.isArray(startup.features) ? startup.features.join(', ') : startup.features || '',
-        technology: Array.isArray(startup.technology) ? startup.technology.join(', ') : startup.technology || '',
+        features: arrayToString(startup.features),
+        technology: arrayToString(startup.technology),
         fundingGoal: startup.fundingGoal || '',
         currentRevenue: startup.currentRevenue || '',
         revenueModel: startup.revenueModel || '',
         projectedRevenue: startup.projectedRevenue || '',
         investmentUse: startup.investmentUse || '',
         teamSize: startup.teamSize || '',
-        keyHires: Array.isArray(startup.keyHires) ? startup.keyHires.join(', ') : startup.keyHires || '',
+        keyHires: arrayToString(startup.keyHires),
         customerBase: startup.customerBase || '',
         monthlyActiveUsers: startup.monthlyActiveUsers || '',
         marketSize: startup.marketSize || '',
-        competitors: Array.isArray(startup.competitors) ? startup.competitors.join(', ') : startup.competitors || '',
+        competitors: arrayToString(startup.competitors),
         competitiveAdvantage: startup.competitiveAdvantage || '',
-        achievements: Array.isArray(startup.achievements) ? startup.achievements.join(', ') : startup.achievements || '',
+        achievements: arrayToString(startup.achievements),
         businessModel: startup.businessModel || '',
         pricingStrategy: startup.pricingStrategy || '',
         website: startup.website || '',
@@ -195,18 +194,19 @@ const CreateStartup = () => {
     setLoading(true);
 
     try {
-      const userId = localStorage.getItem('userId');
-      
+      // Helper function to process comma-separated strings
+      const processStringToArray = (str) => str ? str.split(',').map(s => s.trim()).filter(Boolean) : [];
+
       const startupData = {
         ...formData,
-        userId,
+        userId: currentUser.uid,
         // Convert comma-separated strings to arrays
-        features: formData.features ? formData.features.split(',').map(s => s.trim()).filter(Boolean) : [],
-        technology: formData.technology ? formData.technology.split(',').map(s => s.trim()).filter(Boolean) : [],
-        competitors: formData.competitors ? formData.competitors.split(',').map(s => s.trim()).filter(Boolean) : [],
-        achievements: formData.achievements ? formData.achievements.split(',').map(s => s.trim()).filter(Boolean) : [],
-        keyHires: formData.keyHires ? formData.keyHires.split(',').map(s => s.trim()).filter(Boolean) : [],
-        // Convert numbers
+        features: processStringToArray(formData.features),
+        technology: processStringToArray(formData.technology),
+        competitors: processStringToArray(formData.competitors),
+        achievements: processStringToArray(formData.achievements),
+        keyHires: processStringToArray(formData.keyHires),
+        // Convert numbers, handling potential empty strings
         fundingGoal: parseFloat(formData.fundingGoal) || 0,
         currentRevenue: parseFloat(formData.currentRevenue) || 0,
         projectedRevenue: parseFloat(formData.projectedRevenue) || 0,
@@ -223,15 +223,18 @@ const CreateStartup = () => {
 
       if (isEditMode && editingStartupId) {
         // Update existing startup
-        await startupsApi.update(editingStartupId, startupData);
-        alert('Startup updated successfully!');
+        const startupRef = doc(db, 'startups', editingStartupId);
+        await updateDoc(startupRef, startupData);
+        setMessage('Startup updated successfully!');
       } else {
         // Create new startup
         startupData.createdAt = new Date();
-        await startupsApi.create(startupData);
+        const docRef = await addDoc(collection(db, 'startups'), startupData);
+        console.log('Startup created with ID:', docRef.id);
+        setMessage('Startup created successfully!');
       }
       
-      setSuccess(true);
+      setTimeout(() => setMessage(''), 3000);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       
       // Navigate back to dashboard after 2 seconds
@@ -239,7 +242,9 @@ const CreateStartup = () => {
         navigate('/dashboard');
       }, 2000);
     } catch (error) {
-      console.error('Error saving startup:', error);
+      console.error('Error creating/updating startup:', error);
+      setMessage('Failed to save startup. Please try again.');
+      setTimeout(() => setMessage(''), 5000);
       alert(`Failed to ${isEditMode ? 'update' : 'create'} startup. Please try again.`);
     } finally {
       setLoading(false);
@@ -374,6 +379,8 @@ const CreateStartup = () => {
     });
     setSuccess(false);
     setCurrentStep(1);
+    setIsEditMode(false);
+    setEditingStartupId(null);
   };
 
   const nextStep = () => {
@@ -392,15 +399,24 @@ const CreateStartup = () => {
     { number: 5, title: 'Links & Goals' }
   ];
 
+  const buttonClass = "flex items-center justify-center px-6 py-3 w-40 rounded-lg font-medium transition-all duration-200";
+  // const primaryButtonClass = "text-white bg-gradient-to-r from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed";
+  // const secondaryButtonClass = "text-gray-900 bg-gradient-to-r from-pink-200 to-pink-300 hover:from-pink-300 hover:to-pink-400 disabled:opacity-50 disabled:cursor-not-allowed";
+  const ghostButtonClass = "text-gray-700 bg-gray-100 hover:bg-gray-200";
+
+const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
+  const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
+  const secondaryPinkGradient = 'bg-gradient-to-r from-pink-200 to-pink-300';
+  const secondaryPinkGradientHover = 'hover:from-pink-300 hover:to-pink-400';
+  const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
+  const secondaryButtonClass = `text-gray-900 ${secondaryPinkGradient} ${secondaryPinkGradientHover} font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
+  
   return (
-    <DashboardLayout sidebar={<EntrepreneurSidebar />}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+    <>
+      <DashboardLayout sidebar={<EntrepreneurSidebar />}>
+      <div className="mb-8">
         <div className="flex items-center space-x-3 mb-2">
-          <RocketLaunchIcon className="w-8 h-8 text-pink-400" />
+          {/* <RocketLaunchIcon className="w-8 h-8 text-pink-400" /> */}
           <h1 className="text-3xl font-bold text-gray-900">
             {isEditMode ? 'Edit Your Startup' : 'Create Your Startup'}
           </h1>
@@ -408,14 +424,10 @@ const CreateStartup = () => {
         <p className="text-gray-600">
           {isEditMode ? 'Update your startup information' : 'Share your vision with potential investors and mentors'}
         </p>
-      </motion.div>
+      </div>
 
       {success && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-green-50 border border-green-200 rounded-2xl p-6 mb-6"
-        >
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-6 mb-6">
           <div className="flex items-center space-x-3 mb-4">
             <CheckCircleIcon className="w-6 h-6 text-green-500" />
             <p className="text-green-700 font-medium">
@@ -425,25 +437,25 @@ const CreateStartup = () => {
           <div className="flex items-center space-x-4">
             <button
               onClick={handleDownloadPDF}
-              className="px-6 py-2 bg-gradient-to-r from-purple-400 to-purple-500 text-white font-medium rounded-lg hover:from-purple-500 hover:to-purple-600 transition-all duration-200 flex items-center space-x-2"
+              className={`${buttonClass} bg-linear-to-r from-pink-200 to-pink-300 hover:from-pink-300 hover:to-pink-400 text-white w-auto`}
             >
-              <ArrowDownTrayIcon className="w-5 h-5" />
+              <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
               <span>Download PDF</span>
             </button>
             <button
               onClick={() => navigate('/dashboard')}
-              className="px-6 py-2 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-medium rounded-lg hover:from-pink-500 hover:to-pink-600 transition-all duration-200"
+              className={`${buttonClass} ${primaryButtonClass} w-auto`}
             >
               Go to Dashboard
             </button>
             <button
               onClick={handleCreateAnother}
-              className="px-6 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              className={`${buttonClass} ${ghostButtonClass} w-auto`}
             >
               Create Another
             </button>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Progress Steps */}
@@ -455,31 +467,25 @@ const CreateStartup = () => {
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
                     currentStep >= step.number
-                      ? 'bg-gradient-to-r from-pink-400 to-pink-500 text-white'
-                      : 'bg-gray-200 text-gray-500'
+                      ? 'bg-gradient-to-r from-pink-400 to-pink-500 text-white' // Active/Complete Color
+                      : 'bg-gray-200 text-gray-500' // Inactive Color
                   }`}
                 >
                   {step.number}
                 </div>
-                <span className={`text-xs mt-2 ${currentStep >= step.number ? 'text-pink-500 font-medium' : 'text-gray-500'}`}>
+                <span className={`text-xs mt-2 text-center ${currentStep >= step.number ? 'text-pink-500 font-medium' : 'text-gray-500'}`}>
                   {step.title}
                 </span>
               </div>
               {index < steps.length - 1 && (
-                <div className={`h-1 flex-1 mx-2 ${currentStep > step.number ? 'bg-pink-400' : 'bg-gray-200'}`} />
+                <div className={`h-1 flex-1 mx-2 transition-colors ${currentStep > step.number ? 'bg-pink-400' : 'bg-gray-200'}`} />
               )}
             </div>
           ))}
         </div>
       </div>
 
-      <motion.form
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        onSubmit={handleSubmit}
-        className="bg-white rounded-2xl p-8 shadow-sm"
-      >
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 shadow-sm">
         {/* Step 1: Basic Information */}
         {currentStep === 1 && (
           <div className="space-y-6">
@@ -1077,12 +1083,8 @@ const CreateStartup = () => {
           <button
             type="button"
             onClick={prevStep}
-            disabled={currentStep === 1}
-            className={`px-6 py-3 rounded-lg font-medium transition-all ${
-              currentStep === 1
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            disabled={currentStep === 1 || loading}
+            className={`${buttonClass} ${primaryButtonClass}`}
           >
             Previous
           </button>
@@ -1095,7 +1097,8 @@ const CreateStartup = () => {
             <button
               type="button"
               onClick={nextStep}
-              className="px-6 py-3 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-medium rounded-lg hover:from-pink-500 hover:to-pink-600 transition-all duration-200"
+              disabled={loading}
+              className={`${buttonClass} ${primaryButtonClass}`}
             >
               Next
             </button>
@@ -1103,15 +1106,39 @@ const CreateStartup = () => {
             <button
               type="submit"
               disabled={loading}
-              className="px-8 py-3 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-medium rounded-lg hover:from-pink-500 hover:to-pink-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className={`${buttonClass} ${primaryButtonClass} w-48`}
             >
-              <RocketLaunchIcon className="w-5 h-5" />
+              <RocketLaunchIcon className={`w-5 h-5 ${loading ? 'hidden' : 'inline mr-2'}`} />
               <span>{loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Startup' : 'Create Startup')}</span>
             </button>
           )}
         </div>
-      </motion.form>
+      </form>
     </DashboardLayout>
+
+    {/* Toast Notification */}
+    <AnimatePresence>
+      {message && (
+        <motion.div
+          key="startup-toast"
+          variants={toastVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ duration: 0.3 }}
+          className="fixed top-6 right-6 z-9999 w-full max-w-sm"
+        >
+          <div className={`p-4 rounded-lg shadow-xl text-sm font-medium border ${
+            message.includes('success') 
+              ? 'bg-green-50 text-green-700 border-green-200' 
+              : 'bg-red-50 text-red-700 border-red-200'
+          }`}>
+            {message}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </>
   );
 };
 

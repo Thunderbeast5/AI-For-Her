@@ -1,58 +1,26 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react';
+import { db } from '../firebase';
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ChevronDownIcon, UserCircleIcon, ArrowRightOnRectangleIcon, BellIcon } from '@heroicons/react/24/outline'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import GoogleTranslate from './GoogleTranslate'
-import { notificationsApi } from '../api'
 
 const Navbar = () => {
-  const { t, i18n } = useTranslation()
-  const navigate = useNavigate()
-  const { currentUser, logout } = useAuth()
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [showLangDropdown, setShowLangDropdown] = useState(false)
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [userName, setUserName] = useState('')
-  const [userInitials, setUserInitials] = useState('')
-  const [notifications, setNotifications] = useState([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const dropdownRef = useRef(null)
-  const langDropdownRef = useRef(null)
-  const notificationRef = useRef(null)
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { currentUser, logout } = useAuth();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [userInitials, setUserInitials] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const dropdownRef = useRef(null);
+  const notificationRef = useRef(null);
 
-  const languages = [
-    { code: 'en', name: 'English', nativeName: 'English' },
-    { code: 'hi', name: 'Hindi', nativeName: 'हिंदी' },
-    { code: 'mr', name: 'Marathi', nativeName: 'मराठी' },
-    { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்' },
-    { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' },
-    { code: 'bn', name: 'Bengali', nativeName: 'বাংলা' },
-    { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી' }
-  ]
-
-  const changeLanguage = (lang) => {
-    setShowLangDropdown(false)
-    
-    // Wait for Google Translate to load, then trigger it
-    const attemptTranslate = (attempts = 0) => {
-      const googleTranslateSelect = document.querySelector('.goog-te-combo')
-      
-      if (googleTranslateSelect) {
-        googleTranslateSelect.value = lang.code
-        googleTranslateSelect.dispatchEvent(new Event('change'))
-        console.log('Language changed to:', lang.nativeName)
-      } else if (attempts < 10) {
-        // Retry up to 10 times with 200ms delay
-        setTimeout(() => attemptTranslate(attempts + 1), 200)
-      } else {
-        console.error('Google Translate widget not found')
-      }
-    }
-    
-    attemptTranslate()
-  }
-
+  
   // Get user name and initials from Firebase Auth or display name
   useEffect(() => {
     if (currentUser) {
@@ -65,32 +33,31 @@ const Navbar = () => {
     }
   }, [currentUser])
 
-  // Fetch notifications from MongoDB
+  // Fetch notifications from Firestore in real-time
   useEffect(() => {
-    if (!currentUser?.userId) return
+    if (!currentUser?.uid) return;
 
-    const fetchNotifications = async () => {
-      try {
-        const response = await notificationsApi.getByUser(currentUser.userId)
-        const notificationsList = response.data || []
-        
-        const unread = notificationsList.filter(n => !n.read).length
-        
-        setNotifications(notificationsList.slice(0, 10))
-        setUnreadCount(unread)
-      } catch (error) {
-        console.error('Error fetching notifications:', error)
-        setNotifications([])
-        setUnreadCount(0)
-      }
-    }
+    const notificationsRef = collection(db, 'notifications');
+    const q = query(
+      notificationsRef,
+      where('userId', '==', currentUser.uid),
+      orderBy('createdAt', 'desc')
+    );
 
-    fetchNotifications()
-    
-    // Optionally poll for new notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000)
-    return () => clearInterval(interval)
-  }, [currentUser])
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const notificationsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const unread = notificationsList.filter(n => !n.read).length;
+
+      setNotifications(notificationsList.slice(0, 10));
+      setUnreadCount(unread);
+    }, (error) => {
+      console.error('Error fetching notifications:', error);
+      setNotifications([]);
+      setUnreadCount(0);
+    });
+
+    return () => unsubscribe(); // Cleanup listener on unmount
+  }, [currentUser]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -98,10 +65,7 @@ const Navbar = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false)
       }
-      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target)) {
-        setShowLangDropdown(false)
-      }
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setShowNotifications(false)
       }
     }
@@ -119,6 +83,14 @@ const Navbar = () => {
       console.error('Failed to log out:', error)
     }
   }
+
+  const deleteNotification = async (notificationId) => {
+    try {
+      await deleteDoc(doc(db, 'notifications', notificationId));
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
 
   const markAsRead = async (notificationId) => {
     try {
@@ -188,8 +160,13 @@ const Navbar = () => {
                       <div
                         key={notification.id}
                         onClick={() => {
-                          markAsRead(notification.id)
-                          if (notification.link) navigate(notification.link)
+                          markAsRead(notification.id);
+
+                          if (notification.type === 'mentor-connection-accepted' && notification.connectionId) {
+                            navigate(`/mentors?connectionId=${notification.connectionId}&openPayment=1`);
+                          } else if (notification.link) {
+                            navigate(notification.link);
+                          }
                         }}
                         className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
                           !notification.read ? 'bg-blue-50' : ''
@@ -203,9 +180,21 @@ const Navbar = () => {
                               {formatNotificationTime(notification.createdAt)}
                             </p>
                           </div>
-                          {!notification.read && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
-                          )}
+                          <div className="flex items-center space-x-2 shrink-0 mt-1">
+                            {!notification.read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotification(notification.id);
+                              }}
+                              className="text-xs text-gray-400 hover:text-red-500"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -221,7 +210,7 @@ const Navbar = () => {
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center space-x-2 hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors"
             >
-              <div className="w-8 h-8 bg-gradient-to-r from-pink-200 to-pink-300 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-linear-to-r from-pink-200 to-pink-300 rounded-full flex items-center justify-center">
                 <span className="text-gray-700 font-semibold text-sm">{userInitials}</span>
               </div>
               <span className="text-sm font-medium text-gray-700">{userName}</span>

@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { mentorsApi, connectionsApi, chatApi } from '../../api';
-import mentorGroupsApi from '../../api/mentorGroups';
-import groupSessionsApi from '../../api/groupSessions';
-import groupChatsApi from '../../api/groupChats';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../firebase';
+import { collection, query, where, getDocs, doc, updateDoc, addDoc, arrayUnion, arrayRemove, orderBy, onSnapshot } from 'firebase/firestore';
 import DashboardLayout from '../../components/DashboardLayout';
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar';
-import GroupChatInterface from '../../components/GroupChatInterface';
 import ConnectionRequestModal from '../../components/ConnectionRequestModal';
-import PaymentModal from '../../components/PaymentModal';
-import PersonalChatInterface from '../../components/PersonalChatInterface';
+import UnifiedChat from '../../components/UnifiedChat';
 
 export default function Mentors() {
   const [activeTab, setActiveTab] = useState('find'); // find, freeGroups, groupSessions, myMentors, chat
@@ -36,45 +34,34 @@ export default function Mentors() {
   const [showPersonalChat, setShowPersonalChat] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeChat, setActiveChat] = useState(null); // unified chat view for personal + group
+  const [message, setMessage] = useState('');
+  const [openPaymentFromNotification, setOpenPaymentFromNotification] = useState(false);
   const { currentUser } = useAuth();
+  const location = useLocation();
 
-  useEffect(() => {
-    fetchMentors();
-    fetchConnections();
-    fetchFreeGroups();
-    fetchGroupSessions();
-    if (currentUser?.userId) {
-      fetchMyFreeGroups();
-      fetchMyGroupSessions();
-    }
-  }, [currentUser]);
+  // Unified pink button styles
+  const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
+  const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
+  const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
 
-  // Check for accepted connections that need payment
-  useEffect(() => {
-    const pendingPayment = connections.find(
-      conn => conn.status === 'pending' && 
-              conn.mentorType === 'personal' && 
-              conn.paymentStatus === 'pending' &&
-              conn.entrepreneurId === currentUser?.userId
-    );
-    if (pendingPayment && !showPaymentModal && !pendingPaymentConnection) {
-      setPendingPaymentConnection(pendingPayment);
-      setShowPaymentModal(true);
-    }
-  }, [connections, currentUser]);
+  const toastVariants = {
+    initial: { opacity: 0, x: 100 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: 100 },
+  };
 
-  useEffect(() => {
-    if (selectedConnection) {
-      fetchMessages(selectedConnection._id);
-      const interval = setInterval(() => fetchMessages(selectedConnection._id), 5000);
-      return () => clearInterval(interval);
-    }
-  }, [selectedConnection]);
-
+  // Fetch functions
   const fetchMentors = async () => {
     try {
-      const data = await mentorsApi.getAll();
-      setMentors(data);
+      // Load mentors from users collection where role is 'mentor'
+      const mentorsQuery = query(
+        collection(db, 'users'),
+        where('role', '==', 'mentor')
+      );
+      const mentorsSnapshot = await getDocs(mentorsQuery);
+      const mentorsData = mentorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMentors(mentorsData);
     } catch (error) {
       console.error('Error fetching mentors:', error);
     } finally {
@@ -82,93 +69,166 @@ export default function Mentors() {
     }
   };
 
-  const fetchConnections = async () => {
+  // Unified chat opener
+  const handleOpenChat = (chatData) => {
+    setActiveChat(chatData);
+  };
+
+  const fetchConnections = useCallback(async () => {
+    if (!currentUser?.uid) return;
     try {
-      if (currentUser?.userId) {
-        console.log('📡 Fetching connections for user:', currentUser.userId);
-        const response = await connectionsApi.getByUser(currentUser.userId, 'entrepreneur');
-        console.log('📥 Connections API response:', response);
-        
-        // Handle both response formats: { success, data } or direct array
-        const data = response?.data || response || [];
-        console.log('📊 Processed connections data:', data);
-        
-        // Ensure data is an array
-        const connectionsArray = Array.isArray(data) ? data : [];
-        console.log(`✅ Setting ${connectionsArray.length} connections to state`);
-        setConnections(connectionsArray);
-      }
+      const connectionsQuery = query(collection(db, 'connections'), where('entrepreneurId', '==', currentUser.uid));
+      const connectionsSnapshot = await getDocs(connectionsQuery);
+      const connectionsData = connectionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setConnections(connectionsData);
     } catch (error) {
       console.error('Error fetching connections:', error);
       setConnections([]);
     }
-  };
+  }, [currentUser]);
 
   const fetchFreeGroups = async () => {
     try {
-      // MentorGroups collection - FREE Telegram groups only
-      const data = await mentorGroupsApi.getActiveGroups();
-      setFreeGroups(Array.isArray(data) ? data : []);
+      const groupsQuery = query(collection(db, 'mentorGroups'), where('price', '==', 0));
+      const groupsSnapshot = await getDocs(groupsQuery);
+      const groupsData = groupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setFreeGroups(groupsData);
     } catch (error) {
       console.error('Error fetching free groups:', error);
       setFreeGroups([]);
     }
   };
 
-  const fetchMyFreeGroups = async () => {
+  const fetchMyFreeGroups = useCallback(async () => {
+    if (!currentUser?.uid) return;
     try {
-      // MentorGroups collection - user's joined FREE groups
-      const data = await mentorGroupsApi.getByParticipant(currentUser.userId);
-      setMyFreeGroups(Array.isArray(data) ? data : []);
+      const groupsQuery = query(collection(db, 'mentorGroups'), where('participants', 'array-contains', currentUser.uid));
+      const groupsSnapshot = await getDocs(groupsQuery);
+      const groupsData = groupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMyFreeGroups(groupsData);
     } catch (error) {
       console.error('Error fetching my free groups:', error);
       setMyFreeGroups([]);
     }
-  };
+  }, [currentUser]);
 
   const fetchGroupSessions = async () => {
     try {
-      // GroupSessions collection - PAID sessions only
-      const data = await groupSessionsApi.getActiveSessions();
-      setGroupSessions(Array.isArray(data) ? data : []);
+      const sessionsQuery = query(collection(db, 'groupSessions'), where('price', '>', 0));
+      const sessionsSnapshot = await getDocs(sessionsQuery);
+      const sessionsData = sessionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setGroupSessions(sessionsData);
     } catch (error) {
       console.error('Error fetching group sessions:', error);
       setGroupSessions([]);
     }
   };
 
-  const fetchMyGroupSessions = async () => {
+  const fetchMyGroupSessions = useCallback(async () => {
+    if (!currentUser?.uid) return;
     try {
-      // GroupSessions collection - user's enrolled PAID sessions
-      const data = await groupSessionsApi.getByParticipant(currentUser.userId);
-      setMyGroupSessions(Array.isArray(data) ? data : []);
+      const sessionsQuery = query(collection(db, 'groupSessions'), where('participants', 'array-contains', currentUser.uid));
+      const sessionsSnapshot = await getDocs(sessionsQuery);
+      const sessionsData = sessionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMyGroupSessions(sessionsData);
     } catch (error) {
       console.error('Error fetching my group sessions:', error);
       setMyGroupSessions([]);
     }
-  };
+  }, [currentUser]);
+
+  const fetchMessages = useCallback((connectionId) => {
+    const messagesQuery = query(collection(db, 'chats', connectionId, 'messages'), orderBy('timestamp'));
+    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      const messagesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMessages(messagesData);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    fetchMentors();
+    fetchConnections();
+    fetchFreeGroups();
+    fetchGroupSessions();
+    if (currentUser?.uid) {
+      fetchMyFreeGroups();
+      fetchMyGroupSessions();
+    }
+  }, [currentUser, fetchConnections, fetchMyFreeGroups, fetchMyGroupSessions]);
+
+  // Detect if this page was opened from a mentor-connection notification with payment intent
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const shouldOpen = params.get('openPayment') === '1' && params.get('connectionId');
+    if (shouldOpen) {
+      setOpenPaymentFromNotification(true);
+      // Ensure we have the latest connection status (accepted/pending payment)
+      fetchConnections();
+    }
+  }, [location.search, fetchConnections]);
+
+  // Check for connections that have been accepted by mentor and are ready for payment
+  // When found, automatically open the payment modal (no toast required).
+  useEffect(() => {
+    if (!openPaymentFromNotification || showPaymentModal) return;
+
+    const params = new URLSearchParams(location.search);
+    const targetConnectionId = params.get('connectionId');
+
+    const acceptedForPayment = connections.find(
+      conn => (!targetConnectionId || conn.id === targetConnectionId) &&
+              conn.status === 'accepted' &&
+              conn.mentorType === 'personal' &&
+              conn.paymentStatus === 'pending' &&
+              conn.entrepreneurId === currentUser?.uid
+    );
+
+    if (acceptedForPayment && !pendingPaymentConnection && !showPaymentModal) {
+      setPendingPaymentConnection(acceptedForPayment);
+
+      // Find the mentor so the payment modal can show correct details
+      const mentorForPayment = mentors.find(m => m.id === acceptedForPayment.mentorId);
+      if (mentorForPayment) {
+        setSelectedMentor(mentorForPayment);
+      }
+
+      setShowPaymentModal(true);
+      // Prevent this effect from re-opening the modal repeatedly
+      setOpenPaymentFromNotification(false);
+    }
+  }, [connections, currentUser, pendingPaymentConnection, mentors, openPaymentFromNotification, location.search, showPaymentModal]);
+
+  useEffect(() => {
+    if (selectedConnection) {
+      const unsubscribe = fetchMessages(selectedConnection.id);
+      return () => unsubscribe && unsubscribe();
+    }
+  }, [selectedConnection, fetchMessages]);
 
   const handleJoinGroup = async (group) => {
     try {
-      const userName = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.email;
-      await mentorGroupsApi.joinGroup(group._id, currentUser.userId, userName);
-      
-      // Add to group chat
-      await groupChatsApi.addParticipant(group._id, currentUser.userId, userName);
-      
+      const groupRef = doc(db, 'mentorGroups', group.id);
+      await updateDoc(groupRef, {
+        participants: arrayUnion(currentUser.uid)
+      });
       alert('Successfully joined the free group! Click "Open Chat" to start communicating.');
       fetchFreeGroups();
       fetchMyFreeGroups();
     } catch (error) {
       console.error('Error joining group:', error);
-      alert(error.response?.data?.message || 'Failed to join group');
+      alert('Failed to join group');
     }
   };
 
   const handleOpenGroupChat = (group) => {
-    setSelectedGroupChat({
-      groupId: group._id,
-      groupName: group.groupName
+    // Free mentor groups should still use mentor group chat collection (group-chats),
+    // not self-help group chats. So we always mark them as 'mentor' here.
+    handleOpenChat({
+      type: 'group',
+      id: group.id,
+      groupType: 'mentor',
+      groupName: group.groupName,
     });
   };
 
@@ -177,8 +237,10 @@ export default function Mentors() {
       return;
     }
     try {
-      await mentorGroupsApi.leaveGroup(groupId, currentUser.userId);
-      await groupChatsApi.removeParticipant(groupId, currentUser.userId);
+      const groupRef = doc(db, 'mentorGroups', groupId);
+      await updateDoc(groupRef, {
+        participants: arrayRemove(currentUser.uid)
+      });
       alert('You have left the group');
       fetchFreeGroups();
       fetchMyFreeGroups();
@@ -193,29 +255,17 @@ export default function Mentors() {
       return;
     }
     try {
-      const userName = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.email;
-      
       // TODO: Integrate payment gateway here
-      // For now, we'll simulate enrollment after payment confirmation
-      
-      await groupSessionsApi.joinSession(session._id, currentUser.userId, userName);
+      const sessionRef = doc(db, 'groupSessions', session.id);
+      await updateDoc(sessionRef, {
+        participants: arrayUnion(currentUser.uid)
+      });
       alert(`✅ Successfully enrolled in "${session.groupName}"!\n\nYou will receive meeting links and session details via email.`);
-      
       fetchGroupSessions();
       fetchMyGroupSessions();
     } catch (error) {
       console.error('Error enrolling in group session:', error);
-      alert(error.response?.data?.message || 'Failed to enroll in session');
-    }
-  };
-
-  const fetchMessages = async (connectionId) => {
-    try {
-      const data = await chatApi.getMessages(connectionId);
-      setMessages(data);
-      await chatApi.markAsRead(connectionId, currentUser.userId);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
+      alert('Failed to enroll in session');
     }
   };
 
@@ -233,8 +283,8 @@ export default function Mentors() {
   const handleSubmitRequest = async (requestMessage) => {
     try {
       const connectionData = {
-        entrepreneurId: currentUser.userId,
-        mentorId: selectedMentor.userId, // Use userId, not _id
+        entrepreneurId: currentUser.uid,
+        mentorId: selectedMentor.id,
         entrepreneurName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Entrepreneur',
         entrepreneurEmail: currentUser.email,
         mentorName: selectedMentor.name || `${selectedMentor.firstName} ${selectedMentor.lastName}`,
@@ -243,37 +293,35 @@ export default function Mentors() {
         status: 'pending',
         paymentStatus: 'pending',
         paymentAmount: selectedMentor.personalSessionPrice || 0,
-        requestMessage: requestMessage
+        requestMessage: requestMessage,
+        createdAt: new Date(),
       };
-      
-      console.log('Creating connection:', connectionData);
-      
-      await connectionsApi.create(connectionData);
-      alert('Connection request sent! The mentor will review your request.');
+      await addDoc(collection(db, 'connections'), connectionData);
+      setMessage('Connection request sent successfully! ✅');
+      setTimeout(() => setMessage(''), 3000);
       fetchConnections();
       setShowRequestModal(false);
       setSelectedMentor(null);
     } catch (error) {
       console.error('Error sending request:', error);
-      alert('Failed to send request: ' + (error.response?.data?.message || error.message));
+      setMessage('Failed to send connection request. Please try again. ❌');
+      setTimeout(() => setMessage(''), 5000);
       throw error;
     }
   };
 
-  const handlePaymentSuccess = async (paymentId, paymentAmount) => {
+  const handlePaymentSuccess = async (paymentId) => {
     try {
-      console.log('💰 Payment success - Connection ID:', pendingPaymentConnection._id);
-      const response = await connectionsApi.completePayment(pendingPaymentConnection._id, paymentId, paymentAmount);
-      console.log('✅ Payment completed - Updated connection:', response.data);
-      
+      const connectionRef = doc(db, 'connections', pendingPaymentConnection.id);
+      await updateDoc(connectionRef, {
+        paymentStatus: 'completed',
+        status: 'active',
+        paymentId: paymentId,
+      });
       alert('Payment successful! You can now chat with your mentor.');
       setPendingPaymentConnection(null);
       setShowPaymentModal(false);
-      
-      // Refresh connections to get updated status
-      console.log('🔄 Refreshing connections...');
       await fetchConnections();
-      console.log('✅ Connections refreshed');
     } catch (error) {
       console.error('Error completing payment:', error);
       throw error;
@@ -291,9 +339,9 @@ export default function Mentors() {
       try {
         const paymentId = `PAY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
-        await connectionsApi.create({
-          entrepreneurId: currentUser.userId,
-          mentorId: selectedMentor._id,
+        await addDoc(collection(db, 'connections'), {
+          entrepreneurId: currentUser.uid,
+          mentorId: selectedMentor.id,
           mentorType: 'personal',
           status: 'active',
           paymentStatus: 'completed',
@@ -317,16 +365,14 @@ export default function Mentors() {
     if (!newMessage.trim() || !selectedConnection) return;
 
     try {
-      await chatApi.sendMessage({
-        connectionId: selectedConnection._id,
-        senderId: currentUser.userId,
+      await addDoc(collection(db, 'chats', selectedConnection.id, 'messages'), {
+        senderId: currentUser.uid,
         senderRole: 'entrepreneur',
         message: newMessage,
-        messageType: 'text'
+        messageType: 'text',
+        timestamp: new Date(),
       });
-      
       setNewMessage('');
-      fetchMessages(selectedConnection._id);
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Failed to send message');
@@ -334,15 +380,14 @@ export default function Mentors() {
   };
 
   const openChat = (connection) => {
-    if (connection.mentorType === 'personal') {
-      // Open personal chat modal
-      setSelectedConnection(connection);
-      setShowPersonalChat(true);
-    } else {
-      // Old chat tab for group mentors (backward compatibility)
-      setSelectedConnection(connection);
-      setActiveTab('chat');
-    }
+    handleOpenChat({
+      type: 'personal',
+      id: connection.id,
+      otherPersonName:
+        connection.mentorId === currentUser?.uid
+          ? connection.entrepreneurName
+          : connection.mentorName,
+    });
   };
 
   const filteredMentors = mentors.filter(mentor => {
@@ -391,8 +436,21 @@ export default function Mentors() {
 
   const getConnectionStatus = (mentorId) => {
     if (!Array.isArray(connections)) return null;
-    return connections.find(conn => conn.mentorId?._id === mentorId);
+    return connections.find(conn => conn.mentorId === mentorId);
   };
+
+  if (activeChat) {
+    return (
+      <DashboardLayout sidebar={<EntrepreneurSidebar />}>
+        <UnifiedChat
+          chatInfo={activeChat}
+          currentUser={currentUser}
+          onBack={() => setActiveChat(null)}
+          userRole="entrepreneur"
+        />
+      </DashboardLayout>
+    );
+  }
 
   if (loading) {
     return (
@@ -429,7 +487,7 @@ export default function Mentors() {
             onClick={() => setActiveTab('freeGroups')}
             className={`pb-3 px-4 font-semibold flex items-center space-x-2 ${
               activeTab === 'freeGroups'
-                ? 'border-b-2 border-green-500 text-green-600'
+                ? 'border-b-2 border-pink-500 text-pink-600'
                 : 'text-gray-600 hover:text-gray-800'
             }`}
           >
@@ -437,7 +495,7 @@ export default function Mentors() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             <span>Free Groups</span>
-            <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-bold">
+            <span className="bg-pink-50 text-pink-700 px-2 py-0.5 rounded-full text-xs font-bold">
               {freeGroups.length}
             </span>
           </button>
@@ -445,7 +503,7 @@ export default function Mentors() {
             onClick={() => setActiveTab('groupSessions')}
             className={`pb-3 px-4 font-semibold flex items-center space-x-2 ${
               activeTab === 'groupSessions'
-                ? 'border-b-2 border-blue-500 text-blue-600'
+                ? 'border-b-2 border-pink-500 text-pink-600'
                 : 'text-gray-600 hover:text-gray-800'
             }`}
           >
@@ -453,7 +511,7 @@ export default function Mentors() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
             <span>Group Mentoring</span>
-            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold">
+            <span className="bg-pink-50 text-pink-700 px-2 py-0.5 rounded-full text-xs font-bold">
               {groupSessions.length}
             </span>
           </button>
@@ -461,7 +519,7 @@ export default function Mentors() {
             onClick={() => setActiveTab('myMentors')}
             className={`pb-3 px-4 font-semibold flex items-center space-x-2 ${
               activeTab === 'myMentors'
-                ? 'border-b-2 border-purple-500 text-purple-600'
+                ? 'border-b-2 border-pink-500 text-pink-600'
                 : 'text-gray-600 hover:text-gray-800'
             }`}
           >
@@ -469,7 +527,7 @@ export default function Mentors() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
             <span>My Connections</span>
-            <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs font-bold">
+            <span className="bg-pink-50 text-pink-700 px-2 py-0.5 rounded-full text-xs font-bold">
               {connections.length}
             </span>
           </button>
@@ -590,27 +648,27 @@ export default function Mentors() {
                   <div className="flex items-center gap-2 flex-wrap pt-2 border-t">
                     <span className="text-sm text-gray-600">Active filters:</span>
                     {mentorTypeFilter !== 'all' && (
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                      <span className="px-3 py-1 bg-pink-50 text-pink-700 rounded-full text-sm">
                         {mentorTypeFilter === 'personal' ? 'Personal' : 'Group'}
                       </span>
                     )}
                     {sectorFilter !== 'all' && (
-                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                      <span className="px-3 py-1 bg-pink-50 text-pink-700 rounded-full text-sm">
                         {sectorFilter}
                       </span>
                     )}
                     {experienceFilter !== 'all' && (
-                      <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
+                      <span className="px-3 py-1 bg-pink-50 text-pink-700 rounded-full text-sm">
                         {experienceFilter === '10+' ? '10+ years' : `${experienceFilter} years`}
                       </span>
                     )}
                     {priceRangeFilter !== 'all' && (
-                      <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">
+                      <span className="px-3 py-1 bg-pink-50 text-pink-700 rounded-full text-sm">
                         {priceRangeFilter === '3501+' ? '₹3,501+' : `₹${priceRangeFilter}`}
                       </span>
                     )}
                     {languageFilter !== 'all' && (
-                      <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">
+                      <span className="px-3 py-1 bg-pink-50 text-pink-700 rounded-full text-sm">
                         {languageFilter}
                       </span>
                     )}
@@ -640,22 +698,23 @@ export default function Mentors() {
             {/* Mentor Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredMentors.map((mentor) => {
-                const connection = getConnectionStatus(mentor._id);
+                const connection = getConnectionStatus(mentor.id);
                 const isConnected = connection && connection.status === 'active';
+                const mentorDisplayName =
+                  (mentor.name && typeof mentor.name === 'string' && mentor.name.trim()) ||
+                  `${mentor.firstName || ''} ${mentor.lastName || ''}`.trim() ||
+                  mentor.email ||
+                  'Mentor';
                 
                 return (
-                  <div key={mentor._id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6">
+                  <div key={mentor.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h2 className="text-xl font-semibold text-gray-800">{mentor.name}</h2>
+                        <h2 className="text-xl font-semibold text-gray-800">{mentorDisplayName}</h2>
                         <p className="text-sm text-gray-500">{mentor.sector}</p>
                       </div>
                       {mentor.mentorType && (
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          mentor.mentorType === 'both' ? 'bg-purple-100 text-purple-700' :
-                          mentor.mentorType === 'personal' ? 'bg-blue-100 text-blue-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
+                        <span className={`px-2 py-1 text-xs rounded-full bg-pink-50 text-pink-700`}>
                           {mentor.mentorType === 'both' ? 'Personal & Group' : 
                            mentor.mentorType.charAt(0).toUpperCase() + mentor.mentorType.slice(1)}
                         </span>
@@ -686,7 +745,7 @@ export default function Mentors() {
                       {mentor.rating > 0 && (
                         <p className="text-gray-500 text-sm flex items-center">
                           <span className="font-semibold mr-2">Rating:</span>
-                          <span className="text-yellow-500">{'★'.repeat(Math.round(mentor.rating))}{'☆'.repeat(5 - Math.round(mentor.rating))}</span>
+                          <span className="text-pink-500">{'★'.repeat(Math.round(mentor.rating))}{'☆'.repeat(5 - Math.round(mentor.rating))}</span>
                           <span className="ml-1 text-xs">({mentor.totalReviews || 0})</span>
                         </p>
                       )}
@@ -708,7 +767,7 @@ export default function Mentors() {
                         </p>
                       )}
                       {(mentor.mentorType === 'group' || mentor.mentorType === 'both') && (
-                        <p className="text-sm text-green-600">
+                        <p className="text-sm text-pink-600">
                           <span className="font-semibold">Group:</span> Free
                         </p>
                       )}
@@ -717,20 +776,20 @@ export default function Mentors() {
                     {isConnected ? (
                       <button
                         onClick={() => openChat(connection)}
-                        className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-semibold transition"
+                        className={`w-full py-2 px-4 ${primaryButtonClass}`}
                       >
-                        💬 Chat Now
+                        Chat Now
                       </button>
                     ) : connection && connection.status === 'pending' ? (
-                      <div className="w-full bg-yellow-50 border border-yellow-200 text-yellow-700 py-2 px-4 rounded-lg font-semibold text-center">
-                        ⏳ Request Pending
+                      <div className="w-full bg-pink-50 border border-pink-200 text-pink-700 py-2 px-4 rounded-lg font-semibold text-center">
+                        Request Pending
                       </div>
                     ) : (
                       <div className="space-y-2">
                         {(mentor.mentorType === 'personal' || mentor.mentorType === 'both') && (
                           <button
                             onClick={() => handleConnect(mentor, 'personal')}
-                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-2 px-4 rounded-lg font-semibold transition flex items-center justify-center space-x-2"
+                            className={`w-full py-2 px-4 ${primaryButtonClass} flex items-center justify-center space-x-2`}
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -786,11 +845,13 @@ export default function Mentors() {
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {freeGroups.map((group) => {
-                  const isJoined = myFreeGroups.some(g => g._id === group._id);
-                  const isFull = group.currentParticipants.length >= group.maxParticipants;
+                  const isJoined = myFreeGroups.some(g => g.id === group.id);
+                  const memberCount = (group.participants?.length || 0);
+                  const maxMembers = group.maxParticipants || 0;
+                  const isFull = maxMembers > 0 && memberCount >= maxMembers;
                   
                   return (
-                    <div key={group._id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                    <div key={group.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
                       <div className="p-6">
                         <div className="flex items-start justify-between mb-3">
                           <h3 className="text-xl font-bold text-gray-900">{group.groupName}</h3>
@@ -828,7 +889,7 @@ export default function Mentors() {
                             <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            <span className="font-semibold">Members:</span> <span className="ml-1">{group.currentParticipants.length}/{group.maxParticipants}</span>
+                            <span className="font-semibold">Members:</span> <span className="ml-1">{memberCount}/{maxMembers}</span>
                             {isFull && <span className="text-red-500 ml-2 text-xs">(Full)</span>}
                           </p>
                         </div>
@@ -838,7 +899,7 @@ export default function Mentors() {
                             <p className="text-xs text-gray-500 mb-2 font-semibold">Topics covered:</p>
                             <div className="flex flex-wrap gap-1">
                               {group.topics.map((topic, i) => (
-                                <span key={i} className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full">
+                                <span key={i} className="px-2 py-1 bg-pink-50 text-pink-700 text-xs rounded-full">
                                   {topic}
                                 </span>
                               ))}
@@ -848,7 +909,7 @@ export default function Mentors() {
 
                         {group.rating > 0 && (
                           <p className="text-gray-700 text-sm mb-4">
-                            <span className="text-yellow-500">{'★'.repeat(Math.round(group.rating))}{'☆'.repeat(5 - Math.round(group.rating))}</span>
+                            <span className="text-pink-500">{'★'.repeat(Math.round(group.rating))}{'☆'.repeat(5 - Math.round(group.rating))}</span>
                             <span className="ml-1 text-xs text-gray-500">({group.reviews?.length || 0} reviews)</span>
                           </p>
                         )}
@@ -857,11 +918,11 @@ export default function Mentors() {
                           <div className="space-y-2">
                             <button
                               onClick={() => handleOpenGroupChat(group)}
-                              className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white py-2 rounded-lg font-medium hover:from-green-600 hover:to-blue-700 transition flex items-center justify-center space-x-2"
+                              className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center space-x-2`}
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              {/* <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                              </svg>
+                              </svg> */}
                               <span>Open Chat</span>
                             </button>
                             <button
@@ -875,20 +936,20 @@ export default function Mentors() {
                           <button
                             onClick={() => handleJoinGroup(group)}
                             disabled={isFull}
-                            className={`w-full py-2 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 ${
+                            className={`w-full py-2 rounded-lg font-medium flex items-center justify-center space-x-2 ${
                               isFull
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700'
+                                : primaryButtonClass
                             }`}
                           >
                             {isFull ? (
-                              <span>🔒 Group Full</span>
+                              <span>Group full</span>
                             ) : (
                               <>
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
                                 </svg>
-                                <span>Join Free 🎉</span>
+                                <span>Join Free</span>
                               </>
                             )}
                           </button>
@@ -906,7 +967,7 @@ export default function Mentors() {
                 <h2 className="text-2xl font-bold mb-4">My Joined Free Groups</h2>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {myFreeGroups.map((group) => (
-                    <div key={group._id} className="bg-gradient-to-br from-green-50 to-blue-50 rounded-lg shadow-lg p-6 border-2 border-green-200">
+                    <div key={group._id} className="bg-white rounded-lg shadow-lg p-6 ">
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h3 className="text-lg font-bold text-gray-900 mb-1">{group.groupName}</h3>
@@ -922,11 +983,8 @@ export default function Mentors() {
                       </p>
                       <button
                         onClick={() => handleOpenGroupChat(group)}
-                        className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white py-2 rounded-lg font-medium hover:from-green-600 hover:to-blue-700 transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
+className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center space-x-2`}                      >
+                       
                         <span>Open Chat</span>
                       </button>
                     </div>
@@ -971,7 +1029,9 @@ export default function Mentors() {
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {groupSessions.map((session) => {
                   const isEnrolled = myGroupSessions.some(s => s._id === session._id);
-                  const isFull = session.currentParticipants.length >= session.maxParticipants;
+                  const enrolledCount = session.currentParticipants?.length || 0;
+                  const maxParticipants = session.maxParticipants || 0;
+                  const isFull = maxParticipants > 0 && enrolledCount >= maxParticipants;
                   
                   return (
                     <div key={session._id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-2 border-blue-100">
@@ -987,7 +1047,7 @@ export default function Mentors() {
                           </span>
                         </div>
 
-                        <p className="text-sm text-blue-600 font-semibold mb-2">by {session.mentorName}</p>
+                        <p className="text-sm text-pink-600 font-semibold mb-2">by {session.mentorName}</p>
                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">{session.description}</p>
 
                         <div className="space-y-2 mb-4">
@@ -995,7 +1055,7 @@ export default function Mentors() {
                             <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
-                            <span><strong>{session.currentParticipants.length}/{session.maxParticipants}</strong> Enrolled</span>
+                            <span><strong>{enrolledCount}/{maxParticipants}</strong> Enrolled</span>
                           </div>
                           <div className="flex items-center text-sm text-gray-700">
                             <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1013,7 +1073,7 @@ export default function Mentors() {
                             <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                             </svg>
-                            <span className="font-semibold text-blue-700">₹{session.price}</span>
+                            <span className="font-semibold text-pink-700">₹{session.price}</span>
                           </div>
                         </div>
 
@@ -1021,7 +1081,7 @@ export default function Mentors() {
                           <div className="mb-4">
                             <div className="flex flex-wrap gap-1">
                               {session.topics.slice(0, 3).map((topic, idx) => (
-                                <span key={idx} className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">
+                                <span key={idx} className="bg-pink-50 text-pink-700 px-2 py-1 rounded text-xs">
                                   {topic}
                                 </span>
                               ))}
@@ -1037,12 +1097,12 @@ export default function Mentors() {
                         {isEnrolled ? (
                           <button
                             disabled
-                            className="w-full bg-green-100 text-green-700 py-2 px-4 rounded-lg font-semibold flex items-center justify-center space-x-2 cursor-not-allowed"
+                            className="w-full bg-pink-100 text-pink-700 py-2 px-4 rounded-lg font-semibold flex items-center justify-center space-x-2 cursor-not-allowed"
                           >
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            {/* <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span>✅ Enrolled</span>
+                            </svg> */}
+                            <span>Enrolled</span>
                           </button>
                         ) : (
                           <button
@@ -1051,11 +1111,11 @@ export default function Mentors() {
                             className={`w-full py-2 px-4 rounded-lg font-semibold flex items-center justify-center space-x-2 transition ${
                               isFull
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700'
+                                : 'bg-linear-to-r from-pink-500 to-pink-600 text-white hover:from-pink-600 hover:to-pink-700'
                             }`}
                           >
                             {isFull ? (
-                              <span>🔒 Session Full</span>
+                              <span>Session Full</span>
                             ) : (
                               <>
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1079,9 +1139,9 @@ export default function Mentors() {
                 <h2 className="text-2xl font-bold mb-4">My Enrolled Group Sessions</h2>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {myGroupSessions.map((session) => (
-                    <div key={session._id} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-lg p-6 border-2 border-blue-200">
+                    <div key={session._id} className="bg-whiterounded-lg shadow-lg p-6 ">
                       <h3 className="text-lg font-bold text-gray-900 mb-2">{session.groupName}</h3>
-                      <p className="text-sm text-blue-600 font-semibold mb-3">by {session.mentorName}</p>
+                      <p className="text-sm text-pink-600 font-semibold mb-3">by {session.mentorName}</p>
                       <p className="text-sm text-gray-700 mb-2">
                         <span className="font-semibold">Next Session:</span> {session.schedule.day} at {session.schedule.time}
                       </p>
@@ -1093,9 +1153,8 @@ export default function Mentors() {
                           href={session.meetingLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-center py-2 rounded-lg font-medium hover:from-blue-600 hover:to-indigo-700 transition-colors"
-                        >
-                          Join Session 🎓
+                          className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center space-x-2`}                        >
+                          Join Session
                         </a>
                       )}
                     </div>
@@ -1122,22 +1181,14 @@ export default function Mentors() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {connections.map((connection) => {
-                  console.log('🔍 Rendering connection:', {
-                    id: connection._id,
-                    mentor: connection.mentorId?.name,
-                    status: connection.status,
-                    paymentStatus: connection.paymentStatus,
-                    mentorType: connection.mentorType
-                  });
-                  
                   return (
-                  <div key={connection._id} className="bg-white rounded-lg shadow-md p-6">
+                  <div key={connection.id} className="bg-white rounded-lg shadow-md p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-800">
-                          {connection.mentorId?.name || 'Mentor'}
+                          {connection.mentorName || 'Mentor'}
                         </h3>
-                        <p className="text-sm text-gray-500">{connection.mentorId?.sector}</p>
+                        <p className="text-sm text-gray-500">{connection.mentorSector || connection.sector || ''}</p>
                       </div>
                       <span className={`px-2 py-1 text-xs rounded-full ${
                         connection.mentorType === 'personal' ? 'bg-blue-100 text-blue-700' :
@@ -1147,7 +1198,7 @@ export default function Mentors() {
                       </span>
                     </div>
                     
-                    <p className="text-gray-600 text-sm mb-4">{connection.mentorId?.expertise}</p>
+                    <p className="text-gray-600 text-sm mb-4">{connection.mentorExpertise || connection.expertise || ''}</p>
                     
                     <div className="border-t pt-4 mb-4 space-y-2 text-sm">
                       <p>
@@ -1170,7 +1221,7 @@ export default function Mentors() {
                     {connection.status === 'active' ? (
                       <button
                         onClick={() => {
-                          console.log('💬 Chat button clicked for connection:', connection._id);
+                          console.log('💬 Chat button clicked for connection:', connection.id);
                           openChat(connection);
                         }}
                         className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 px-4 rounded-lg font-semibold transition"
@@ -1269,22 +1320,22 @@ export default function Mentors() {
 
       {/* Payment Modal */}
       {showPaymentModal && selectedMentor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
             <h2 className="text-2xl font-bold mb-4 text-gray-800">Complete Payment</h2>
-            
+
             <div className="mb-6">
               <p className="text-gray-600 mb-2">Mentor: <span className="font-semibold">{selectedMentor.name}</span></p>
               <p className="text-gray-600 mb-2">Type: <span className="font-semibold">Personal Mentorship</span></p>
               <p className="text-gray-600 mb-4">Amount: <span className="text-2xl font-bold text-pink-600">₹{selectedMentor.personalSessionPrice.toLocaleString('en-IN')}</span></p>
-              
+
               <div className="bg-yellow-50 border border-yellow-200 rounded p-4 mb-4">
                 <p className="text-sm text-yellow-800">
                   <strong>Note:</strong> This is a simulated payment gateway for demonstration purposes.
                 </p>
               </div>
             </div>
-            
+
             <div className="flex space-x-4">
               <button
                 onClick={handlePayment}
@@ -1306,6 +1357,31 @@ export default function Mentors() {
         </div>
       )}
 
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {message && (
+          <motion.div
+            key="mentors-toast"
+            variants={toastVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ duration: 0.3 }}
+            className="fixed top-6 right-6 z-9999 w-full max-w-sm"
+          >
+            <div
+              className={`p-4 rounded-lg shadow-xl text-sm font-medium border ${
+                message.toLowerCase().includes('success')
+                  ? 'bg-green-50 text-green-700 border-green-200'
+                  : 'bg-red-50 text-red-700 border-red-200'
+              }`}
+            >
+              {message}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Connection Request Modal */}
       {showRequestModal && selectedMentor && (
         <ConnectionRequestModal
@@ -1318,46 +1394,6 @@ export default function Mentors() {
         />
       )}
 
-      {/* Payment Modal - Shows after mentor accepts */}
-      {showPaymentModal && pendingPaymentConnection && (
-        <PaymentModal
-          connection={pendingPaymentConnection}
-          onClose={() => {
-            setShowPaymentModal(false);
-            setPendingPaymentConnection(null);
-          }}
-          onPaymentSuccess={handlePaymentSuccess}
-        />
-      )}
-
-      {/* Group Chat Interface */}
-      {selectedGroupChat && (
-        <GroupChatInterface
-          groupId={selectedGroupChat.groupId}
-          groupName={selectedGroupChat.groupName}
-          currentUser={{
-            userId: currentUser.userId,
-            name: `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.email
-          }}
-          onClose={() => setSelectedGroupChat(null)}
-        />
-      )}
-
-      {/* Personal Chat Interface */}
-      {showPersonalChat && selectedConnection && (
-        <PersonalChatInterface
-          connection={selectedConnection}
-          currentUser={{
-            userId: currentUser.userId,
-            name: `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.email
-          }}
-          userRole="entrepreneur"
-          onClose={() => {
-            setShowPersonalChat(false);
-            setSelectedConnection(null);
-          }}
-        />
-      )}
       </div>
     </DashboardLayout>
   );

@@ -1,74 +1,67 @@
-import axios from 'axios';
-import { API_BASE_URL } from './index';
-
-const API_URL = `${API_BASE_URL}/group-sessions`;
+import { db } from '../firebase';
+import { collection, query, where, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, arrayUnion } from 'firebase/firestore';
 
 export const groupSessionsApi = {
-  // Get all active group sessions (for entrepreneurs)
   getActiveSessions: async () => {
-    const response = await axios.get(`${API_URL}/active`);
-    return response.data;
+    const q = query(collection(db, 'groupSessions'), where('status', '==', 'active'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
 
-  // Get sessions by mentor ID
   getByMentor: async (mentorId) => {
-    const response = await axios.get(`${API_URL}/mentor/${mentorId}`);
-    return response.data;
+    const q = query(collection(db, 'groupSessions'), where('mentorId', '==', mentorId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
 
-  // Get sessions by participant ID
   getByParticipant: async (userId) => {
-    const response = await axios.get(`${API_URL}/participant/${userId}`);
-    return response.data;
+    const q = query(collection(db, 'groupSessions'), where('participants', 'array-contains', userId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
 
-  // Get single session by ID
   getById: async (sessionId) => {
-    const response = await axios.get(`${API_URL}/${sessionId}`);
-    return response.data;
+    const docRef = doc(db, 'groupSessions', sessionId);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
   },
 
-  // Create new group session
   create: async (sessionData) => {
-    const response = await axios.post(API_URL, sessionData);
-    return response.data;
+    const docRef = await addDoc(collection(db, 'groupSessions'), sessionData);
+    return { id: docRef.id, ...sessionData };
   },
 
-  // Update session
   update: async (sessionId, sessionData) => {
-    const response = await axios.put(`${API_URL}/${sessionId}`, sessionData);
-    return response.data;
+    const sessionRef = doc(db, 'groupSessions', sessionId);
+    await updateDoc(sessionRef, sessionData);
   },
 
-  // Delete session
-  delete: async (sessionId, mentorId) => {
-    const response = await axios.delete(`${API_URL}/${sessionId}`, {
-      params: { mentorId }
-    });
-    return response.data;
+  delete: async (sessionId) => {
+    await deleteDoc(doc(db, 'groupSessions', sessionId));
   },
 
-  // Join session (enroll)
   joinSession: async (sessionId, userId, userName) => {
-    const response = await axios.post(`${API_URL}/${sessionId}/join`, {
-      userId,
-      userName
+    const sessionRef = doc(db, 'groupSessions', sessionId);
+    await updateDoc(sessionRef, {
+      participants: arrayUnion({ userId, userName })
     });
-    return response.data;
   },
 
-  // Leave session
   leaveSession: async (sessionId, userId) => {
-    const response = await axios.post(`${API_URL}/${sessionId}/leave`, {
-      userId
-    });
-    return response.data;
+    const sessionRef = doc(db, 'groupSessions', sessionId);
+    const sessionDoc = await getDoc(sessionRef);
+    if (sessionDoc.exists()) {
+      const sessionData = sessionDoc.data();
+      const newParticipants = sessionData.participants.filter(p => p.userId !== userId);
+      await updateDoc(sessionRef, { participants: newParticipants });
+    }
   },
 
-  // Add session recording/materials
   addSessionContent: async (sessionId, contentData) => {
-    const response = await axios.post(`${API_URL}/${sessionId}/sessions`, contentData);
-    return response.data;
+    const sessionRef = doc(db, 'groupSessions', sessionId);
+    await updateDoc(sessionRef, {
+      content: arrayUnion(contentData)
+    });
   }
 };
 

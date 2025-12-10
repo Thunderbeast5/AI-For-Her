@@ -1,12 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { usersApi, sessionsApi, connectionsApi } from '../../api'
-import mentorGroupsApi from '../../api/mentorGroups'
-import groupSessionsApi from '../../api/groupSessions'
-import groupChatsApi from '../../api/groupChats'
 import GroupChatInterface from '../../components/GroupChatInterface'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import DashboardLayout from '../../components/DashboardLayout'
 import MentorSidebar from '../../components/MentorSidebar'
 import { 
@@ -20,100 +17,66 @@ import {
   UsersIcon
 } from '@heroicons/react/24/outline'
 
+const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
+const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
+const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
+
 const MentorDashboard = () => {
   const navigate = useNavigate()
   const { currentUser } = useAuth()
   const [userData, setUserData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [connectedMentees, setConnectedMentees] = useState([])
-  const [activeTab, setActiveTab] = useState('mentees') // mentees, chats, group
-  const [chatSessionsCount, setChatSessionsCount] = useState(0)
-  const [groupSessionsCount, setGroupSessionsCount] = useState(0)
-  const [chatSessions, setChatSessions] = useState([])
-  const [sessionsThisMonth, setSessionsThisMonth] = useState(0)
-  const [averageRating, setAverageRating] = useState(0)
-  const [totalHours, setTotalHours] = useState(0)
-  const [pendingRequests, setPendingRequests] = useState(0)
+                const [pendingRequests, setPendingRequests] = useState(0)
   const [myFreeGroups, setMyFreeGroups] = useState([])
   const [myGroupSessions, setMyGroupSessions] = useState([])
   const [selectedGroupChat, setSelectedGroupChat] = useState(null)
+  const [showAllFreeGroups, setShowAllFreeGroups] = useState(false)
+  const [showAllGroupSessions, setShowAllGroupSessions] = useState(false)
 
-  // Fetch user data and connected mentees
   useEffect(() => {
-    if (!currentUser) return
+    if (!currentUser?.uid) return;
 
     const fetchData = async () => {
       try {
-        // Set user data from currentUser
-        setUserData(currentUser)
-        
-        // Fetch connections from MongoDB
-        try {
-          const response = await connectionsApi.getByUser(currentUser.userId, 'mentor')
-          
-          // Handle both response formats: { success, data } or direct array
-          const connections = response?.data || response || []
-          
-          // Ensure connections is an array
-          const connectionsArray = Array.isArray(connections) ? connections : []
-          
-          // Count pending requests (personal mentoring only)
-          const pending = connectionsArray.filter(
-            conn => conn.status === 'pending' && 
-                    conn.paymentStatus === 'pending' &&
-                    conn.mentorType === 'personal'
-          ).length
-          setPendingRequests(pending)
-          
-          // Transform connections to mentees data
-          const menteesData = connectionsArray.map(conn => ({
-            id: conn.id,
-            name: conn.menteeName || 'Mentee',
-            email: conn.menteeEmail || '',
-            status: conn.status || 'pending',
-            since: new Date(conn.createdAt).toLocaleDateString()
-          }))
-          
-          setConnectedMentees(menteesData)
-        } catch (error) {
-          console.error('Error fetching connections:', error);
-          setConnectedMentees([]);
-        }
+        setUserData(currentUser);
 
-        // Fetch free groups created by this mentor
-        try {
-          const groups = await mentorGroupsApi.getByMentor(currentUser.userId);
-          setMyFreeGroups(Array.isArray(groups) ? groups : []);
-        } catch (error) {
-          console.error('Error fetching free groups:', error);
-          setMyFreeGroups([]);
-        }
+        // Fetch connections
+        const connectionsQuery = query(collection(db, 'connections'), where('mentorId', '==', currentUser.uid));
+        const connectionsSnapshot = await getDocs(connectionsQuery);
+        const connectionsData = connectionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Fetch group mentoring sessions created by this mentor
-        try {
-          const sessionsResponse = await groupSessionsApi.getByMentor(currentUser.userId);
-          setMyGroupSessions(sessionsResponse || []);
-        } catch (error) {
-          console.error('Error fetching group sessions:', error);
-          setMyGroupSessions([]);
-        }
+        const pending = connectionsData.filter(conn => conn.status === 'pending' && conn.paymentStatus === 'pending' && conn.mentorType === 'personal').length;
+        setPendingRequests(pending);
 
-        // Set default stats
-        setChatSessionsCount(0)
-        setGroupSessionsCount(0)
-        setSessionsThisMonth(0)
-        setAverageRating(0)
-        setTotalHours(0)
+        const menteesData = connectionsData.map(conn => ({
+          id: conn.id,
+          name: conn.menteeName || 'Mentee',
+          email: conn.menteeEmail || '',
+          status: conn.status || 'pending',
+          since: new Date(conn.createdAt.toDate()).toLocaleDateString(),
+        }));
+        setConnectedMentees(menteesData);
+
+        // Fetch free groups
+        const groupsQuery = query(collection(db, 'mentorGroups'), where('mentorId', '==', currentUser.uid));
+        const groupsSnapshot = await getDocs(groupsQuery);
+        setMyFreeGroups(groupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+        // Fetch group sessions
+        const groupSessionsQuery = query(collection(db, 'groupSessions'), where('mentorId', '==', currentUser.uid));
+        const groupSessionsSnapshot = await getDocs(groupSessionsQuery);
+        setMyGroupSessions(groupSessionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
       } catch (error) {
-        console.error('Error fetching data:', error)
+        console.error('Error fetching data:', error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [currentUser])
+    fetchData();
+  }, [currentUser]);
 
   // Helper function to get display name
   const getDisplayName = () => {
@@ -178,36 +141,20 @@ const MentorDashboard = () => {
   return (
     <DashboardLayout sidebar={sidebar}>
       {/* Welcome Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Welcome, {getDisplayName()}
         </h1>
         <p className="text-gray-600">Empowering the next generation of women entrepreneurs</p>
-      </motion.div>
+      </div>
 
       {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Mentoring Hub</h2>
         <div className="grid md:grid-cols-4 gap-6">
           {quickActions.map((action, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + index * 0.1 }}
-              onClick={action.action}
-              className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-105 border border-gray-100"
-            >
-              <div className={`w-12 h-12 bg-gradient-to-r ${action.color} rounded-xl flex items-center justify-center mb-4`}>
+            <div key={index} onClick={action.action} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl cursor-pointer transition-all duration-200 hover:scale-105 border border-gray-100">
+              <div className={`w-12 h-12 bg-linear-to-r ${action.color} rounded-xl flex items-center justify-center mb-4`}>
                 <action.icon className="w-6 h-6 text-white" />
               </div>
               <div className="flex items-center justify-between mb-2">
@@ -218,24 +165,19 @@ const MentorDashboard = () => {
                   </span>
                 )}
               </div>
-              <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <span className="text-3xl font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 {action.count}
               </span>
               <p className="text-gray-600 text-sm mt-2">{action.description}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* Stats Cards - Only show if there's actual data */}
       {(connectedMentees.length > 0 || myFreeGroups.length > 0 || myGroupSessions.length > 0) && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="grid md:grid-cols-3 gap-4 mb-8"
-        >
-          <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-5 shadow-sm border border-pink-200">
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-linear-to-br from-pink-50 to-pink-100 rounded-xl p-5 shadow-sm border border-pink-200">
             <div className="flex items-center justify-between mb-2">
               <UserGroupIcon className="w-8 h-8 text-pink-600" />
               <span className="text-xs font-medium text-pink-600 bg-pink-200 px-2 py-1 rounded-full">Active</span>
@@ -244,7 +186,7 @@ const MentorDashboard = () => {
             <div className="text-sm text-gray-700 font-medium">Connected Mentees</div>
           </div>
           
-          <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-5 shadow-sm border border-green-200">
+          <div className="bg-linear-to-br from-green-50 to-emerald-100 rounded-xl p-5 shadow-sm border border-green-200">
             <div className="flex items-center justify-between mb-2">
               <UsersIcon className="w-8 h-8 text-green-600" />
               <span className="text-xs font-medium text-green-600 bg-green-200 px-2 py-1 rounded-full">Free</span>
@@ -253,7 +195,7 @@ const MentorDashboard = () => {
             <div className="text-sm text-gray-700 font-medium">Community Groups</div>
           </div>
           
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-5 shadow-sm border border-blue-200">
+          <div className="bg-linear-to-br from-blue-50 to-indigo-100 rounded-xl p-5 shadow-sm border border-blue-200">
             <div className="flex items-center justify-between mb-2">
               <CurrencyDollarIcon className="w-8 h-8 text-blue-600" />
               <span className="text-xs font-medium text-blue-600 bg-blue-200 px-2 py-1 rounded-full">Paid</span>
@@ -261,19 +203,14 @@ const MentorDashboard = () => {
             <div className="text-3xl font-bold text-gray-900">{myGroupSessions.length}</div>
             <div className="text-sm text-gray-700 font-medium">Group Sessions</div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Recent Activity or Getting Started Guide */}
       {connectedMentees.length === 0 && myFreeGroups.length === 0 && myGroupSessions.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 shadow-sm border border-purple-200"
-        >
+        <div className="bg-linear-to-br from-purple-50 to-pink-50 rounded-2xl p-8 shadow-sm border border-purple-200">
           <div className="text-center max-w-2xl mx-auto">
-            <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-20 h-20 bg-linear-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -307,23 +244,18 @@ const MentorDashboard = () => {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       ) : null}
 
       {/* Content Area - Remove tabs, show all active content */}
       
       {/* Recent Mentees - Only show if there are connected mentees */}
       {connectedMentees.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-white rounded-2xl p-6 shadow-sm mb-8"
-        >
+        <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Recent Mentees</h3>
             <button
-              onClick={() => navigate('/mentor/mentees')}
+              onClick={() => navigate('/mentees')}
               className="text-sm text-purple-600 hover:text-purple-700 font-medium"
             >
               View All →
@@ -333,7 +265,7 @@ const MentorDashboard = () => {
             {connectedMentees.slice(0, 4).map((mentee) => (
               <div key={mentee.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-pink-400 to-pink-500 rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-linear-to-r from-pink-400 to-pink-500 rounded-full flex items-center justify-center">
                     <span className="text-white font-semibold">{mentee.name?.charAt(0) || 'M'}</span>
                   </div>
                   <div>
@@ -347,7 +279,7 @@ const MentorDashboard = () => {
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* My Free Groups and My Group Mentoring Sessions - Horizontal Layout */}
@@ -355,12 +287,7 @@ const MentorDashboard = () => {
         <div className="grid md:grid-cols-2 gap-6 mt-8">
           {/* My Free Groups */}
           {myFreeGroups.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="bg-white rounded-2xl p-6 shadow-sm"
-            >
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">My Free Groups</h3>
@@ -368,20 +295,14 @@ const MentorDashboard = () => {
                 </div>
                 <button
                   onClick={() => navigate('/mentor/create-group')}
-                  className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1"
+                  className="text-sm text-pink-600 hover:text-pink-700 font-medium flex items-center gap-1"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
                   Create
                 </button>
               </div>
               <div className="space-y-3">
-                {myFreeGroups.map((group) => (
-                  <div 
-                    key={group._id}
-                    className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all bg-gradient-to-br from-green-50 to-blue-50"
-                  >
+                {(showAllFreeGroups ? myFreeGroups : myFreeGroups.slice(0, 1)).map((group) => (
+                  <div key={group.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all bg-pink-50">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h4 className="text-base font-semibold text-gray-900 mb-1">{group.groupName}</h4>
@@ -394,7 +315,7 @@ const MentorDashboard = () => {
                         </span>
                       </div>
                       <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                        ADMIN
+                        Admin
                       </span>
                     </div>
 
@@ -416,12 +337,12 @@ const MentorDashboard = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setSelectedGroupChat({
-                          groupId: group._id,
+                          groupId: group.id,
                           groupName: group.groupName
                         })}
-                        className="flex-1 bg-gradient-to-r from-green-500 to-blue-600 text-white px-3 py-2 rounded-lg hover:from-green-600 hover:to-blue-700 transition-all font-medium text-sm flex items-center justify-center gap-1"
+                        className={`flex-1 px-3 py-2 text-sm flex items-center justify-center gap-1 ${primaryButtonClass}`}
                       >
-                        <ChatBubbleLeftRightIcon className="w-4 h-4" />
+                        {/* <ChatBubbleLeftRightIcon className="w-4 h-4" /> */}
                         Open Chat
                       </button>
                       <button
@@ -433,36 +354,38 @@ const MentorDashboard = () => {
                     </div>
                   </div>
                 ))}
+                {myFreeGroups.length > 1 && (
+                  <div className="text-center pt-2">
+                    <button
+                      onClick={() => setShowAllFreeGroups(!showAllFreeGroups)}
+                      className="text-sm text-pink-600 font-medium hover:underline"
+                    >
+                      {showAllFreeGroups ? 'Show less' : `Show ${myFreeGroups.length - 1} more`}
+                    </button>
+                  </div>
+                )}
               </div>
-            </motion.div>
+            </div>
           )}
 
           {/* My Group Mentoring Sessions (Paid) */}
           {myGroupSessions.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="bg-white rounded-2xl p-6 shadow-sm"
-            >
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">My Group Mentoring Sessions</h3>
                   <p className="text-sm text-gray-600">Paid group sessions</p>
                 </div>
                 <button
-                  onClick={() => navigate('/mentor/group-sessions')}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  onClick={() => navigate('/group-sessions')}
+                  className="text-sm text-pink-600 hover:text-pink-700 font-medium"
                 >
-                  Manage +
+                  Manage
                 </button>
               </div>
               <div className="space-y-3">
-                {myGroupSessions.map((session) => (
-                  <div 
-                    key={session._id}
-                    className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all bg-gradient-to-br from-blue-50 to-indigo-50"
-                  >
+                {(showAllGroupSessions ? myGroupSessions : myGroupSessions.slice(0, 1)).map((session) => (
+                  <div key={session.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all bg-pink-50">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h4 className="text-base font-semibold text-gray-900 mb-1">{session.groupName}</h4>
@@ -475,7 +398,7 @@ const MentorDashboard = () => {
                         </span>
                       </div>
                       <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                        ADMIN
+                        Admin
                       </span>
                     </div>
 
@@ -508,7 +431,7 @@ const MentorDashboard = () => {
                           href={session.meetingLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all font-medium text-sm flex items-center justify-center gap-2"
+                          className={`flex-1 px-4 py-2 text-sm flex items-center justify-center gap-2 ${primaryButtonClass}`}
                         >
                           <VideoCameraIcon className="w-4 h-4" />
                           Start Session
@@ -517,8 +440,18 @@ const MentorDashboard = () => {
                     </div>
                   </div>
                 ))}
+                {myGroupSessions.length > 1 && (
+                  <div className="text-center pt-2">
+                    <button
+                      onClick={() => setShowAllGroupSessions(!showAllGroupSessions)}
+                      className="text-sm text-pink-600 font-medium hover:underline"
+                    >
+                      {showAllGroupSessions ? 'Show less' : `Show ${myGroupSessions.length - 1} more`}
+                    </button>
+                  </div>
+                )}
               </div>
-            </motion.div>
+            </div>
           )}
         </div>
       )}

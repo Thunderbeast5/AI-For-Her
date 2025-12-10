@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import DashboardLayout from '../../components/DashboardLayout';
 import InvestorSidebar from '../../components/InvestorSidebar';
-import { API_BASE_URL } from '../../api';
+import { db } from '../../firebase';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { 
   BookmarkIcon,
   StarIcon,
@@ -14,7 +14,9 @@ import {
   UsersIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
-import { AnimatePresence } from 'framer-motion';
+const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
+const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
+const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
 
 const SavedProjects = () => {
   const { currentUser } = useAuth();
@@ -24,18 +26,25 @@ const SavedProjects = () => {
 
   useEffect(() => {
     const fetchSavedProjects = async () => {
-      try {
-        const userId = localStorage.getItem('userId');
-        if (!userId) {
-          setLoading(false);
-          return;
-        }
+      if (!currentUser?.uid) {
+        setLoading(false);
+        return;
+      }
 
-        const response = await fetch(`${API_BASE_URL}/investors/${userId}/saved-projects`);
-        if (response.ok) {
-          const data = await response.json();
-          console.log('📚 Fetched saved projects:', data);
-          setSavedProjects(data);
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+          const savedProjectIds = userDoc.data().savedProjects || [];
+          if (savedProjectIds.length > 0) {
+            const projectsQuery = query(
+              collection(db, 'investment-projects'), 
+              where('__name__', 'in', savedProjectIds)
+            );
+            const projectsSnapshot = await getDocs(projectsQuery);
+            const projectsData = projectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setSavedProjects(projectsData);
+          }
         }
       } catch (error) {
         console.error('Error fetching saved projects:', error);
@@ -46,26 +55,22 @@ const SavedProjects = () => {
 
     fetchSavedProjects();
 
-    // Re-fetch when window gains focus (user returns to page)
     const handleFocus = () => {
       fetchSavedProjects();
     };
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, []);
+  }, [currentUser]);
 
   const handleUnsaveProject = async (projectId) => {
+    if (!currentUser?.uid) return;
     try {
-      const userId = localStorage.getItem('userId');
-      const response = await fetch(
-        `${API_BASE_URL}/investors/${userId}/save-project/${projectId}`,
-        { method: 'DELETE' }
-      );
-
-      if (response.ok) {
-        setSavedProjects(prev => prev.filter(p => p._id !== projectId));
-      }
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        savedProjects: arrayRemove(projectId)
+      });
+      setSavedProjects(prev => prev.filter(p => p.id !== projectId));
     } catch (error) {
       console.error('Error unsaving project:', error);
       alert('Failed to remove project');
@@ -89,36 +94,25 @@ const SavedProjects = () => {
 
   return (
     <DashboardLayout sidebar={<InvestorSidebar />}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Saved Projects</h1>
         <p className="text-gray-600">Projects you're interested in</p>
-      </motion.div>
+      </div>
 
       {savedProjects.length > 0 ? (
         <div className="grid md:grid-cols-2 gap-6">
-          {savedProjects.map((project, index) => {
-            const remainingFunding = project.fundingGoal - project.currentFunding;
-            const daysLeft = Math.ceil((new Date(project.fundingDeadline) - new Date()) / (1000 * 60 * 60 * 24));
+          {savedProjects.map((project) => {
+                        const daysLeft = Math.ceil((new Date(project.fundingDeadline) - new Date()) / (1000 * 60 * 60 * 24));
 
             return (
-              <motion.div
-                key={project._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200"
-              >
+              <div key={project.id} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 text-lg mb-1">{project.projectName}</h3>
                     <p className="text-sm text-gray-600">by {project.startupId?.founderName || 'Entrepreneur'}</p>
                   </div>
                   <button
-                    onClick={() => handleUnsaveProject(project._id)}
+                    onClick={() => handleUnsaveProject(project.id)}
                     className="p-2 hover:bg-red-50 rounded-lg transition-colors group"
                     title="Remove from saved"
                   >
@@ -135,7 +129,7 @@ const SavedProjects = () => {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div 
-                      className="bg-gradient-to-r from-pink-500 to-purple-500 h-2.5 rounded-full transition-all duration-500"
+                      className="bg-linear-to-r from-pink-500 to-purple-500 h-2.5 rounded-full transition-all duration-500"
                       style={{ width: `${Math.max(Math.min(project.fundingPercentage || 0, 100), project.currentFunding > 0 ? 2 : 0)}%` }}
                     ></div>
                   </div>
@@ -186,55 +180,44 @@ const SavedProjects = () => {
                   </div>
                   <button
                     onClick={() => setViewingProject(project)}
-                    className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-medium rounded-lg hover:shadow-md transition-all"
+                    className={`px-4 py-2  text-white text-sm font-medium rounded-lg hover:shadow-md transition-all ${primaryButtonClass}`}
                   >
                     View Details
                   </button>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
       ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="bg-white rounded-2xl p-12 shadow-sm text-center"
-        >
+        <div className="bg-white rounded-2xl p-12 shadow-sm text-center">
           <BookmarkIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">No Saved Projects</h3>
           <p className="text-gray-600 mb-6">Start saving projects you're interested in</p>
           <button 
             onClick={() => window.location.href = '/investor/browse-projects'}
-            className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-medium rounded-lg hover:shadow-md transition-colors"
+            className="px-6 py-3 bg-linear-to-r from-pink-500 to-purple-500 text-white font-medium rounded-lg hover:shadow-md transition-colors"
           >
             Browse Projects
           </button>
-        </motion.div>
+        </div>
       )}
 
       {/* Project Detail Modal */}
-      <AnimatePresence>
-        {viewingProject && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setViewingProject(null)}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto my-8"
-            >
-              {/* Header */}
-              <div className="sticky top-0 bg-gradient-to-r from-pink-500 to-purple-500 text-white p-6 rounded-t-2xl flex justify-between items-center z-10">
-                <div>
-                  <h2 className="text-2xl font-bold mb-1">{viewingProject.projectName}</h2>
-                  <div className="flex items-center gap-2">
+      {viewingProject && (
+        <div onClick={() => setViewingProject(null)} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto my-8">
+            {/* Header */}
+            <div className="sticky top-0 bg-linear-to-r from-pink-500 to-purple-500 text-white p-6 rounded-t-2xl flex justify-between items-center z-10">
+              <div>
+                <h2 className="text-2xl font-bold mb-1">{viewingProject.projectName}</h2>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-white text-pink-600 text-sm font-semibold rounded-full">
+                    {viewingProject.startupId?.industry}
+                  </span>
+                  <span className="px-3 py-1 bg-white text-purple-600 text-sm font-semibold rounded-full">
+                    {viewingProject.startupId?.stage}
+                  </span>
                     <span className="px-3 py-1 bg-white text-pink-600 text-sm font-semibold rounded-full">
                       {viewingProject.startupId?.industry}
                     </span>
@@ -275,7 +258,7 @@ const SavedProjects = () => {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3">
                       <div 
-                        className="bg-gradient-to-r from-pink-500 to-purple-500 h-3 rounded-full transition-all"
+                        className="bg-linear-to-r from-pink-500 to-purple-500 h-3 rounded-full transition-all"
                         style={{ width: `${Math.min(viewingProject.fundingPercentage || 0, 100)}%` }}
                       ></div>
                     </div>
@@ -423,7 +406,7 @@ const SavedProjects = () => {
                       setViewingProject(null);
                       window.location.href = '/investor/browse-projects';
                     }}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-medium rounded-lg hover:shadow-lg transition-all"
+                    className="flex-1 px-6 py-3 bg-linear-to-r from-pink-500 to-purple-500 text-white font-medium rounded-lg hover:shadow-lg transition-all"
                   >
                     Invest Now
                   </button>
@@ -435,11 +418,10 @@ const SavedProjects = () => {
                   </button>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
-    </DashboardLayout>
+          </DashboardLayout>
   );
 };
 

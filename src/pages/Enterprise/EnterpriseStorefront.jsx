@@ -1,10 +1,12 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import apiClient from '../api'
+import { db } from '../../firebase';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { ShoppingCartIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import heroFactoryWorkers from '../../Factory-workers.jpg'
-import heroWomenAtWork from '../../womenatwork.jpeg'
-import heroWomenAtWork1 from '../../w.jpg'
+import heroFactoryWorkers from '../../assets/storefront/store-hero-1.jpg'
+import heroWomenAtWork from '../../assets/storefront/store-hero-2.jpg'
+import heroWomenAtWork1 from '../../assets/storefront/store-hero-3.jpeg'
+import logo from '../../../logo1.png'
 
 const categoriesList = [
   'Clothing',
@@ -42,7 +44,6 @@ const EnterpriseStorefront = () => {
     cardCvv: '',
   })
   const [checkingOut, setCheckingOut] = useState(false)
-  const [orderSuccess, setOrderSuccess] = useState(false)
   const [orderNumber, setOrderNumber] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   // Removed [minPrice, setMinPrice] and [maxPrice, setMaxPrice] states
@@ -58,8 +59,10 @@ const EnterpriseStorefront = () => {
   const loadProducts = async () => {
     setLoading(true)
     try {
-      const response = await apiClient.get('/products/public')
-      setProducts(response.data || [])
+      const productsQuery = query(collection(db, 'products'), where('isPublic', '==', true));
+      const productsSnapshot = await getDocs(productsQuery);
+      const productsData = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProducts(productsData);
     } catch (error) {
       console.error('Error loading storefront products:', error)
       setProducts([])
@@ -122,8 +125,7 @@ const EnterpriseStorefront = () => {
       return
     }
     setCheckingOut(true)
-    setOrderSuccess(false)
-    setOrderNumber('')
+        setOrderNumber('')
 
     try {
       const fullName = `${customerDetails.firstName} ${customerDetails.lastName}`.trim()
@@ -152,10 +154,21 @@ const EnterpriseStorefront = () => {
           method: paymentMethod,
         },
       }
-      const response = await apiClient.post('/orders', payload)
-      setOrderNumber(response.data?.orderNumber || '')
-      setOrderSuccess(true)
-      setCartItems([])
+            // Get owner IDs from the products in the cart
+      const productIds = cartItems.map(item => item.id);
+      const productsRef = collection(db, 'products');
+      const q = query(productsRef, where('__name__', 'in', productIds));
+      const productSnapshots = await getDocs(q);
+      const ownerIds = new Set();
+      productSnapshots.forEach(doc => {
+        ownerIds.add(doc.data().userId);
+      });
+
+      payload.owners = Array.from(ownerIds);
+
+      const docRef = await addDoc(collection(db, 'orders'), payload);
+      setOrderNumber(docRef.id);
+            setCartItems([])
       setCheckoutStep('success')
     } catch (error) {
       console.error('Error creating order:', error)
@@ -227,6 +240,19 @@ const EnterpriseStorefront = () => {
     heroWomenAtWork1
      // repeat to keep three slides; replace with a third image if desired
   ]
+ 
+  // Auto-advance hero carousel
+  useEffect(() => {
+    if (!heroImages.length) return;
+
+    const intervalId = setInterval(() => {
+      setCarouselIndex((prev) =>
+        prev === heroImages.length - 1 ? 0 : prev + 1
+      )
+    }, 6000)
+
+    return () => clearInterval(intervalId)
+  }, [heroImages.length])
   
   // Scroll handlers
   // Adjusted offset for the taller header (h-20 is 80px)
@@ -243,14 +269,13 @@ const EnterpriseStorefront = () => {
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20"> {/* Increased height */}
             
-            {/* Logo: Pratibhara */}
+            {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
-                {/* <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-pink-600 font-bold text-2xl border border-pink-400">
-                    P
-                </div> */}
-                <h1 className="text-3xl font-bold text-gray-900 logo-pratibhara">
-                    Pratibhara
-                </h1>
+              <img
+                src={logo}
+                alt="Pratibhara logo"
+                className="h-24 md:h-24 w-auto"
+              />
             </Link>
 
             {/* Navigation Links */}
@@ -351,6 +376,29 @@ const EnterpriseStorefront = () => {
               
               <div className="absolute inset-0 bg-black/20"></div> 
 
+              <div className="absolute inset-0 flex items-center">
+                <div className="max-w-6xl mx-auto px-6 lg:px-12">
+                  <div key={carouselIndex} className="hero-slide-in max-w-xl text-white">
+                    <p className="text-xs md:text-sm uppercase tracking-[0.25em] text-pink-200 mb-2">
+                      Pratibhara Store
+                    </p>
+                    <h1 className="text-2xl md:text-4xl font-bold mb-2 leading-snug drop-shadow">
+                      Support women-led businesses with every purchase.
+                    </h1>
+                    <p className="text-sm md:text-base text-pink-50 mb-4 max-w-lg drop-shadow">
+                      Discover hand-crafted products, wellness essentials, and forest-to-table goodness curated from women entrepreneurs across India.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => bestSellersRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                      className="inline-flex items-center px-5 py-2.5 rounded-full bg-pink-500 hover:bg-pink-600 text-sm font-medium shadow-lg shadow-pink-500/30 transition-colors"
+                    >
+                      Shop Bestsellers
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Left arrow */}
               <button
                 type="button"
@@ -395,6 +443,23 @@ const EnterpriseStorefront = () => {
             </div>
           </section>
         )}
+
+        {/* Brand marquee ticker */}
+        <section className="marquee-strip bg-white">
+          <div className="marquee-content">
+            <span>Hand-crafted by women-led enterprises</span>
+            <span className="text-pink-300">●</span>
+            <span>Pure forest-to-table goodness</span>
+            <span className="text-pink-300">●</span>
+            <span>Every purchase supports livelihoods</span>
+            <span className="text-pink-300">●</span>
+            <span>Hand-crafted by women-led enterprises</span>
+            <span className="text-pink-300">●</span>
+            <span>Pure forest-to-table goodness</span>
+            <span className="text-pink-300">●</span>
+            <span>Every purchase supports livelihoods</span>
+          </div>
+        </section>
         
         {/* --- Search Input Bar (Shown when icon is clicked) --- */}
         {showSearchInput && (
@@ -423,7 +488,7 @@ const EnterpriseStorefront = () => {
         <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 
             {/* --- Shop By Category (Filter buttons using product categories) --- */}
-            {productCategories.length > 0 && (
+            {/* {productCategories.length > 0 && (
             <section id="shop-by-category" className="mb-8 pt-4"> 
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Shop By Category</h2>
                 <div className="flex gap-4 overflow-x-auto pb-2">
@@ -454,14 +519,14 @@ const EnterpriseStorefront = () => {
                 ))}
                 </div>
             </section>
-            )}
+            )} */}
 
             {/* Filter by Price section has been removed here. */}
 
             {/* --- New Arrivals Section --- */}
             {!loading && newArrivals.length > 0 && (
             <section ref={newArrivalsRef} className="mb-10 pt-4">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">✨ New Arrivals</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">New Arrivals</h2>
                 <div className="flex gap-5 overflow-x-auto pb-2">
                 {newArrivals.map((p) => (
                     <div
@@ -595,50 +660,59 @@ const EnterpriseStorefront = () => {
         </main>
       </div>
 
-      {/* Checkout / Cart Drawer (Kept existing functionality) */}
+      {/* Checkout / Cart Drawer (Kept existing functionality, restyled) */}
       {showCheckout && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
             className="flex-1 bg-black/40"
             onClick={() => {
               setShowCheckout(false)
-              setOrderSuccess(false)
-              setCheckoutStep('cart')
+                            setCheckoutStep('cart')
             }}
           />
 
           <div className="w-full max-w-md h-full bg-white shadow-2xl border-l border-gray-200 flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {checkoutStep === 'cart' && 'Your Cart'}
-                {checkoutStep === 'details' && 'Customer Details'}
-                {checkoutStep === 'payment' && 'Payment'}
-                {checkoutStep === 'success' && 'Order Successful'}
-              </h2>
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {checkoutStep === 'cart' && `Shopping Cart (${cartItems.length})`}
+                  {checkoutStep === 'details' && 'Customer Details'}
+                  {checkoutStep === 'payment' && 'Payment'}
+                  {checkoutStep === 'success' && 'Order Successful'}
+                </h2>
+                {checkoutStep === 'cart' && (
+                  <p className="mt-1 text-xs text-pink-600 flex items-center gap-1">
+                    <span>🔥</span>
+                    <span>Products are limited, checkout within&nbsp;
+                      <span className="font-semibold tracking-wide">10 mins</span>
+                    </span>
+                  </p>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => {
                   setShowCheckout(false)
-                  setOrderSuccess(false)
                   setCheckoutStep('cart')
                 }}
                 className="text-gray-400 hover:text-gray-600 text-sm"
               >
-                Close
+                ✕
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-pink-50/60 via-white to-white">
+            <div className="flex-1 overflow-y-auto px-5 py-4 bg-gradient-to-b from-pink-50/60 via-white to-white">
               {checkoutStep === 'cart' && (
                 <>
                   {cartItems.length === 0 ? (
                     <p className="text-gray-500 text-sm mb-4">Your cart is empty. Add products to get started.</p>
                   ) : (
-                    <div className="space-y-3 mb-4">
+                    <div className="space-y-4 mb-6">
                       {cartItems.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center justify-between border-b border-gray-100 pb-2"
+                          className="flex items-center justify-between border-b border-gray-100 pb-3"
                         >
                           <div>
                             <p className="text-sm font-medium text-gray-900">{item.name}</p>
@@ -677,19 +751,22 @@ const EnterpriseStorefront = () => {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm text-gray-600">Total</span>
-                    <span className="text-lg font-bold text-pink-600">₹{cartTotal}</span>
-                  </div>
+                  <div className="pt-4 border-t border-dashed border-pink-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-600">Subtotal</span>
+                      <span className="text-lg font-bold text-pink-600">₹{cartTotal}</span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mb-3">Taxes and shipping calculated at checkout.</p>
 
-                  <button
-                    type="button"
-                    disabled={cartItems.length === 0}
-                    onClick={() => setCheckoutStep('details')}
-                    className="w-full px-4 py-2 rounded-lg text-sm font-medium text-white bg-pink-500 disabled:opacity-50 hover:bg-pink-600 transition-colors"
-                  >
-                    Proceed to Checkout
-                  </button>
+                    <button
+                      type="button"
+                      disabled={cartItems.length === 0}
+                      onClick={() => setCheckoutStep('details')}
+                      className="w-full px-4 py-2.5 rounded-full text-sm font-medium text-white bg-pink-500 disabled:opacity-50 hover:bg-pink-600 transition-colors"
+                    >
+                      Checkout
+                    </button>
+                  </div>
                 </>
               )}
 
@@ -958,8 +1035,7 @@ const EnterpriseStorefront = () => {
                   type="button"
                   onClick={() => {
                     setShowCheckout(false)
-                    setOrderSuccess(false)
-                    setCheckoutStep('cart')
+                                        setCheckoutStep('cart')
                     setCustomerDetails({
                       firstName: '',
                       lastName: '',

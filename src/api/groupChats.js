@@ -1,52 +1,65 @@
-import axios from 'axios';
-import { API_BASE_URL } from './index';
-
-const API_URL = `${API_BASE_URL}/group-chats`;
+import { db } from '../firebase';
+import { collection, query, where, getDocs, doc, getDoc, addDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 
 export const groupChatsApi = {
-  // Get or create group chat
   getGroupChat: async (groupId) => {
-    const response = await axios.get(`${API_URL}/group/${groupId}`);
-    return response.data;
+    const chatRef = doc(db, 'groupChats', groupId);
+    const chatSnap = await getDoc(chatRef);
+    return chatSnap.exists() ? { id: chatSnap.id, ...chatSnap.data() } : null;
   },
 
-  // Send message to group
   sendMessage: async (groupId, senderId, senderName, message) => {
-    const response = await axios.post(`${API_URL}/group/${groupId}/message`, {
+    const messagesRef = collection(db, 'groupChats', groupId, 'messages');
+    const newMessage = {
       senderId,
       senderName,
-      message
+      message,
+      timestamp: serverTimestamp()
+    };
+    const docRef = await addDoc(messagesRef, newMessage);
+    const groupChatRef = doc(db, 'groupChats', groupId);
+    await updateDoc(groupChatRef, {
+        lastMessage: message,
+        lastMessageTimestamp: serverTimestamp(),
+        lastMessageSender: senderName,
     });
-    return response.data;
+    return { id: docRef.id, ...newMessage };
   },
 
-  // Mark messages as read
   markAsRead: async (groupId, userId) => {
-    const response = await axios.post(`${API_URL}/group/${groupId}/read`, {
-      userId
-    });
-    return response.data;
+    const chatRef = doc(db, 'groupChats', groupId);
+    const groupDoc = await getDoc(chatRef);
+    if (groupDoc.exists()) {
+        const groupData = groupDoc.data();
+        const participants = groupData.participants || [];
+        const updatedParticipants = participants.map(p => 
+            p.userId === userId ? { ...p, lastRead: serverTimestamp() } : p
+        );
+        await updateDoc(chatRef, { participants: updatedParticipants });
+    }
   },
 
-  // Add participant
   addParticipant: async (groupId, userId, userName) => {
-    const response = await axios.post(`${API_URL}/group/${groupId}/participant`, {
-      userId,
-      userName
+    const chatRef = doc(db, 'groupChats', groupId);
+    await updateDoc(chatRef, {
+      participants: arrayUnion({ userId, userName })
     });
-    return response.data;
   },
 
-  // Remove participant
   removeParticipant: async (groupId, userId) => {
-    const response = await axios.delete(`${API_URL}/group/${groupId}/participant/${userId}`);
-    return response.data;
+    const chatRef = doc(db, 'groupChats', groupId);
+    const chatDoc = await getDoc(chatRef);
+    if (chatDoc.exists()) {
+        const chatData = chatDoc.data();
+        const newParticipants = chatData.participants.filter(p => p.userId !== userId);
+        await updateDoc(chatRef, { participants: newParticipants });
+    }
   },
 
-  // Get user's group chats
   getUserGroupChats: async (userId) => {
-    const response = await axios.get(`${API_URL}/user/${userId}`);
-    return response.data;
+    const q = query(collection(db, 'groupChats'), where('participants', 'array-contains', userId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 };
 

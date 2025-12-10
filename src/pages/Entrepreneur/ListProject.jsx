@@ -1,37 +1,36 @@
 import { useState, useEffect, useMemo } from 'react'
-import { motion } from 'framer-motion'
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
-import { useAuth } from '../../context/AuthContext'
-import { API_BASE_URL } from '../../api'
+import { db } from '../../firebase';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
 import {
-  CurrencyRupeeIcon,
   RocketLaunchIcon,
-  CalendarIcon,
-  DocumentTextIcon,
-  PhotoIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
+import { useAuth } from '../../hooks/useAuth';
+
+const toastVariants = {
+  initial: { opacity: 0, x: 100 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: 100 },
+};
 
 const ListProject = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser } = useAuth()
+  const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [message, setMessage] = useState('')
   const [currentStep, setCurrentStep] = useState(1)
   const [startups, setStartups] = useState([])
   const [selectedStartup, setSelectedStartup] = useState('')
   const [isEditMode, setIsEditMode] = useState(false)
   const [editingProjectId, setEditingProjectId] = useState(null)
-  const [debugInfo, setDebugInfo] = useState({
-    userId: '',
-    fetchAttempted: false,
-    apiResponse: null,
-    error: null
-  })
-
+  
   const [formData, setFormData] = useState({
     // Project Selection
     startupId: '',
@@ -87,90 +86,50 @@ const ListProject = () => {
     exitStrategy: ''
   })
 
-  const industries = [
-    'Technology', 'Healthcare', 'Education', 'E-commerce', 
-    'Food & Beverage', 'Agriculture', 'Manufacturing', 'Services', 'Other'
-  ]
-
-  const fundingTypes = [
-    'Equity', 'Debt', 'Convertible Note', 'SAFE', 'Revenue Share'
-  ]
-
-  // Fetch user's startups
+  // Pink Gradient Classes for consistency
+  const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
+  const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
+  const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
+  
+  
   useEffect(() => {
     const fetchStartups = async () => {
-      try {
-        const userId = localStorage.getItem('userId')
-        console.log('=== STARTUP FETCH DEBUG ===')
-        console.log('1. Fetching startups for userId:', userId)
-        
-        setDebugInfo(prev => ({ ...prev, userId, fetchAttempted: true }))
-        
-        if (!userId) {
-          console.error('❌ No userId found in localStorage')
-          console.log('localStorage keys:', Object.keys(localStorage))
-          setStartups([])
-          setDebugInfo(prev => ({ ...prev, error: 'No userId in localStorage' }))
-          return
-        }
-        
-        const url = `${API_BASE_URL}/startups/user/${userId}`
-        console.log('2. Fetching from URL:', url)
-        
-        const response = await fetch(url)
-        console.log('3. Response status:', response.status)
-        console.log('4. Response ok:', response.ok)
-        
-        const result = await response.json()
-        console.log('5. Full API Response:', result)
-        
-        setDebugInfo(prev => ({ ...prev, apiResponse: result }))
-        
-        // Handle both response formats: { success, data } or direct array
-        const startupsData = result.data || result
-        console.log('6. Extracted startups data:', startupsData)
-        console.log('7. Is array?', Array.isArray(startupsData))
-        console.log('8. Number of startups:', startupsData?.length || 0)
-        
-        if (Array.isArray(startupsData) && startupsData.length > 0) {
-          console.log('9. ✅ Startups found:', startupsData.map(s => ({ id: s._id, name: s.name })))
-          setStartups(startupsData)
-        } else {
-          console.log('9. ❌ No startups found in response')
-          setStartups([])
-          
-          // Try fetching all startups to debug
-          console.log('10. Attempting to fetch ALL startups for debugging...')
-          const allResponse = await fetch(`${API_BASE_URL}/startups`)
-          const allStartups = await allResponse.json()
-          console.log('11. All startups in database:', allStartups)
-        }
-        
-        console.log('=== END DEBUG ===')
-      } catch (error) {
-        console.error('❌ Error fetching startups:', error)
-        setDebugInfo(prev => ({ ...prev, error: error.message }))
-        setStartups([])
+      if (!currentUser?.uid) {
+        setStartups([]);
+        return;
       }
-    }
+      try {
+        const userId = currentUser.uid;
+        const startupsQuery = query(collection(db, 'startups'), where('userId', '==', userId));
+        const startupsSnapshot = await getDocs(startupsQuery);
+        const startupsData = startupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setStartups(startupsData);
+      } catch (error) {
+        console.error('Error fetching startups:', error);
+        setStartups([]);
+      }
+    };
 
-    fetchStartups()
-  }, [])
+    fetchStartups();
+  }, [currentUser.uid]);
 
   // Handle edit mode
   useEffect(() => {
     if (location.state?.editProject) {
       const project = location.state.editProject
       setIsEditMode(true)
-      setEditingProjectId(project._id)
+      setEditingProjectId(project._id || project.id) // Ensure we capture the ID
       setCurrentStep(2) // Skip to step 2 since startup is already selected
       
-      // Set the startup selection
-      setSelectedStartup(project.startupId)
+      // Set the startup selection (assuming it's a simple ID string)
+      setSelectedStartup(project.startupId) 
+      
+      // Helper to format arrays to comma-separated strings
+      const arrayToString = (arr) => Array.isArray(arr) ? arr.join(', ') : arr || '';
       
       // Populate form with project data
       setFormData({
-        startupId: project.startupId?._id || project.startupId || '',
+        startupId: project.startupId || '',
         projectName: project.projectName || '',
         fundingGoal: project.fundingGoal || '',
         minimumInvestment: project.minimumInvestment || '',
@@ -184,20 +143,20 @@ const ListProject = () => {
         currentRevenue: project.currentRevenue || '',
         projectedRevenue: project.projectedRevenue || '',
         monthlyBurnRate: project.monthlyBurnRate || '',
-        milestones: Array.isArray(project.milestones) ? project.milestones.join('\n') : project.milestones || '',
+        milestones: arrayToString(project.milestones).replace(/, /g, '\n'), // Keep newline for milestones
         timeline: project.timeline || '',
         marketSize: project.marketSize || '',
         competitiveAdvantage: project.competitiveAdvantage || '',
         customerBase: project.customerBase || '',
         growthRate: project.growthRate || '',
         teamSize: project.teamSize || '',
-        keyTeamMembers: Array.isArray(project.keyTeamMembers) ? project.keyTeamMembers.join(', ') : project.keyTeamMembers || '',
-        advisors: Array.isArray(project.advisors) ? project.advisors.join(', ') : project.advisors || '',
+        keyTeamMembers: arrayToString(project.keyTeamMembers),
+        advisors: arrayToString(project.advisors),
         pitchDeckUrl: project.pitchDeckUrl || '',
         businessPlanUrl: project.businessPlanUrl || '',
         financialProjectionsUrl: project.financialProjectionsUrl || '',
         videoUrl: project.videoUrl || '',
-        images: Array.isArray(project.images) ? project.images.join(', ') : project.images || '',
+        images: arrayToString(project.images),
         registeredEntity: project.registeredEntity || '',
         registrationNumber: project.registrationNumber || '',
         taxId: project.taxId || '',
@@ -206,8 +165,16 @@ const ListProject = () => {
         risks: project.risks || '',
         exitStrategy: project.exitStrategy || ''
       })
+      
+      // Fetch the selected startup data if available (for auto-population display in step 1)
+      if (project.startupId) {
+        const startup = startups.find(s => s.id === project.startupId);
+        if (startup) {
+          setSelectedStartup(startup);
+        }
+      }
     }
-  }, [location.state])
+  }, [location.state, startups]) // Add startups as dependency for initial population
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -218,9 +185,13 @@ const ListProject = () => {
 
     // Auto-populate all available data when startup is selected
     if (name === 'startupId') {
-      const startup = startups.find(s => s._id === value)
+      const startup = startups.find(s => s.id === value)
       if (startup) {
         setSelectedStartup(startup)
+        
+        // Helper to format arrays to strings
+        const arrayToInputString = (arr) => Array.isArray(arr) ? arr.join(', ') : arr || '';
+
         setFormData(prev => ({
           ...prev,
           projectName: startup.name || '',
@@ -233,17 +204,18 @@ const ListProject = () => {
           competitiveAdvantage: startup.competitiveAdvantage || '',
           customerBase: startup.customerBase || '',
           fundingPurpose: startup.investmentUse || '',
-          milestones: Array.isArray(startup.achievements) ? startup.achievements.join(', ') : startup.achievements || '',
-          competitiveAdvantage: startup.uniqueSellingPoint || startup.competitiveAdvantage || '',
-          keyTeamMembers: Array.isArray(startup.keyHires) ? startup.keyHires.join(', ') : startup.keyHires || '',
+          milestones: arrayToInputString(startup.achievements).replace(/, /g, '\n'), // Newline separation for milestones input
+          keyTeamMembers: arrayToInputString(startup.keyHires),
           pitchDeckUrl: startup.pitchDeck || '',
           website: startup.website || '',
           businessPlanUrl: startup.businessModel || '',
           registeredEntity: startup.name || '',
-          previousFunding: startup.fundingGoal ? `Previous goal: ₹${startup.fundingGoal}` : '',
+          previousFunding: startup.fundingGoal ? `Previous goal: ₹${parseFloat(startup.fundingGoal).toLocaleString('en-IN')}` : '',
           risks: startup.problemStatement ? `Challenge: ${startup.problemStatement}` : '',
           growthRate: startup.monthlyActiveUsers ? `${startup.monthlyActiveUsers} monthly active users` : ''
         }))
+      } else {
+        setSelectedStartup(null);
       }
     }
   }
@@ -253,12 +225,16 @@ const ListProject = () => {
     setLoading(true)
 
     try {
-      const userId = localStorage.getItem('userId')
+      const userId = currentUser.uid
       
+      // Helper to process string inputs to arrays
+      const processStringToArray = (str) => str.split(/[\n,]/).map(m => m.trim()).filter(Boolean);
+
       const projectData = {
         ...formData,
         userId,
         entrepreneurId: userId,
+        // Convert to float/int
         fundingGoal: parseFloat(formData.fundingGoal),
         minimumInvestment: parseFloat(formData.minimumInvestment),
         maximumInvestment: parseFloat(formData.maximumInvestment),
@@ -269,10 +245,11 @@ const ListProject = () => {
         monthlyBurnRate: parseFloat(formData.monthlyBurnRate) || 0,
         customerBase: parseInt(formData.customerBase) || 0,
         teamSize: parseInt(formData.teamSize) || 0,
-        milestones: formData.milestones.split('\n').map(m => m.trim()).filter(Boolean),
-        images: formData.images.split(',').map(img => img.trim()).filter(Boolean),
-        keyTeamMembers: formData.keyTeamMembers.split(',').map(m => m.trim()).filter(Boolean),
-        advisors: formData.advisors.split(',').map(a => a.trim()).filter(Boolean),
+        // Process array fields
+        milestones: processStringToArray(formData.milestones),
+        images: processStringToArray(formData.images),
+        keyTeamMembers: processStringToArray(formData.keyTeamMembers),
+        advisors: processStringToArray(formData.advisors),
         updatedAt: new Date()
       }
 
@@ -285,38 +262,37 @@ const ListProject = () => {
         projectData.createdAt = new Date()
       }
 
-      const url = isEditMode 
-        ? `${API_BASE_URL}/investment-projects/${editingProjectId}`
-        : `${API_BASE_URL}/investment-projects`
-      
-      const method = isEditMode ? 'PUT' : 'POST'
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(projectData)
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${isEditMode ? 'update' : 'list'} project`)
+      if (isEditMode && editingProjectId) {
+        const projectRef = doc(db, 'investment-projects', editingProjectId);
+        await updateDoc(projectRef, projectData);
+      } else {
+        await addDoc(collection(db, 'investment-projects'), projectData);
       }
 
       setSuccess(true)
       setTimeout(() => {
         navigate('/dashboard')
       }, 2000)
+      setMessage(isEditMode ? 'Project updated successfully!' : 'Project listed successfully!');
+      setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'listing'} project:`, error)
-      alert(`Failed to ${isEditMode ? 'update' : 'list'} project. Please try again.`)
+      setMessage(`Failed to ${isEditMode ? 'update' : 'list'} project. Please try again.`);
+      setTimeout(() => setMessage(''), 5000);
+      alert(`Failed to ${isEditMode ? 'update' : 'list'} project. Please try again.`);
+      setSuccess(false); // Ensure success state is reset on error
     } finally {
       setLoading(false)
     }
   }
 
   const nextStep = () => {
-    if (currentStep < 2) setCurrentStep(currentStep + 1)
+    // Basic validation for Step 1 before proceeding
+    if (currentStep === 1 && formData.startupId) {
+      setCurrentStep(currentStep + 1)
+    } else if (currentStep === 1 && !formData.startupId) {
+      alert('Please select a startup before proceeding.');
+    }
   }
 
   const prevStep = () => {
@@ -325,14 +301,15 @@ const ListProject = () => {
 
   const sidebar = useMemo(() => <EntrepreneurSidebar />, [])
 
+  const steps = [
+    { number: 1, title: 'Select Project' },
+    { number: 2, title: 'Investment Details' }
+  ];
+
   if (success) {
     return (
       <DashboardLayout sidebar={sidebar}>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-2xl mx-auto text-center py-12"
-        >
+        <div className="max-w-2xl mx-auto text-center py-12">
           <CheckCircleIcon className="w-20 h-20 text-green-500 mx-auto mb-4" />
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
             {isEditMode ? 'Project Updated Successfully!' : 'Project Listed Successfully!'}
@@ -340,54 +317,62 @@ const ListProject = () => {
           <p className="text-gray-600 mb-6">
             {isEditMode ? 'Your project changes have been saved.' : 'Your project is now visible to investors.'}
           </p>
-        </motion.div>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className={`px-8 py-3 ${primaryButtonClass} w-auto`}
+          >
+            Go to Dashboard
+          </button>
+        </div>
       </DashboardLayout>
     )
   }
 
   return (
-    <DashboardLayout sidebar={sidebar}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-4xl mx-auto"
-      >
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {isEditMode ? 'Edit Investment Project' : 'List Your Project for Investment'}
-        </h1>
+    <>
+      <DashboardLayout sidebar={sidebar}>
+      <div>
+        <div className="flex items-center space-x-3 mb-2">
+          {/* <RocketLaunchIcon className="w-8 h-8 text-pink-400" /> */}
+          <h1 className="text-3xl font-bold text-gray-900">
+            {isEditMode ? 'Edit Investment Project' : 'List Your Project for Investment'}
+          </h1>
+        </div>
         <p className="text-gray-600 mb-8">
           {isEditMode ? 'Update your project details and investment information' : 'Connect with investors and raise funds for your startup'}
         </p>
+        
 
         {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
-            {[1, 2].map((step) => (
-              <div key={step} className="flex items-center">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                    currentStep >= step
-                      ? 'bg-gradient-to-r from-primary to-accent text-gray-800'
-                      : 'bg-gray-200 text-gray-500'
-                  }`}
-                >
-                  {step}
-                </div>
-                {step < 2 && (
+        <div className="mb-10">
+          <div className="flex justify-between items-center w-full max-w-lg mx-auto">
+            {steps.map((step, index) => (
+              <div key={step.number} className="flex items-center flex-1">
+                <div className="flex flex-col items-center flex-1">
+                  {/* Step Number Circle */}
                   <div
-                    className={`w-64 h-1 ${
-                      currentStep > step ? 'bg-primary' : 'bg-gray-200'
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
+                      currentStep >= step.number
+                        ? `${pinkGradient} text-white`
+                        : 'bg-gray-200 text-gray-500'
                     }`}
-                  />
+                  >
+                    {step.number}
+                  </div>
+                  {/* Step Title */}
+                  <span className={`text-xs mt-2 text-center ${currentStep >= step.number ? 'text-pink-500 font-medium' : 'text-gray-500'}`}>
+                    {step.title}
+                  </span>
+                </div>
+                {/* Connector Line */}
+                {index < steps.length - 1 && (
+                  <div className={`h-1 flex-1 mx-4 transition-colors ${currentStep > step.number ? 'bg-pink-400' : 'bg-gray-200'}`} />
                 )}
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-2 text-xs text-gray-600">
-            <span>Select Project</span>
-            <span>Investment Details</span>
-          </div>
         </div>
+
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 shadow-sm">
           {/* Step 1: Project Selection & Auto-populated Data */}
@@ -409,22 +394,22 @@ const ListProject = () => {
                 >
                   <option value="">Select a startup</option>
                   {startups.map(startup => (
-                    <option key={startup._id} value={startup._id}>
+                    <option key={startup.id} value={startup.id}>
                       {startup.name} - {startup.industry} - {startup.stage}
                     </option>
                   ))}
                 </select>
                 
-                {startups.length === 0 && debugInfo.fetchAttempted && (
-                  <p className="text-sm text-red-500 mt-2">
-                    No startups found. Please create a startup first from "Create Startup" menu.
+                {startups.length === 0 && (
+                  <p className="text-sm text-pink-600 mt-2">
+                    No startups found. Please create a startup first from the "Create Startup" menu.
                   </p>
                 )}
               </div>
 
               {formData.startupId && selectedStartup && (
-                <div className="bg-blue-50 rounded-lg p-6 space-y-4">
-                  <h3 className="font-semibold text-gray-900 mb-3">Auto-populated Information</h3>
+                <div className="bg-pink-50 rounded-lg p-6 space-y-4 border border-pink-200">
+                  <h3 className="font-semibold text-gray-900 mb-3 text-lg">Auto-populated Startup Information</h3>
                   
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -460,12 +445,12 @@ const ListProject = () => {
                   {formData.currentRevenue && (
                     <div>
                       <label className="text-xs text-gray-500">Current Revenue</label>
-                      <p className="text-sm text-gray-700">₹{formData.currentRevenue.toLocaleString()}</p>
+                      <p className="text-sm text-gray-700">₹{parseFloat(formData.currentRevenue).toLocaleString('en-IN')}</p>
                     </div>
                   )}
 
-                  <p className="text-xs text-gray-500 italic">
-                    ✓ All startup data has been automatically imported. Proceed to add investment details.
+                  <p className="text-xs text-pink-600 italic mt-4">
+                    ✓ All startup data has been automatically imported. Proceed to add investment-specific details in the next step.
                   </p>
                 </div>
               )}
@@ -477,7 +462,7 @@ const ListProject = () => {
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Investment Details</h2>
               <p className="text-sm text-gray-600 mb-4">
-                Please provide only the investment-specific information below. All other details have been imported from your startup.
+                Please provide the financial and investment-specific information below.
               </p>
 
               <div className="grid md:grid-cols-2 gap-6">
@@ -491,6 +476,7 @@ const ListProject = () => {
                     value={formData.fundingGoal}
                     onChange={handleChange}
                     required
+                    step="10000"
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
                     placeholder="e.g., 1000000"
                   />
@@ -507,6 +493,7 @@ const ListProject = () => {
                     value={formData.minimumInvestment}
                     onChange={handleChange}
                     required
+                    step="10000"
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
                     placeholder="e.g., 50000"
                   />
@@ -522,6 +509,7 @@ const ListProject = () => {
                     name="maximumInvestment"
                     value={formData.maximumInvestment}
                     onChange={handleChange}
+                    step="10000"
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
                     placeholder="e.g., 500000 (Optional)"
                   />
@@ -555,6 +543,7 @@ const ListProject = () => {
                     value={formData.equityOffered}
                     onChange={handleChange}
                     required
+                    min="0.1"
                     max="100"
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
                     placeholder="e.g., 10"
@@ -572,10 +561,11 @@ const ListProject = () => {
                     value={formData.valuationAmount}
                     onChange={handleChange}
                     required
+                    step="100000"
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
                     placeholder="e.g., 10000000"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Current company valuation</p>
+                  <p className="text-xs text-gray-500 mt-1">Current company valuation (Pre-money)</p>
                 </div>
               </div>
 
@@ -594,8 +584,8 @@ const ListProject = () => {
                 />
               </div>
 
-              <div className="bg-yellow-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-gray-900 mb-2">Optional: Additional Documents</h4>
+              <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                <h4 className="text-sm font-semibold text-gray-900 mb-2">Optional: Supporting Documents & Media</h4>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">
@@ -630,42 +620,73 @@ const ListProject = () => {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8 pt-6 border-t">
-            {currentStep > 1 && (
+          <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+            {currentStep > 1 ? (
               <button
                 type="button"
                 onClick={prevStep}
-                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                disabled={loading}
+                className={`px-6 py-3 w-48 ${primaryButtonClass}`}
               >
                 Previous
               </button>
+            ) : (
+              // Empty div to maintain spacing consistency when 'Previous' is disabled/hidden
+              <div className='w-48'></div> 
             )}
             
             {currentStep < 2 ? (
               <button
                 type="button"
                 onClick={nextStep}
-                disabled={!formData.startupId}
-                className="ml-auto px-6 py-3 bg-gradient-to-r from-primary to-accent text-gray-800 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!formData.startupId || loading}
+                className={`px-6 py-3 w-58 ${primaryButtonClass}`}
               >
-                Next: Add Investment Details
+                Next:Investment Details
               </button>
             ) : (
               <button
                 type="submit"
                 disabled={loading}
-                className="ml-auto px-8 py-3 bg-gradient-to-r from-primary to-accent text-gray-800 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50"
+                className={`flex items-center justify-center px-8 py-3 w-48 ${primaryButtonClass}`}
               >
-                {loading 
-                  ? (isEditMode ? 'Updating Project...' : 'Listing Project...') 
-                  : (isEditMode ? 'Update Project' : 'List Project for Investment')
-                }
+                <RocketLaunchIcon className={`w-5 h-5 ${loading ? 'hidden' : 'inline mr-2'}`} />
+                <span>
+                  {loading 
+                    ? (isEditMode ? 'Updating...' : 'Listing...') 
+                    : (isEditMode ? 'Update Project' : 'List Project')
+                  }
+                </span>
               </button>
             )}
           </div>
         </form>
-      </motion.div>
+      </div>
     </DashboardLayout>
+
+    {/* Toast Notification */}
+    <AnimatePresence>
+      {message && (
+        <motion.div
+          key="project-toast"
+          variants={toastVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ duration: 0.3 }}
+          className="fixed top-6 right-6 z-9999 w-full max-w-sm"
+        >
+          <div className={`p-4 rounded-lg shadow-xl text-sm font-medium border ${
+            message.includes('success') 
+              ? 'bg-green-50 text-green-700 border-green-200' 
+              : 'bg-red-50 text-red-700 border-red-200'
+          }`}>
+            {message}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </>
   )
 }
 

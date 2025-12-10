@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/authContext';
 import GoogleTranslate from '../components/GoogleTranslate';
 import { 
   BriefcaseIcon, 
@@ -154,7 +154,7 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-primary/10 flex items-center justify-center px-4 py-12 relative">
+    <div className="min-h-screen bg-linear-to-br from-white to-primary/10 flex items-center justify-center px-4 py-12 relative">
       {/* Google Translate Widget */}
       <div className="absolute top-4 right-4">
         <GoogleTranslate />

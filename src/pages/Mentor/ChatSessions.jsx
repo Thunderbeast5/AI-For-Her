@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
 import DashboardLayout from '../../components/DashboardLayout'
 import MentorSidebar from '../../components/MentorSidebar'
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
-import { useAuth } from '../../context/AuthContext'
-import { sessionsApi } from '../../api'
+import { useAuth } from '../../context/authContext'
+import { db } from '../../firebase'
+import { collection, query, where, getDocs, doc, getDoc, addDoc, onSnapshot, orderBy, serverTimestamp } from 'firebase/firestore'
 import { 
   PaperAirplaneIcon, 
   MagnifyingGlassIcon,
@@ -223,7 +223,7 @@ const ChatSessions = () => {
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-pink-300 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 bg-linear-to-r from-pink-300 to-pink-400 rounded-full flex items-center justify-center shrink-0">
                       <span className="text-white font-semibold text-lg">
                         {contact.name.charAt(0)}
                       </span>
@@ -252,7 +252,7 @@ const ChatSessions = () => {
               {/* Chat Header */}
               <div className="p-4 border-b border-gray-200 bg-white">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-pink-300 to-pink-400 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-linear-to-r from-pink-300 to-pink-400 rounded-full flex items-center justify-center">
                     <span className="text-white font-semibold">
                       {selectedContact.name.charAt(0)}
                     </span>
@@ -303,7 +303,7 @@ const ChatSessions = () => {
                                   : 'bg-white text-gray-900 shadow-sm'
                               }`}
                             >
-                              <p className="text-sm break-words">{message.text}</p>
+                              <p className="text-sm wrap-break-word">{message.text}</p>
                               <p
                                 className={`text-xs mt-1 ${
                                   message.senderId === currentUser.uid

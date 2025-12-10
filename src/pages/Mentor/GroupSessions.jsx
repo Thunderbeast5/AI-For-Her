@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '../../components/DashboardLayout';
 import MentorSidebar from '../../components/MentorSidebar';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authContext';
 import groupSessionsApi from '../../api/groupSessions';
 import { 
   VideoCameraIcon,
@@ -14,6 +14,12 @@ import {
   XMarkIcon,
   CheckIcon
 } from '@heroicons/react/24/outline';
+
+const toastVariants = {
+  initial: { opacity: 0, x: 100 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: 100 },
+};
 
 const GroupSessions = () => {
   const { currentUser } = useAuth();
@@ -41,6 +47,7 @@ const GroupSessions = () => {
     status: 'upcoming',
     isPublic: true
   });
+  const [message, setMessage] = useState('');
 
   const sectors = [
     'Food Processing', 'Handicrafts', 'Beauty & Personal Care', 
@@ -58,25 +65,28 @@ const GroupSessions = () => {
   const frequencies = ['Weekly', 'Bi-weekly', 'Monthly'];
 
   const sidebar = useMemo(() => <MentorSidebar />, []);
-
-  useEffect(() => {
-    if (currentUser?.userId) {
-      fetchGroups();
-    }
-  }, [currentUser]);
-
-  const fetchGroups = async () => {
+  
+  const fetchGroups = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await groupSessionsApi.getByMentor(currentUser.userId);
+      const mentorId = currentUser.uid || currentUser.userId;
+      const data = await groupSessionsApi.getByMentor(mentorId);
       setGroups(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching groups:', error);
       setGroups([]);
+      setMessage('Failed to load group sessions. Please try again.');
+      setTimeout(() => setMessage(''), 4000);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser?.uid || currentUser?.userId) {
+      fetchGroups();
+    }
+  }, [currentUser, fetchGroups]);
 
   const handleCreateGroup = () => {
     setEditingGroup(null);
@@ -128,29 +138,34 @@ const GroupSessions = () => {
     
     // Validate that price is greater than 0 for paid group sessions
     if (!formData.price || formData.price <= 0) {
-      alert('Price must be greater than ₹0 for group mentoring sessions.\n\nNote: For FREE groups, please use "Create Group" instead.');
+      setMessage('Price must be greater than 0 for group mentoring sessions. For FREE groups, please use "Create Group" instead.');
+      setTimeout(() => setMessage(''), 5000);
       return;
     }
     
     try {
+      const mentorId = currentUser.uid || currentUser.userId;
       const groupData = {
         ...formData,
-        mentorId: currentUser.userId,
+        mentorId,
         mentorName: `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.email,
         topics: formData.topics.split(',').map(t => t.trim()).filter(Boolean)
       };
 
       if (editingGroup) {
-        await groupSessionsApi.update(editingGroup._id, groupData);
+        await groupSessionsApi.update(editingGroup.id, groupData);
+        setMessage('Group session updated successfully (success)');
       } else {
         await groupSessionsApi.create(groupData);
+        setMessage('Group session created successfully (success)');
       }
 
       setShowCreateModal(false);
       fetchGroups();
     } catch (error) {
       console.error('Error saving group:', error);
-      alert('Error saving group. Please try again.');
+      setMessage('Error saving group. Please try again.');
+      setTimeout(() => setMessage(''), 5000);
     }
   };
 
@@ -160,15 +175,17 @@ const GroupSessions = () => {
     }
 
     try {
-      await groupSessionsApi.delete(groupId, currentUser.userId);
+      const mentorId = currentUser.uid || currentUser.userId;
+      await groupSessionsApi.delete(groupId, mentorId);
       fetchGroups();
     } catch (error) {
       console.error('Error deleting group:', error);
-      alert('Error deleting group. Please try again.');
+      setMessage('Error deleting group. Please try again.');
+      setTimeout(() => setMessage(''), 5000);
     }
   };
 
-  const totalParticipants = groups.reduce((sum, g) => sum + g.currentParticipants.length, 0);
+  const totalParticipants = groups.reduce((sum, g) => sum + (g.currentParticipants?.length || 0), 0);
   const activeGroups = groups.filter(g => g.status === 'active' || g.status === 'upcoming').length;
 
   return (
@@ -253,7 +270,7 @@ const GroupSessions = () => {
         ) : (
           groups.map((group, index) => (
             <motion.div
-              key={group._id}
+              key={group.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + index * 0.1 }}
@@ -295,7 +312,7 @@ const GroupSessions = () => {
                     <div>
                       <span className="text-gray-500">Participants:</span>
                       <p className="font-medium text-gray-900">
-                        {group.currentParticipants.length}/{group.maxParticipants}
+                        {(group.currentParticipants?.length || 0)}/{group.maxParticipants}
                       </p>
                     </div>
                     <div>
@@ -354,7 +371,7 @@ const GroupSessions = () => {
                     <PencilIcon className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={() => handleDeleteGroup(group._id)}
+                    onClick={() => handleDeleteGroup(group.id)}
                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     title="Delete Group"
                   >
@@ -364,7 +381,7 @@ const GroupSessions = () => {
               </div>
 
               {/* Participants List */}
-              {group.currentParticipants.length > 0 && (
+              {group.currentParticipants && group.currentParticipants.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <p className="text-sm font-medium text-gray-700 mb-2">Participants:</p>
                   <div className="flex flex-wrap gap-2">
@@ -383,7 +400,7 @@ const GroupSessions = () => {
 
       {/* Create/Edit Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center p-4 z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -493,9 +510,9 @@ const GroupSessions = () => {
                     onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-400"
                   />
-                  <p className="text-xs text-blue-600 mt-1">
+                  {/* <p className="text-xs text-blue-600 mt-1">
                     💡 For FREE Telegram-style groups, use "Create Group" instead
-                  </p>
+                  </p> */}
                 </div>
               </div>
 
@@ -682,6 +699,30 @@ const GroupSessions = () => {
           </motion.div>
         </div>
       )}
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {message && (
+          <motion.div
+            key="group-sessions-toast"
+            variants={toastVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ duration: 0.3 }}
+            className="fixed top-6 right-6 z-60 w-full max-w-sm"
+          >
+            <div
+              className={`p-4 rounded-lg shadow-lg text-sm font-medium ${
+                message.includes('success')
+                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}
+            >
+              {message}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 };

@@ -1,80 +1,82 @@
-import axios from 'axios';
-import { API_BASE_URL } from './index';
-
-const API_URL = `${API_BASE_URL}/mentor-groups`;
+import { db } from '../firebase';
+import { collection, query, where, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, arrayUnion } from 'firebase/firestore';
 
 export const mentorGroupsApi = {
-  // Get all active groups (for entrepreneurs)
   getActiveGroups: async () => {
-    const response = await axios.get(`${API_URL}/active`);
-    return response.data;
+    const q = query(collection(db, 'mentorGroups'), where('status', '==', 'active'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
 
-  // Get groups by mentor ID
   getByMentor: async (mentorId) => {
-    const response = await axios.get(`${API_URL}/mentor/${mentorId}`);
-    return response.data;
+    const q = query(collection(db, 'mentorGroups'), where('mentorId', '==', mentorId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
 
-  // Get groups by participant ID
   getByParticipant: async (userId) => {
-    const response = await axios.get(`${API_URL}/participant/${userId}`);
-    return response.data;
+    const q = query(collection(db, 'mentorGroups'), where('participants', 'array-contains', userId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
 
-  // Get single group by ID
   getById: async (groupId) => {
-    const response = await axios.get(`${API_URL}/${groupId}`);
-    return response.data;
+    const docRef = doc(db, 'mentorGroups', groupId);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
   },
 
-  // Create new group
   create: async (groupData) => {
-    const response = await axios.post(API_URL, groupData);
-    return response.data;
+    const docRef = await addDoc(collection(db, 'mentorGroups'), groupData);
+    return { id: docRef.id, ...groupData };
   },
 
-  // Update group
   update: async (groupId, groupData) => {
-    const response = await axios.put(`${API_URL}/${groupId}`, groupData);
-    return response.data;
+    const groupRef = doc(db, 'mentorGroups', groupId);
+    await updateDoc(groupRef, groupData);
   },
 
-  // Delete group
-  delete: async (groupId, mentorId) => {
-    const response = await axios.delete(`${API_URL}/${groupId}`, {
-      params: { mentorId }
-    });
-    return response.data;
+  delete: async (groupId) => {
+    await deleteDoc(doc(db, 'mentorGroups', groupId));
   },
 
-  // Join group
   joinGroup: async (groupId, userId, userName) => {
-    const response = await axios.post(`${API_URL}/${groupId}/join`, {
-      userId,
-      userName
+    // For simplicity and to work with array-contains queries, store participants as userId strings.
+    // Existing object entries will still be readable; new joins will add string IDs.
+    const groupRef = doc(db, 'mentorGroups', groupId);
+    await updateDoc(groupRef, {
+      participants: arrayUnion(userId)
     });
-    return response.data;
   },
 
-  // Leave group
   leaveGroup: async (groupId, userId) => {
-    const response = await axios.post(`${API_URL}/${groupId}/leave`, {
-      userId
-    });
-    return response.data;
+    const groupRef = doc(db, 'mentorGroups', groupId);
+    const groupDoc = await getDoc(groupRef);
+    if (groupDoc.exists()) {
+      const groupData = groupDoc.data();
+      const participants = groupData.participants || [];
+      // Support both object-form and string-form participants
+      const newParticipants = participants.filter(p => {
+        if (typeof p === 'string') return p !== userId;
+        if (p && typeof p === 'object') return p.userId !== userId;
+        return true;
+      });
+      await updateDoc(groupRef, { participants: newParticipants });
+    }
   },
 
-  // Add session
   addSession: async (groupId, sessionData) => {
-    const response = await axios.post(`${API_URL}/${groupId}/sessions`, sessionData);
-    return response.data;
+    const groupRef = doc(db, 'mentorGroups', groupId);
+    await updateDoc(groupRef, {
+      sessions: arrayUnion(sessionData)
+    });
   },
 
-  // Add review
   addReview: async (groupId, reviewData) => {
-    const response = await axios.post(`${API_URL}/${groupId}/reviews`, reviewData);
-    return response.data;
+    const groupRef = doc(db, 'mentorGroups', groupId);
+    await updateDoc(groupRef, {
+      reviews: arrayUnion(reviewData)
+    });
   }
 };
 

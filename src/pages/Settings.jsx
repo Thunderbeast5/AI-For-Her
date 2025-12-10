@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion'; // Ensure AnimatePresence is imported
+import { AnimatePresence } from 'framer-motion'; // Ensure AnimatePresence is imported
 import DashboardLayout from '../components/DashboardLayout';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/authContext';
 import EntrepreneurSidebar from '../components/EntrepreneurSidebar';
 import MentorSidebar from '../components/MentorSidebar';
 import InvestorSidebar from '../components/InvestorSidebar';
@@ -11,7 +11,8 @@ import {
   LockClosedIcon,
   GlobeAltIcon
 } from '@heroicons/react/24/outline';
-import { usersApi } from '../api';
+import { db } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Define the toast animation variants
 const toastVariants = {
@@ -437,7 +438,7 @@ const Settings = () => {
             exit="exit"
             transition={{ duration: 0.3 }}
             // Fixed position, top right, high z-index, max width
-            className="fixed top-6 right-6 z-[60] w-full max-w-sm"
+            className="fixed top-6 right-6 z-60 w-full max-w-sm"
           >
             <div className={`p-4 rounded-lg shadow-lg text-sm font-medium ${
               message.includes('success') 

@@ -1,14 +1,26 @@
-import { useEffect, useState } from 'react'
-import DashboardLayout from '../components/DashboardLayout'
-import EntrepreneurSidebar from '../components/EntrepreneurSidebar'
-import { useAuth } from '../context/AuthContext'
-import apiClient from '../api'
+import { useEffect, useState, useCallback } from 'react';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
+import { db } from '../../firebase';
+import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import DashboardLayout from '../../components/DashboardLayout'
+import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
+import { useAuth } from '../../hooks/useAuth'
 
+const toastVariants = {
+  initial: { opacity: 0, x: 100 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: 100 },
+};
+const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
+  const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
+  const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
 
 const EnterpriseProducts = () => {
   const { currentUser } = useAuth()
+  const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
@@ -26,75 +38,112 @@ const EnterpriseProducts = () => {
   const [uploadMethod, setUploadMethod] = useState('url') // 'url' | 'file'
   const [uploading, setUploading] = useState(false)
 
-  const loadProducts = async () => {
-    if (!currentUser?.userId) {
-      setProducts([])
-      setLoading(false)
-      return
+  const loadProducts = useCallback(() => {
+    if (!currentUser?.uid) {
+      setProducts([]);
+      setLoading(false);
+      return;
     }
 
-    setLoading(true)
-    try {
-      const response = await apiClient.get('/products', {
-        params: { userId: currentUser.userId }
-      })
-      setProducts(response.data || [])
-    } catch (error) {
-      console.error('Error loading products:', error)
-      setProducts([])
-    } finally {
-      setLoading(false)
-    }
-  }
+    setLoading(true);
+    const productsRef = collection(db, 'products');
+    const q = query(productsRef, where('userId', '==', currentUser.uid));
 
-  const loadOrders = async () => {
-    setOrdersLoading(true)
-    try {
-      const response = await apiClient.get('/orders', {
-        params: { ownerId: currentUser?.userId },
-      })
-      setOrders(response.data || [])
-    } catch (error) {
-      console.error('Error loading orders:', error)
-      setOrders([])
-    } finally {
-      setOrdersLoading(false)
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const productsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProducts(productsList);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error loading products:', error);
+      setProducts([]);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, [currentUser]);
+
+  const loadOrders = useCallback(() => {
+    if (!currentUser?.uid) {
+      setOrders([]);
+      setOrdersLoading(false);
+      return;
     }
-  }
+
+    setOrdersLoading(true);
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, where('owners', 'array-contains', currentUser.uid));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const ordersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setOrders(ordersList);
+      setOrdersLoading(false);
+    }, (error) => {
+      console.error('Error loading orders:', error);
+      setOrders([]);
+      setOrdersLoading(false);
+    });
+
+    return unsubscribe;
+  }, [currentUser]);
 
   useEffect(() => {
-    loadProducts()
-    loadOrders()
-  }, [currentUser])
+    const unsubscribeProducts = loadProducts();
+    const unsubscribeOrders = loadOrders();
+
+    return () => {
+      if (unsubscribeProducts) unsubscribeProducts();
+      if (unsubscribeOrders) unsubscribeOrders();
+    };
+  }, [loadProducts, loadOrders]);
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!currentUser?.userId) return
+    if (!currentUser?.uid) return
 
-    const payload = {
-      userId: currentUser.userId,
-      name: form.name,
-      description: form.description,
-      price: Number(form.price) || 0,
-      category: form.category,
-      imageUrl: form.imageUrl,
-      tags: form.tags,
+    try {
+      const payload = {
+        userId: currentUser.uid,
+        name: form.name,
+        description: form.description,
+        price: Number(form.price) || 0,
+        category: form.category,
+        imageUrl: form.imageUrl,
+        tags: form.tags,
+        isPublic: true,
+      };
+
+      if (editingProductId) {
+        const productRef = doc(db, 'products', editingProductId);
+        await updateDoc(productRef, payload);
+        setMessage('Product updated successfully!');
+      } else {
+        await addDoc(collection(db, 'products'), payload);
+        setMessage('Product added successfully!');
+      }
+      
+      setTimeout(() => setMessage(''), 3000);
+
+      setForm({ name: '', description: '', price: '', category: '', imageUrl: '', tags: [] })
+      setEditingProductId(null)
+      await loadProducts()
+    } catch (error) {
+      console.error('Error saving product:', error);
+      setMessage('Failed to save product. Please try again.');
+      setTimeout(() => setMessage(''), 5000);
     }
-
-    if (editingProductId) {
-      await apiClient.put(`/products/${editingProductId}`, payload)
-    } else {
-      await apiClient.post('/products', payload)
-    }
-
-    setForm({ name: '', description: '', price: '', category: '', imageUrl: '', tags: [] })
-    setEditingProductId(null)
-    await loadProducts()
   }
 
   const handleDelete = async (id) => {
-    await apiClient.delete(`/products/${id}`)
-    await loadProducts()
+    try {
+      await deleteDoc(doc(db, 'products', id));
+      setMessage('Product deleted successfully!');
+      setTimeout(() => setMessage(''), 3000);
+      await loadProducts()
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      setMessage('Failed to delete product. Please try again.');
+      setTimeout(() => setMessage(''), 5000);
+    }
   }
 
   const handleEdit = (product) => {
@@ -152,10 +201,11 @@ const EnterpriseProducts = () => {
   }
 
   return (
-    <DashboardLayout sidebar={<EntrepreneurSidebar />}>
-      <div className="max-w-5xl mx-auto py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage Store</h1>
-        <p className="text-gray-600 mb-4">Add products and view storefront orders.</p>
+    <>
+      <DashboardLayout sidebar={<EntrepreneurSidebar />}>
+        <div className="max-w-5xl mx-auto py-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage Store</h1>
+          <p className="text-gray-600 mb-4">Add products and view storefront orders.</p>
 
         <div className="mb-6 flex gap-3">
           <button
@@ -320,7 +370,7 @@ const EnterpriseProducts = () => {
             </div>
             <button
               type="submit"
-              className="w-full px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg font-medium hover:from-pink-600 hover:to-purple-600 transition-colors"
+              className={`w-full px-4 py-2 ${primaryButtonClass}`}
             >
               {editingProductId ? 'Update Product' : 'Add Product'}
             </button>
@@ -335,7 +385,7 @@ const EnterpriseProducts = () => {
               <div className="space-y-3 max-h-[480px] overflow-y-auto">
                 {products.map((p) => (
                   <div
-                    key={p._id}
+                    key={p.id}
                     className="flex items-center gap-3 border-b border-gray-100 pb-3 last:border-b-0"
                   >
                     {p.imageUrl ? (
@@ -372,7 +422,7 @@ const EnterpriseProducts = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(p._id)}
+                        onClick={() => handleDelete(p.id)}
                         className="text-xs text-red-600 hover:text-red-700 font-medium"
                       >
                         Delete
@@ -401,13 +451,18 @@ const EnterpriseProducts = () => {
                       : order.customer?.name || order.customerName)
                   const customerCity = order.customer?.city || order.city
 
+                  // Prefer an explicit order number, but fall back to a short ID if missing
+                  const orderLabel = order.orderNumber || (order.id ? order.id.slice(-8) : 'Unknown');
+
                   return (
                     <div
-                      key={order._id}
+                      key={order.id}
                       className="border border-gray-100 rounded-xl p-3"
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-gray-900">{order.orderNumber}</span>
+                        <span className="font-semibold text-gray-900">
+                          Order #{orderLabel}
+                        </span>
                         <span className="text-pink-600 font-bold">₹{order.totalAmount}</span>
                       </div>
                       <p className="text-xs text-gray-500 mb-1">
@@ -431,6 +486,30 @@ const EnterpriseProducts = () => {
         )}
       </div>
     </DashboardLayout>
+
+    {/* Toast Notification */}
+    <AnimatePresence>
+      {message && (
+        <motion.div
+          key="product-toast"
+          variants={toastVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ duration: 0.3 }}
+          className="fixed top-6 right-6 z-9999 w-full max-w-sm"
+        >
+          <div className={`p-4 rounded-lg shadow-xl text-sm font-medium border ${
+            message.includes('success') 
+              ? 'bg-green-50 text-green-700 border-green-200' 
+              : 'bg-red-50 text-red-700 border-red-200'
+          }`}>
+            {message}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </>
   )
 }
 

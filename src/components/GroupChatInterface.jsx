@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import groupChatsApi from '../api/groupChats';
+import { db } from '../firebase';
+import { doc, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy, setDoc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 
 const GroupChatInterface = ({ groupId, groupName, currentUser, onClose, groupType = 'mentor' }) => {
   const [groupChat, setGroupChat] = useState(null);
@@ -10,95 +11,97 @@ const GroupChatInterface = ({ groupId, groupName, currentUser, onClose, groupTyp
   const [showParticipants, setShowParticipants] = useState(false);
   const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
-  const pollIntervalRef = useRef(null);
 
-  // Determine API base URL based on group type
-  const apiBaseUrl = groupType === 'self-help' 
-    ? 'http://localhost:5000/api/self-help-group-chats'
-    : 'http://localhost:5000/api/group-chats';
+  const chatCollectionName = groupType === 'self-help' ? 'self-help-group-chats' : 'group-chats';
 
-  // Validate required props
   useEffect(() => {
-    if (!currentUser || !currentUser.userId || !currentUser.name) {
-      console.error('GroupChatInterface: currentUser prop is required with userId and name');
-      setError('User information is missing. Please refresh the page.');
+    if (!groupId || !currentUser?.userId) {
+      setError('Group or user information is missing.');
       setLoading(false);
+      return;
     }
-  }, [currentUser]);
 
-  // Scroll to bottom of messages
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+    const chatDocRef = doc(db, chatCollectionName, groupId);
 
-  // Load group chat data
-  const loadGroupChat = async () => {
-    if (!currentUser?.userId) return;
-    
-    try {
-      const response = await fetch(`${apiBaseUrl}/group/${groupId}`);
-      const data = await response.json();
-      setGroupChat(data);
-      setMessages(data.messages || []);
-      setLoading(false);
-      
-      // Mark messages as read
-      if (currentUser?.userId) {
-        await fetch(`${apiBaseUrl}/group/${groupId}/read`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: currentUser.userId })
-        });
+    // Set up listeners
+    const unsubscribeChat = onSnapshot(chatDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const chatData = docSnap.data();
+        setGroupChat({ id: docSnap.id, ...chatData });
+
+        // Ensure current user is listed as a participant
+        if (!chatData.participantIds?.includes(currentUser.userId)) {
+          updateDoc(chatDocRef, {
+            participantIds: arrayUnion(currentUser.userId),
+            participants: arrayUnion({ userId: currentUser.userId, userName: currentUser.name, joinedAt: new Date() })
+          });
+        }
+      } else {
+        // Chat doesn't exist, create it.
+        const createChat = async () => {
+          try {
+            // Choose correct parent collection based on group type
+            const parentCollection = groupType === 'self-help' ? 'self-help-groups' : 'mentorGroups';
+            const groupDocRef = doc(db, parentCollection, groupId);
+            const groupDoc = await getDoc(groupDocRef);
+            if (!groupDoc.exists()) throw new Error('Parent group does not exist.');
+
+            const newChatData = {
+              groupName: groupName,
+              participants: [{ userId: currentUser.userId, userName: currentUser.name, joinedAt: new Date() }],
+              participantIds: [currentUser.userId],
+              createdAt: serverTimestamp(),
+            };
+            await setDoc(chatDocRef, newChatData);
+          } catch (createError) {
+            console.error('Error creating chat document:', createError);
+            setError('Failed to create chat.');
+          }
+        };
+        createChat();
       }
-    } catch (error) {
-      console.error('Error loading group chat:', error);
-      setError('Failed to load group chat: ' + (error.response?.data?.message || error.message));
       setLoading(false);
-    }
-  };
+    }, (err) => {
+      console.error('Error fetching group chat:', err);
+      setError('Failed to load group chat.');
+      setLoading(false);
+    });
 
-  // Poll for new messages every 3 seconds
-  useEffect(() => {
-    if (!currentUser?.userId || error) return;
-    
-    loadGroupChat();
-    
-    pollIntervalRef.current = setInterval(() => {
-      loadGroupChat();
-    }, 3000);
+    const messagesColRef = collection(db, chatCollectionName, groupId, 'messages');
+    const q = query(messagesColRef, orderBy('timestamp', 'asc'));
+
+    const unsubscribeMessages = onSnapshot(q, (querySnapshot) => {
+      const msgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMessages(msgs);
+    });
 
     return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
+      unsubscribeChat();
+      unsubscribeMessages();
     };
-  }, [groupId, currentUser?.userId]);
+  }, [groupId, currentUser, chatCollectionName, groupName]);
 
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || sending || !currentUser?.userId || !currentUser?.name) return;
 
     setSending(true);
     try {
-      await fetch(`${apiBaseUrl}/group/${groupId}/message`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          senderId: currentUser.userId,
-          senderName: currentUser.name,
-          message: newMessage
-        })
+      const messagesColRef = collection(db, chatCollectionName, groupId, 'messages');
+      await addDoc(messagesColRef, {
+        senderId: currentUser.userId,
+        senderName: currentUser.name,
+        message: newMessage,
+        timestamp: serverTimestamp(),
       });
       setNewMessage('');
-      await loadGroupChat(); // Refresh messages
-    } catch (error) {
-      console.error('Error sending message:', error);
-      alert('Failed to send message: ' + (error.response?.data?.message || error.message));
+    } catch (err) {
+      console.error('Error sending message:', err);
+      alert('Failed to send message.');
     } finally {
       setSending(false);
     }
@@ -156,7 +159,7 @@ const GroupChatInterface = ({ groupId, groupName, currentUser, onClose, groupTyp
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-4 flex items-center justify-between">
+      <div className="bg-linear-to-r from-pink-500 to-purple-600 text-white p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
             <span className="text-pink-500 font-bold text-lg">
@@ -226,10 +229,10 @@ const GroupChatInterface = ({ groupId, groupName, currentUser, onClose, groupTyp
                         )}
                         <div className={`rounded-lg px-4 py-2 ${
                           isOwnMessage 
-                            ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white' 
+                            ? 'bg-linear-to-r from-pink-500 to-purple-600 text-white' 
                             : 'bg-white border border-gray-200 text-gray-800'
                         }`}>
-                          <p className="whitespace-pre-wrap break-words">{msg.message}</p>
+                          <p className="whitespace-pre-wrap wrap-break-word">{msg.message}</p>
                           <p className={`text-xs mt-1 ${
                             isOwnMessage ? 'text-pink-100' : 'text-gray-500'
                           }`}>
@@ -258,7 +261,7 @@ const GroupChatInterface = ({ groupId, groupName, currentUser, onClose, groupTyp
                 <button
                   type="submit"
                   disabled={!newMessage.trim() || sending}
-                  className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-pink-600 hover:to-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  className="bg-linear-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-pink-600 hover:to-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   {sending ? (
                     <>
@@ -292,7 +295,7 @@ const GroupChatInterface = ({ groupId, groupName, currentUser, onClose, groupTyp
                     key={index}
                     className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition"
                   >
-                    <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-linear-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center">
                       <span className="text-white font-bold">
                         {participant.userName?.charAt(0) || 'U'}
                       </span>

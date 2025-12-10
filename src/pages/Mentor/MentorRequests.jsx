@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { connectionsApi } from '../../api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../firebase';
+import { collection, query, where, getDocs, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import DashboardLayout from '../../components/DashboardLayout';
 import MentorSidebar from '../../components/MentorSidebar';
 
@@ -10,57 +11,59 @@ export default function MentorRequests() {
   const [processingId, setProcessingId] = useState(null);
   const { currentUser } = useAuth();
 
-  useEffect(() => {
-    fetchPendingRequests();
-  }, [currentUser]);
-
-  const fetchPendingRequests = async () => {
+  const fetchPendingRequests = useCallback(async () => {
     try {
-      if (currentUser?.userId) {
-        console.log('Fetching requests for mentor:', currentUser.userId);
-        const response = await connectionsApi.getByUser(currentUser.userId, 'mentor');
-        console.log('API Response:', response);
-        
-        // Handle both response formats: { success, data } or direct array
-        const data = response?.data || response || [];
-        console.log('Parsed data:', data);
-        
-        const dataArray = Array.isArray(data) ? data : [];
-        console.log('Data array:', dataArray);
-        
-        // Filter for pending requests that haven't been paid yet
-        const pending = dataArray.filter(conn => {
-          const matches = conn.status === 'pending' && 
-                         conn.paymentStatus === 'pending' &&
-                         conn.mentorType === 'personal';
-          console.log('Connection:', conn._id, 'Status:', conn.status, 'Payment:', conn.paymentStatus, 'Type:', conn.mentorType, 'Matches:', matches);
-          return matches;
-        });
-        
-        console.log('Pending requests:', pending);
-        setPendingRequests(pending);
-      }
+      const q = query(
+        collection(db, 'connections'),
+        where('mentorId', '==', currentUser.uid),
+        where('status', '==', 'pending'),
+        where('paymentStatus', '==', 'pending'),
+        where('mentorType', '==', 'personal')
+      );
+      const querySnapshot = await getDocs(q);
+      const requests = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPendingRequests(requests);
     } catch (error) {
       console.error('Error fetching pending requests:', error);
       setPendingRequests([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
 
-  const handleAccept = async (connectionId) => {
+  useEffect(() => {
+    if (currentUser?.uid) {
+      fetchPendingRequests();
+    }
+  }, [currentUser, fetchPendingRequests]);
+
+  const handleAccept = async (request) => {
     if (!window.confirm('Accept this connection request? The entrepreneur will be prompted to complete payment.')) {
       return;
     }
 
-    setProcessingId(connectionId);
+    setProcessingId(request.id);
     try {
-      await connectionsApi.accept(connectionId);
-      alert('Request accepted! The entrepreneur will be notified to complete payment.');
+      const connectionRef = doc(db, 'connections', request.id);
+      await updateDoc(connectionRef, { status: 'accepted' });
+
+      // Create a notification for the entrepreneur so it shows in their navbar bell
+      await addDoc(collection(db, 'notifications'), {
+        userId: request.entrepreneurId,
+        title: 'Mentor accepted your request',
+        message: `${currentUser.displayName || 'Your mentor'} has accepted your personal mentoring request. Click to complete payment and start your sessions.`,
+        type: 'mentor-connection-accepted',
+        link: '/mentors',
+        connectionId: request.id,
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+
+      alert('Request accepted! The entrepreneur will see a notification to complete payment.');
       fetchPendingRequests();
     } catch (error) {
       console.error('Error accepting request:', error);
-      alert('Failed to accept request: ' + (error.response?.data?.error || error.message));
+      alert('Failed to accept request: ' + error.message);
     } finally {
       setProcessingId(null);
     }
@@ -72,12 +75,13 @@ export default function MentorRequests() {
 
     setProcessingId(connectionId);
     try {
-      await connectionsApi.reject(connectionId, reason);
+      const connectionRef = doc(db, 'connections', connectionId);
+      await updateDoc(connectionRef, { status: 'rejected', rejectionReason: reason });
       alert('Request rejected.');
       fetchPendingRequests();
     } catch (error) {
       console.error('Error rejecting request:', error);
-      alert('Failed to reject request: ' + (error.response?.data?.error || error.message));
+      alert('Failed to reject request: ' + error.message);
     } finally {
       setProcessingId(null);
     }
@@ -106,7 +110,7 @@ export default function MentorRequests() {
         ) : (
           <div className="space-y-6">
             {pendingRequests.map((request) => (
-              <div key={request._id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6">
+              <div key={request.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-xl font-bold text-gray-800 mb-1">
@@ -147,11 +151,11 @@ export default function MentorRequests() {
                 {/* Actions */}
                 <div className="flex space-x-3">
                   <button
-                    onClick={() => handleAccept(request._id)}
-                    disabled={processingId === request._id}
-                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    onClick={() => handleAccept(request)}
+                    disabled={processingId === request.id}
+                    className="flex-1 bg-linear-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                   >
-                    {processingId === request._id ? (
+                    {processingId === request.id ? (
                       <>
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                         <span>Processing...</span>
@@ -166,11 +170,11 @@ export default function MentorRequests() {
                     )}
                   </button>
                   <button
-                    onClick={() => handleReject(request._id)}
-                    disabled={processingId === request._id}
-                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-3 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    onClick={() => handleReject(request.id)}
+                    disabled={processingId === request.id}
+                    className="flex-1 bg-linear-to-r from-red-500 to-red-600 text-white py-3 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                   >
-                    {processingId === request._id ? (
+                    {processingId === request.id ? (
                       <>
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                         <span>Processing...</span>

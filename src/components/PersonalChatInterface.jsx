@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { chatApi } from '../api';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { db } from '../firebase';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const PersonalChatInterface = ({ connection, currentUser, onClose, userRole }) => {
   const [messages, setMessages] = useState([]);
@@ -13,29 +14,25 @@ const PersonalChatInterface = ({ connection, currentUser, onClose, userRole }) =
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const loadMessages = async () => {
-    try {
-      console.log('📥 Loading messages for connection:', connection._id);
-      const response = await chatApi.getMessages(connection._id);
-      console.log('📦 Messages API response:', response);
-      
-      // Extract data from response
-      const messagesData = response?.data || response || [];
-      console.log('💬 Messages data:', messagesData);
-      console.log('📊 Number of messages:', Array.isArray(messagesData) ? messagesData.length : 0);
-      
-      setMessages(Array.isArray(messagesData) ? messagesData : []);
-      
-      // Mark messages as read
-      await chatApi.markAsRead(connection._id, currentUser.userId);
-      
+  const loadMessages = useCallback(() => {
+    // Use connection.id as the stable chat document ID so both sides share the same chat
+    const chatId = connection.id;
+    const messagesQuery = query(
+      collection(db, 'chats', chatId, 'messages'),
+      orderBy('timestamp', 'asc')
+    );
+
+    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      const messagesList = [];
+      snapshot.forEach((doc) => {
+        messagesList.push({ id: doc.id, ...doc.data() });
+      });
+      setMessages(messagesList);
       setLoading(false);
-    } catch (error) {
-      console.error('❌ Error loading messages:', error);
-      console.error('Error details:', error.response?.data || error.message);
-      setLoading(false);
-    }
-  };
+    });
+
+    return unsubscribe;
+  }, [currentUser, connection]);
 
   useEffect(() => {
     loadMessages();
@@ -50,7 +47,7 @@ const PersonalChatInterface = ({ connection, currentUser, onClose, userRole }) =
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, [connection._id]);
+  }, [connection.id, loadMessages]);
 
   useEffect(() => {
     scrollToBottom();
@@ -63,17 +60,21 @@ const PersonalChatInterface = ({ connection, currentUser, onClose, userRole }) =
     setSending(true);
     try {
       console.log('📤 Sending message:', {
-        connectionId: connection._id,
+        connectionId: connection.id,
         senderId: currentUser.userId,
         senderRole: userRole,
         message: newMessage.substring(0, 50)
       });
       
-      await chatApi.sendMessage({
-        connectionId: connection._id,
+      const chatId = connection.id;
+      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+        // Store under both `message` and `text` for backward compatibility
+        message: newMessage,
+        text: newMessage,
         senderId: currentUser.userId,
-        senderRole: userRole,
-        message: newMessage
+        senderName: currentUser.displayName || 'User',
+        timestamp: serverTimestamp(),
+        read: false
       });
       
       console.log('✅ Message sent successfully');
@@ -123,7 +124,7 @@ const PersonalChatInterface = ({ connection, currentUser, onClose, userRole }) =
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-t-lg flex items-center justify-between">
+        <div className="bg-linear-to-r from-blue-500 to-blue-600 text-white p-4 rounded-t-lg flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
               <span className="text-blue-500 font-bold text-xl">
@@ -165,11 +166,12 @@ const PersonalChatInterface = ({ connection, currentUser, onClose, userRole }) =
             </div>
           ) : (
             messages.map((msg, index) => {
+              const body = msg.message ?? msg.text ?? '';
               console.log(`💬 Rendering message ${index}:`, {
-                id: msg._id,
+                id: msg.id,
                 senderId: msg.senderId,
-                message: msg.message?.substring(0, 50),
-                createdAt: msg.createdAt,
+                message: body.substring(0, 50),
+                createdAt: msg.createdAt || msg.timestamp,
                 isOwnMessage: msg.senderId === currentUser.userId
               });
               
@@ -177,9 +179,9 @@ const PersonalChatInterface = ({ connection, currentUser, onClose, userRole }) =
               const showAvatar = index === 0 || messages[index - 1].senderId !== msg.senderId;
               
               return (
-                <div key={msg._id || index} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} items-end space-x-2`}>
+                <div key={msg.id || index} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} items-end space-x-2`}>
                   {!isOwnMessage && showAvatar && (
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 bg-linear-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shrink-0">
                       <span className="text-white text-xs font-bold">
                         {otherPersonName?.charAt(0) || 'U'}
                       </span>
@@ -190,10 +192,10 @@ const PersonalChatInterface = ({ connection, currentUser, onClose, userRole }) =
                   <div className={`max-w-[70%] ${isOwnMessage ? 'items-end' : 'items-start'}`}>
                     <div className={`rounded-2xl px-4 py-2 shadow-sm ${
                       isOwnMessage 
-                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-sm' 
+                        ? 'bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-br-sm' 
                         : 'bg-white text-gray-800 rounded-bl-sm'
                     }`}>
-                      <p className="whitespace-pre-wrap break-words">{msg.message}</p>
+                      <p className="whitespace-pre-wrap wrap-break-word">{body}</p>
                       <div className="flex items-center justify-end space-x-1 mt-1">
                         <p className={`text-xs ${
                           isOwnMessage ? 'text-blue-100' : 'text-gray-500'
@@ -210,7 +212,7 @@ const PersonalChatInterface = ({ connection, currentUser, onClose, userRole }) =
                   </div>
                   
                   {isOwnMessage && showAvatar && (
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 bg-linear-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shrink-0">
                       <span className="text-white text-xs font-bold">
                         {currentUser.name?.charAt(0) || 'Y'}
                       </span>
@@ -268,7 +270,7 @@ const PersonalChatInterface = ({ connection, currentUser, onClose, userRole }) =
             <button
               type="submit"
               disabled={!newMessage.trim() || sending}
-              className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full hover:from-blue-600 hover:to-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-3 bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-full hover:from-blue-600 hover:to-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? (
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { usersApi, startupsApi } from '../api';
+import { db } from '../firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import DashboardLayout from '../components/DashboardLayout';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import EntrepreneurSidebar from '../components/EntrepreneurSidebar';
 import MentorSidebar from '../components/MentorSidebar';
 import InvestorSidebar from '../components/InvestorSidebar';
@@ -23,6 +23,13 @@ const Analytics = () => {
     timeInvested: 0
   });
   const [recentActivity, setRecentActivity] = useState([]);
+
+  // Determine which sidebar to use based on role
+  const getSidebar = () => {
+    if (userRole === 'mentor') return <MentorSidebar />;
+    if (userRole === 'investor') return <InvestorSidebar />;
+    return <EntrepreneurSidebar />;
+  };
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -122,32 +129,15 @@ const Analytics = () => {
       </DashboardLayout>
     );
   }
-
-  // Determine which sidebar to use based on role
-  const getSidebar = () => {
-    if (userRole === 'mentor') return <MentorSidebar />;
-    if (userRole === 'investor') return <InvestorSidebar />;
-    return <EntrepreneurSidebar />;
-  };
-
   return (
     <DashboardLayout sidebar={getSidebar()}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics</h1>
         <p className="text-gray-600">Track your performance and growth</p>
-      </motion.div>
+      </div>
 
       {/* Key Metrics */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid md:grid-cols-4 gap-6 mb-8"
-      >
+      <div className="grid md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <ChartBarIcon className="w-8 h-8 text-pink-400" />
@@ -183,15 +173,10 @@ const Analytics = () => {
           <p className="text-2xl font-bold text-gray-900 mb-1">{stats.timeInvested}h</p>
           <p className="text-sm text-gray-600">Time Invested</p>
         </div>
-      </motion.div>
+      </div>
 
       {/* Charts Placeholder */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="grid md:grid-cols-2 gap-6 mb-8"
-      >
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Activity Overview</h3>
           <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
@@ -205,28 +190,24 @@ const Analytics = () => {
             <p className="text-gray-400">Chart visualization coming soon</p>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Recent Activity */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-white rounded-2xl p-6 shadow-sm"
-      >
+      <div className="bg-white rounded-2xl p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
         <div className="space-y-3">
           {recentActivity.length === 0 ? (
             <p className="text-center text-gray-500 py-8">No recent activity</p>
           ) : (
             recentActivity.map((activity, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-900">{activity.action}</p>
-              <span className="text-xs text-gray-500">{activity.time}</span>
-            </div>
-          )))}
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-900">{activity.action}</p>
+                <span className="text-xs text-gray-500">{activity.time}</span>
+              </div>
+            ))
+          )}
         </div>
-      </motion.div>
+      </div>
     </DashboardLayout>
   );
 };

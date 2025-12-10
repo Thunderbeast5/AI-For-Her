@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../firebase';
+import { collection, query, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 import DashboardLayout from '../../components/DashboardLayout';
 import InvestorSidebar from '../../components/InvestorSidebar';
-import { API_BASE_URL } from '../../api';
 import { 
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -17,6 +17,10 @@ import {
   EyeIcon
 } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
+
+const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
+const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
+const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
 
 const BrowseProjects = () => {
   const { currentUser } = useAuth();
@@ -49,14 +53,61 @@ const BrowseProjects = () => {
     'Other'
   ];
 
-  // Fetch investment projects
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/investment-projects`);
-        const data = await response.json();
-        console.log('📦 Fetched investment projects:', data);
-        setProjects(data);
+        const projectsQuery = query(collection(db, 'investment-projects'));
+        const projectsSnapshot = await getDocs(projectsQuery);
+        const projectsData = projectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Enrich projects with startup info from 'startups' collection when needed
+        const enhancedProjects = await Promise.all(
+          projectsData.map(async (project) => {
+            const startupRefValue = project.startupId;
+
+            // If startup info is already embedded with name/founderName, keep it
+            if (
+              startupRefValue &&
+              typeof startupRefValue === 'object' &&
+              (startupRefValue.name || startupRefValue.founderName)
+            ) {
+              return project;
+            }
+
+            // Determine startupId string from either a plain string or an object with _id
+            const startupIdString =
+              typeof startupRefValue === 'string'
+                ? startupRefValue
+                : (startupRefValue && typeof startupRefValue === 'object' && startupRefValue._id) || null;
+
+            if (startupIdString) {
+              try {
+                const startupRef = doc(db, 'startups', startupIdString);
+                const startupSnap = await getDoc(startupRef);
+                if (startupSnap.exists()) {
+                  const startupData = startupSnap.data();
+                  return {
+                    ...project,
+                    startupId: {
+                      id: startupIdString,
+                      name: startupData.name,
+                      founderName: startupData.founderName,
+                      industry: startupData.industry,
+                      stage: startupData.stage,
+                      email: startupData.email,
+                    },
+                  };
+                }
+              } catch (err) {
+                console.error('Error fetching startup for project', project.id, err);
+              }
+            }
+
+            return project;
+          })
+        );
+
+        setProjects(enhancedProjects);
       } catch (error) {
         console.error('Error fetching projects:', error);
       } finally {
@@ -66,7 +117,6 @@ const BrowseProjects = () => {
 
     fetchProjects();
 
-    // Re-fetch when window gains focus (user returns to page)
     const handleFocus = () => {
       fetchProjects();
     };
@@ -75,17 +125,14 @@ const BrowseProjects = () => {
     return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
-  // Fetch saved projects
   useEffect(() => {
     const fetchSavedProjects = async () => {
+      if (!currentUser?.uid) return;
       try {
-        const userId = localStorage.getItem('userId');
-        if (!userId) return;
-        
-        const response = await fetch(`${API_BASE_URL}/investors/${userId}/saved-projects`);
-        if (response.ok) {
-          const data = await response.json();
-          setSavedProjects(data.map(p => p._id));
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+          setSavedProjects(userDoc.data().savedProjects || []);
         }
       } catch (error) {
         console.error('Error fetching saved projects:', error);
@@ -93,7 +140,7 @@ const BrowseProjects = () => {
     };
 
     fetchSavedProjects();
-  }, []);
+  }, [currentUser]);
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.projectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -107,7 +154,7 @@ const BrowseProjects = () => {
     if (!investmentAmount || !selectedProject) return;
 
     const amount = parseFloat(investmentAmount);
-    
+
     if (amount < selectedProject.minimumInvestment) {
       alert(`Minimum investment is ₹${selectedProject.minimumInvestment.toLocaleString()}`);
       return;
@@ -127,37 +174,68 @@ const BrowseProjects = () => {
     setInvesting(true);
 
     try {
-      const userId = localStorage.getItem('userId');
-      const response = await fetch(`${API_BASE_URL}/investment-projects/${selectedProject._id}/invest`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          investorId: userId,
-          investorName: currentUser?.displayName || currentUser?.email,
-          investorEmail: currentUser?.email,
-          amount
-        })
+      const projectRef = doc(db, 'investment-projects', selectedProject.id);
+      const newFunding = selectedProject.currentFunding + amount;
+      const newFundingPercentage = (newFunding / selectedProject.fundingGoal) * 100;
+
+      // Calculate the investor's equity share for this amount
+      const equityPercentage =
+        selectedProject.fundingGoal > 0 && selectedProject.equityOffered
+          ? (amount / selectedProject.fundingGoal) * selectedProject.equityOffered
+          : 0;
+
+      const newInvestorEntry = {
+        investorId: currentUser.uid,
+        investorName: currentUser.displayName || currentUser.email,
+        amount: amount,
+        equityPercentage,
+        date: new Date(),
+      };
+
+      // Compute unique investor count so the same investor is only counted once per startup
+      const existingInvestors = Array.isArray(selectedProject.investors)
+        ? selectedProject.investors
+        : [];
+      const uniqueInvestorIds = new Set([
+        ...existingInvestors.map(inv => inv.investorId),
+        currentUser.uid,
+      ]);
+      const newTotalInvestors = uniqueInvestorIds.size;
+
+      await updateDoc(projectRef, {
+        currentFunding: newFunding,
+        fundingPercentage: newFundingPercentage,
+        investors: arrayUnion(newInvestorEntry),
+        totalInvestors: newTotalInvestors,
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Investment failed');
-      }
-
-      const data = await response.json();
       setInvestmentSuccess(true);
-      
-      // Update the project in local state
-      setProjects(prevProjects => 
-        prevProjects.map(p => 
-          p._id === selectedProject._id ? data.project : p
+
+      setProjects(prevProjects =>
+        prevProjects.map(p =>
+          p.id === selectedProject.id
+            ? {
+                ...p,
+                currentFunding: newFunding,
+                fundingPercentage: newFundingPercentage,
+                totalInvestors: newTotalInvestors,
+                investors: [...existingInvestors, newInvestorEntry],
+              }
+            : p
         )
       );
 
-      // Update selectedProject to show updated funding info in modal
-      setSelectedProject(data.project);
+      setSelectedProject(prev =>
+        prev
+          ? {
+              ...prev,
+              currentFunding: newFunding,
+              fundingPercentage: newFundingPercentage,
+              totalInvestors: newTotalInvestors,
+              investors: [...existingInvestors, newInvestorEntry],
+            }
+          : prev
+      );
 
       setTimeout(() => {
         setSelectedProject(null);
@@ -166,7 +244,7 @@ const BrowseProjects = () => {
       }, 2000);
     } catch (error) {
       console.error('Error investing:', error);
-      alert(error.message || 'Failed to process investment');
+      alert('Failed to process investment');
     } finally {
       setInvesting(false);
     }
@@ -174,29 +252,22 @@ const BrowseProjects = () => {
 
   const handleSaveProject = async (projectId, e) => {
     e.stopPropagation();
+    if (!currentUser?.uid) return;
     setSavingProject(projectId);
 
     try {
-      const userId = localStorage.getItem('userId');
+      const userRef = doc(db, 'users', currentUser.uid);
       const isSaved = savedProjects.includes(projectId);
 
-      const response = await fetch(
-        `${API_BASE_URL}/investors/${userId}/save-project/${projectId}`,
-        {
-          method: isSaved ? 'DELETE' : 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to save/unsave project');
-      }
-
       if (isSaved) {
+        await updateDoc(userRef, {
+          savedProjects: arrayRemove(projectId)
+        });
         setSavedProjects(prev => prev.filter(id => id !== projectId));
       } else {
+        await updateDoc(userRef, {
+          savedProjects: arrayUnion(projectId)
+        });
         setSavedProjects(prev => [...prev, projectId]);
       }
     } catch (error) {
@@ -224,22 +295,13 @@ const BrowseProjects = () => {
 
   return (
     <DashboardLayout sidebar={sidebar}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Investment Opportunities</h1>
         <p className="text-gray-600">Discover and invest in innovative women-led startups</p>
-      </motion.div>
+      </div>
 
       {/* Search and Filter */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white rounded-2xl p-6 shadow-sm mb-8"
-      >
+      <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
         <div className="relative mb-4">
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
@@ -253,7 +315,7 @@ const BrowseProjects = () => {
 
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-3">
-            <FunnelIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+            <FunnelIcon className="w-5 h-5 text-gray-400 shrink-0" />
             <span className="text-sm font-medium text-gray-700">Filter by Industry</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -272,14 +334,10 @@ const BrowseProjects = () => {
             ))}
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Projects Grid */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
+      <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           {filteredProjects.length} Investment {filteredProjects.length === 1 ? 'Opportunity' : 'Opportunities'}
         </h3>
@@ -297,31 +355,43 @@ const BrowseProjects = () => {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-6">
-            {filteredProjects.map((project, index) => {
+            {filteredProjects.map((project) => {
               const remainingFunding = project.fundingGoal - project.currentFunding;
               const remainingDays = Math.ceil((new Date(project.fundingDeadline) - new Date()) / (1000 * 60 * 60 * 24));
               
               return (
-                <motion.div
-                  key={project._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + index * 0.1 }}
+                <div
+                  key={project.id}
                   className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h4 className="font-semibold text-gray-900 text-lg">{project.projectName}</h4>
-                      <p className="text-sm text-gray-600">by {project.startupId?.founderName || 'Entrepreneur'}</p>
+                      <h4 className="font-semibold text-gray-900 text-lg">
+                        {project.projectName
+                          || project.startupId?.name
+                          || project.name
+                          || project.startupId?.tagline
+                          || 'Untitled Project'}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        by {
+                          project.startupId?.founderName
+                          || project.startupId?.name
+                          || `${project.startupId?.firstName || ''} ${project.startupId?.lastName || ''}`.trim()
+                          || project.startupId?.ownerName
+                          || project.startupId?.email
+                          || 'Entrepreneur'
+                        }
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={(e) => handleSaveProject(project._id, e)}
-                        disabled={savingProject === project._id}
+                        onClick={(e) => handleSaveProject(project.id, e)}
+                        disabled={savingProject === project.id}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title={savedProjects.includes(project._id) ? 'Unsave project' : 'Save project'}
+                        title={savedProjects.includes(project.id) ? 'Unsave project' : 'Save project'}
                       >
-                        {savedProjects.includes(project._id) ? (
+                        {savedProjects.includes(project.id) ? (
                           <BookmarkSolidIcon className="w-6 h-6 text-pink-500" />
                         ) : (
                           <BookmarkIcon className="w-6 h-6 text-gray-400 hover:text-pink-500" />
@@ -343,7 +413,7 @@ const BrowseProjects = () => {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2.5">
                       <div 
-                        className="bg-gradient-to-r from-pink-500 to-purple-500 h-2.5 rounded-full transition-all duration-500"
+                        className="bg-linear-to-r from-pink-500 to-purple-500 h-2.5 rounded-full transition-all duration-500"
                         style={{ width: `${Math.max(Math.min(project.fundingPercentage || 0, 100), project.currentFunding > 0 ? 2 : 0)}%` }}
                       ></div>
                     </div>
@@ -390,43 +460,36 @@ const BrowseProjects = () => {
                     <div className="flex gap-2">
                       <button 
                         onClick={() => setViewingProject(project)}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-all flex items-center gap-1"
+                    className={`px-4 py-2  text-white text-sm font-medium rounded-lg hover:shadow-md transition-all ${primaryButtonClass}`}
                       >
-                        <EyeIcon className="w-4 h-4" />
+                        {/* <EyeIcon className="w-4 h-4" /> */}
                         View Details
                       </button>
                       <button 
                         onClick={() => setSelectedProject(project)}
-                        className="px-4 py-2 bg-gradient-to-r from-primary to-accent text-gray-800 text-sm font-medium rounded-lg hover:shadow-md transition-all"
+                        className="px-4 py-2 bg-linear-to-r from-primary to-accent text-gray-800 text-sm font-medium rounded-lg hover:shadow-md transition-all"
                       >
                         Invest Now
                       </button>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Investment Modal */}
-      <AnimatePresence>
-        {selectedProject && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => !investing && setSelectedProject(null)}
+      {selectedProject && (
+        <div
+          className="fixed inset-0 backdrop-blur-md bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => !investing && setSelectedProject(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
               {investmentSuccess ? (
                 <div className="text-center py-8">
                   <CheckCircleIcon className="w-20 h-20 text-green-500 mx-auto mb-4" />
@@ -526,37 +589,29 @@ const BrowseProjects = () => {
                     <button
                       onClick={handleInvest}
                       disabled={investing || !investmentAmount}
-                      className="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-accent text-gray-800 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50"
+                      className="flex-1 px-6 py-3 bg-pink-400 text-gray-800 rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50"
                     >
                       {investing ? 'Processing...' : 'Confirm Investment'}
                     </button>
                   </div>
                 </>
               )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+          </div>
+        </div>
+      )}
+      
       {/* Detailed Project View Modal */}
-      <AnimatePresence>
-        {viewingProject && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
-            onClick={() => setViewingProject(null)}
+      {viewingProject && (
+        <div
+          className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto border-pink-50"
+          onClick={() => setViewingProject(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto my-8"
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto my-8"
-            >
               {/* Header */}
-              <div className="sticky top-0 bg-gradient-to-r from-pink-500 to-purple-500 text-white p-6 rounded-t-2xl flex justify-between items-center z-10">
+              <div className="sticky top-0 bg-pink-400 text-white p-6 rounded-t-2xl flex justify-between items-center z-10">
                 <div>
                   <h2 className="text-2xl font-bold mb-1">{viewingProject.projectName}</h2>
                   <div className="flex items-center gap-2">
@@ -600,7 +655,7 @@ const BrowseProjects = () => {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3">
                       <div 
-                        className="bg-gradient-to-r from-pink-500 to-purple-500 h-3 rounded-full transition-all"
+                        className="bg-linear-to-r from-pink-500 to-purple-500 h-3 rounded-full transition-all"
                         style={{ width: `${Math.min(viewingProject.fundingPercentage || 0, 100)}%` }}
                       ></div>
                     </div>
@@ -997,7 +1052,7 @@ const BrowseProjects = () => {
                       setViewingProject(null);
                       setSelectedProject(viewingProject);
                     }}
-                    className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all font-medium"
+                    className={`px-4 py-2  text-white text-sm font-medium rounded-lg hover:shadow-md transition-all ${primaryButtonClass}`}
                   >
                     Invest in This Project
                   </button>
@@ -1022,11 +1077,10 @@ const BrowseProjects = () => {
                   </button>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
-    </DashboardLayout>
+          </DashboardLayout>
   );
 };
 

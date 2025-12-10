@@ -1,6 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 import MentorSidebar from '../../components/MentorSidebar';
 import PersonalChatInterface from '../../components/PersonalChatInterface';
@@ -12,110 +10,61 @@ import {
   CheckIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
-import { connectionsApi } from '../../api';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const Mentees = () => {
-  const navigate = useNavigate();
-  const { currentUser } = useAuth();
+    const { currentUser } = useAuth();
   const [acceptedMentees, setAcceptedMentees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedConnection, setSelectedConnection] = useState(null);
-  
-  // Fetch connection requests
+
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser?.uid) return;
 
     const fetchConnections = async () => {
       try {
-        const response = await connectionsApi.getByUser(currentUser.userId, 'mentor')
-        // Handle both response formats: { success, data } or direct array
-        const connections = response?.data || response || []
-        const connectionsArray = Array.isArray(connections) ? connections : []
-        
-        // Get only accepted/active mentees
-        const accepted = connectionsArray.filter(conn => conn.status === 'active')
-        
-        setAcceptedMentees(accepted)
+        const connectionsQuery = query(collection(db, 'connections'), where('mentorId', '==', currentUser.uid), where('status', '==', 'active'));
+        const connectionsSnapshot = await getDocs(connectionsQuery);
+        const accepted = connectionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAcceptedMentees(accepted);
       } catch (error) {
-        console.error('Error fetching connections:', error)
-        setPendingRequests([])
-        setAcceptedMentees([])
+        console.error('Error fetching connections:', error);
+        setAcceptedMentees([]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchConnections()
-  }, [currentUser])
+    fetchConnections();
+  }, [currentUser]);
 
-  const handleAcceptRequest = async (connectionId) => {
-    if (!window.confirm('Accept this connection request? The entrepreneur will be prompted to complete payment before chatting.')) {
-      return;
-    }
-    
-    try {
-      // Use the accept endpoint which keeps status as 'pending' until payment
-      await connectionsApi.accept(connectionId)
-      
-      // Refresh connections
-      const response = await connectionsApi.getByUser(currentUser.userId, 'mentor')
-      const connections = response?.data || response || []
-      const connectionsArray = Array.isArray(connections) ? connections : []
-      
-      const accepted = connectionsArray.filter(conn => conn.status === 'active')
-      
-      setAcceptedMentees(accepted)
-      alert('Connection accepted! The entrepreneur will be notified to complete payment.')
-    } catch (error) {
-      console.error('Error accepting connection:', error)
-      alert('Failed to accept connection.')
-    }
+  
+  
+  const sidebar = useMemo(() => <MentorSidebar />, []);
+
+  if (loading) {
+    return (
+      <DashboardLayout sidebar={sidebar}>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading mentees...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
   }
-
-  const handleRejectRequest = async (connectionId) => {
-    const reason = window.prompt('Reason for rejection (optional):');
-    if (reason === null) return; // User cancelled
-    
-    try {
-      // Use the reject endpoint
-      await connectionsApi.reject(connectionId, reason)
-      
-      // Refresh connections
-      const response = await connectionsApi.getByUser(currentUser.userId, 'mentor')
-      const connections = response?.data || response || []
-      const connectionsArray = Array.isArray(connections) ? connections : []
-      
-      const accepted = connectionsArray.filter(conn => conn.status === 'active')
-      
-      setAcceptedMentees(accepted)
-      alert('Connection request rejected.')
-    } catch (error) {
-      console.error('Error rejecting connection:', error)
-      alert('Failed to reject connection.')
-    }
-  }
-
-  const sidebar = useMemo(() => <MentorSidebar />, [])
 
   return (
     <DashboardLayout sidebar={sidebar}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">My Mentees</h1>
         <p className="text-gray-600">Manage and track your mentee relationships</p>
-      </motion.div>
+      </div>
 
-      {/* Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid md:grid-cols-2 gap-6 mb-8"
-      >
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <div className="flex items-center space-x-3 mb-2">
             <UserGroupIcon className="w-6 h-6 text-pink-400" />
@@ -131,35 +80,21 @@ const Mentees = () => {
           </div>
           <p className="text-2xl font-bold text-gray-900">{acceptedMentees.length}</p>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Mentees List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-white rounded-2xl p-6 shadow-sm"
-      >
+      <div className="bg-white rounded-2xl p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-gray-900 mb-6">Connected Mentees</h2>
-        {loading ? (
-          <div className="text-center py-8 text-gray-500">Loading...</div>
-        ) : acceptedMentees.length === 0 ? (
+        {acceptedMentees.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <p>No connected mentees yet</p>
             <p className="text-sm mt-2">Accept connection requests to start mentoring</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {acceptedMentees.map((mentee, index) => (
-              <motion.div
-                key={mentee._id || index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 + index * 0.1 }}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
+            {acceptedMentees.map((mentee) => (
+              <div key={mentee.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-pink-300 to-pink-400 rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-linear-to-r from-pink-300 to-pink-400 rounded-full flex items-center justify-center">
                     <span className="text-white font-semibold text-lg">
                       {(mentee.entrepreneurName || mentee.entrepreneurEmail)?.charAt(0).toUpperCase() || 'E'}
                     </span>
@@ -201,18 +136,17 @@ const Mentees = () => {
                     </button>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
-      </motion.div>
+      </div>
 
-      {/* Personal Chat Modal */}
       {selectedConnection && (
         <PersonalChatInterface
           connection={selectedConnection}
           currentUser={{
-            userId: currentUser.userId,
+            userId: currentUser.uid,
             name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Mentor'
           }}
           userRole="mentor"

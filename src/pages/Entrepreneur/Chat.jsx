@@ -1,22 +1,23 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { motion } from 'framer-motion'
 import DashboardLayout from '../../components/DashboardLayout'
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
 import { PaperAirplaneIcon, MicrophoneIcon } from '@heroicons/react/24/outline'
 import { SparklesIcon } from '@heroicons/react/24/solid'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../hooks/useAuth'
 
 // --- CHANGED ---
 // Define your API endpoints. This is the main fix.
-const API_BASE_URL = 'https://chatbot-1f9h.onrender.com/api' // Use your deployed URL
+const API_BASE_URL = 'https://chatbot-1f9h.onrender.com/api' 
+// // Use your deployed URL
+// const API_BASE_URL = "https://localhost:5001"; // or your actual port
 const CHAT_ENDPOINT = `${API_BASE_URL}/chat`
 const BUTTON_CLICK_ENDPOINT = `${API_BASE_URL}/button_click`
 const SELECT_IDEA_ENDPOINT = `${API_BASE_URL}/select_idea`
 
 const Chat = () => {
-  const { user } = useAuth()
+  const { currentUser } = useAuth()
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -27,10 +28,10 @@ const Chat = () => {
   ])
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const [language, setLanguage] = useState('en')
+  const [language] = useState('en')
   const [isTTSEnabled, setIsTTSEnabled] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
-  const [sessionId] = useState(() => user?.uid || `session_${Date.now()}`)
+  const [sessionId] = useState(() => currentUser?.uid || `session_${Date.now()}`)
   
   // State for all possible backend responses
   const [buttons, setButtons] = useState([])
@@ -120,7 +121,10 @@ const Chat = () => {
 
   // This function is for user-typed text messages
   const handleSendMessage = async (e) => {
-    if (e) e.preventDefault()
+    if (e && e.preventDefault) {
+      e.preventDefault()
+    }
+
     const textToSend = inputText
     if (!textToSend.trim()) return
 
@@ -275,7 +279,7 @@ const Chat = () => {
         if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
           return JSON.parse(content);
         }
-      } catch (e) {
+      } catch {
         // Not valid JSON, return as plain text
       }
       return content;
@@ -328,11 +332,7 @@ const Chat = () => {
     const title = parsedPlan.overview?.title || parsedPlan.overview?.name || 'Business Plan';
 
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-5 shadow-md space-y-3"
-      >
+      <div className="bg-linear-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-5 shadow-md space-y-3">
         <h3 className="font-bold text-gray-900 text-lg">📋 Your Business Plan: {title}</h3>
         
         {/* Render each section smartly */}
@@ -360,20 +360,20 @@ const Chat = () => {
           <span className="font-semibold text-gray-700">Next Steps:</span>
           {renderSmart(parsedPlan.next_steps)}
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   return (
     <DashboardLayout sidebar={sidebar}>
       <div className="flex flex-col h-[calc(100vh-0px)] -m-6">
-        <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden min-h-0">
+        <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden min-h-0 shrink-0">
           {/* Chat Header */}
-          <div className="bg-white border-b border-gray-100 px-6 py-4 flex-shrink-0">
+          <div className="bg-white border-b border-gray-100 px-6 py-4 shrink-0">
             {/* ... (Your existing header JSX) ... */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-linear-to-r from-primary to-accent rounded-full flex items-center justify-center">
                   <SparklesIcon className="w-5 h-5 text-gray-700" />
                 </div>
                 <div>
@@ -408,7 +408,7 @@ const Chat = () => {
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 min-h-0">
             {messages.map((message) => ( // --- CHANGED --- (removed index, using message.id)
-              <motion.div
+              <div
                 key={message.id} // Use a unique ID
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -417,7 +417,7 @@ const Chat = () => {
               >
                 <div className={`max-w-xs lg:max-w-md xl:max-w-2xl px-4 py-3 rounded-2xl ${
                   message.sender === 'user' 
-                    ? 'bg-gradient-to-r from-primary to-accent text-gray-800' // Your pink/white theme
+                    ? 'bg-linear-to-r from-primary to-accent text-gray-800' // Your pink/white theme
                     : 'bg-white text-gray-900 shadow-sm border border-gray-100'
                 }`}>
                   {/* ... (Your existing message rendering logic with ReactMarkdown) ... */}
@@ -448,12 +448,12 @@ const Chat = () => {
                     {formatTime(message.timestamp)}
                   </p>
                 </div>
-              </motion.div>
+              </div>
             ))}
 
             {isTyping && (
               // ... (Your existing isTyping JSX) ...
-               <motion.div
+               <div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="flex justify-start"
@@ -465,12 +465,12 @@ const Chat = () => {
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {/* Interactive Buttons from Chatbot */}
             {buttons.length > 0 && (
-              <motion.div
+              <div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="flex justify-start"
@@ -481,25 +481,25 @@ const Chat = () => {
                       key={index}
                       // --- CHANGED --- Call handleButtonClick with both value and text
                       onClick={() => handleButtonClick(button.value, button.text)}
-                      className="px-4 py-2 bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 rounded-lg text-sm font-medium hover:shadow-md transition-all duration-200"
+                      className="px-4 py-2 bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 rounded-lg text-sm font-medium hover:shadow-md transition-all duration-200"
                     >
                       {button.text}
                     </button>
                   ))}
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {/* Business Ideas Display */}
             {ideas.length > 0 && (
-              <motion.div
+              <div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-3"
               >
                 <div className="text-sm font-semibold text-gray-700 mb-2">💡 Business Ideas for You:</div>
                 {ideas.map((idea, index) => (
-                  <div key={idea.id || index} className="bg-gradient-to-r from-pink-50 to-purple-50 border-2 border-pink-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-all">
+                  <div key={idea.id || index} className="bg-linear-to-r from-pink-50 to-purple-50 border-2 border-pink-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-all">
                     {/* ... (Your existing idea rendering JSX) ... */}
                     <div className="flex items-start justify-between mb-3">
                       <h3 className="font-bold text-gray-900 text-lg">{idea.title}</h3>
@@ -511,13 +511,13 @@ const Chat = () => {
                     {/* --- CHANGED --- Call handleSelectIdea with the idea.id */}
                     <button 
                       onClick={() => handleSelectIdea(idea.id, idea.title)}
-                      className="mt-3 w-full bg-gradient-to-r from-pink-200 to-pink-300 text-gray-900 py-2 rounded-lg font-semibold hover:shadow-md transition-all"
+                      className="mt-3 w-full bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 py-2 rounded-lg font-semibold hover:shadow-md transition-all"
                     >
                       📋 Create Business Plan
                     </button>
                   </div>
                 ))}
-              </motion.div>
+              </div>
             )}
 
             {/* --- CHANGED --- Added rendering for the business plan */}
@@ -526,7 +526,7 @@ const Chat = () => {
             {/* Resources Display */}
             {resources.length > 0 && (
               // ... (Your existing resources mapping JSX) ...
-              <motion.div
+              <div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-3"
@@ -537,24 +537,24 @@ const Chat = () => {
                     {/* ... */}
                   </div>
                 ))}
-              </motion.div>
+              </div>
             )}
 
             {/* Government Schemes Display */}
             {schemes.length > 0 && (
               // ... (Your existing schemes mapping JSX) ...
-               <motion.div
+               <div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-3"
               >
                 <div className="text-sm font-semibold text-gray-700 mb-2">💰 Government Schemes for You:</div>
                 {schemes.map((scheme, index) => (
-                  <div key={index} className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-5 shadow-md">
+                  <div key={index} className="bg-linear-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-5 shadow-md">
                    {/* ... */}
                   </div>
                 ))}
-              </motion.div>
+              </div>
             )}
             
             <div ref={messagesEndRef} />
@@ -563,7 +563,7 @@ const Chat = () => {
           {/* Suggested Questions */}
           {messages.length === 1 && (
             // ... (Your existing suggested questions JSX) ...
-            <div className="px-6 pb-4 flex-shrink-0 bg-white border-t border-gray-100">
+            <div className="px-6 pb-4 shrink-0 bg-white border-t border-gray-100">
               <p className="text-sm text-gray-600 mb-3">Try asking:</p>
               <div className="flex flex-wrap gap-2">
                 {suggestedQuestions.map((question, index) => (
@@ -580,7 +580,7 @@ const Chat = () => {
           )}
 
           {/* Input Area */}
-          <div className="bg-white border-t border-gray-100 p-6 flex-shrink-0">
+          <div className="bg-white border-t border-gray-100 p-6 shrink-0">
             {/* --- CHANGED --- This form now only calls handleSendMessage */}
             <form onSubmit={handleSendMessage} className="flex space-x-4">
               <div className="flex-1 relative">
@@ -607,7 +607,7 @@ const Chat = () => {
               <button
                 type="submit"
                 disabled={!inputText.trim()}
-                className="px-6 py-3 bg-gradient-to-r from-primary to-accent text-gray-800 rounded-xl font-medium hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-linear-to-r from-primary to-accent text-gray-800 rounded-xl font-medium hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <PaperAirplaneIcon className="w-5 h-5" />
               </button>

@@ -10,6 +10,11 @@ import {
   TagIcon
 } from '@heroicons/react/24/outline'
 
+// Shared pink button styles
+const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
+const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
+const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
+
 const Opportunities = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('All')
@@ -271,12 +276,12 @@ const Opportunities = () => {
                       href={opportunity.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block w-full bg-gradient-to-r from-primary to-accent text-gray-800 py-3 rounded-xl font-medium hover:shadow-md transition-all duration-200 text-center"
+                      className={`block w-full py-3 text-center ${primaryButtonClass}`}
                     >
                       Visit Website
                     </a>
                   ) : (
-                    <button className="w-full bg-gradient-to-r from-primary to-accent text-gray-800 py-3 rounded-xl font-medium hover:shadow-md transition-all duration-200">
+                    <button className={`w-full py-3 ${primaryButtonClass}`}>
                       Learn More
                     </button>
                   )}

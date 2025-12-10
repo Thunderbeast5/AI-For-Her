@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import DashboardLayout from '../../components/DashboardLayout'
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
 import { StarIcon, MapPinIcon } from '@heroicons/react/24/solid'
 import { UserIcon } from '@heroicons/react/24/outline'
-import { mentorsApi, connectionsApi } from '../../api'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../firebase';
+import { collection, query, where, getDocs, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const Mentors = () => {
   const { currentUser } = useAuth()
@@ -17,7 +17,7 @@ const Mentors = () => {
   const [showResults, setShowResults] = useState(false)
   const [mentors, setMentors] = useState([])
   const [loading, setLoading] = useState(false)
-  const [userProfile, setUserProfile] = useState(null)
+  const [userProfile, setUserProfile] = useState(null);
   const [connectingMentorId, setConnectingMentorId] = useState(null)
   const [connectionStatus, setConnectionStatus] = useState(new Map()) // mentorId -> status
   const [matchThreshold, setMatchThreshold] = useState(50) // Minimum match percentage to show
@@ -96,7 +96,7 @@ const Mentors = () => {
   }
 
   // Check existing connections
-  const checkExistingConnections = async (mentorsList) => {
+  const checkExistingConnections = async () => {
     if (!currentUser) return
     
     try {
@@ -153,12 +153,12 @@ const Mentors = () => {
       mentorsList.sort((a, b) => b.matchScore - a.matchScore)
       
       // Filter mentors based on match threshold (only show relevant matches)
-      const relevantMentors = mentorsList.filter(mentor => mentor.matchScore >= matchThreshold)
+      const relevantMentors = mentors.filter(mentor => mentor.matchScore >= matchThreshold);
       
       setMentors(relevantMentors)
       
       // Check existing connections
-      await checkExistingConnections(mentorsList)
+      await checkExistingConnections();
     } catch (error) {
       console.error('Error fetching mentors:', error)
     } finally {
@@ -234,21 +234,12 @@ const Mentors = () => {
 
   return (
     <DashboardLayout sidebar={<EntrepreneurSidebar />}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-4xl mx-auto"
-      >
+      <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Your Perfect Mentor</h1>
         <p className="text-gray-600 mb-8">Connect with experienced entrepreneurs who can guide your journey</p>
 
             {!showResults ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="bg-white rounded-2xl p-8 shadow-sm"
-              >
+              <div className="bg-white rounded-2xl p-8 shadow-sm">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -304,13 +295,9 @@ const Mentors = () => {
                     Find My Match
                   </button>
                 </form>
-              </motion.div>
+              </div>
             ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-6"
-              >
+              <div className="space-y-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold text-gray-900">
                     Your Mentor Matches {mentors.length > 0 && `(${mentors.length} found)`}
@@ -356,15 +343,9 @@ const Mentors = () => {
                   </div>
                 ) : (
                   mentors.map((mentor, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow"
-                  >
+                  <div key={index} className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-shadow">
                     <div className="flex items-start space-x-4">
-                      <div className="w-16 h-16 bg-gradient-to-r from-pink-300 to-pink-400 rounded-full flex items-center justify-center">
+                      <div className="w-16 h-16 bg-linear-to-r from-pink-300 to-pink-400 rounded-full flex items-center justify-center">
                         <UserIcon className="w-8 h-8 text-white" />
                       </div>
                       
@@ -381,7 +362,7 @@ const Mentors = () => {
                             </div>
                             <div className="w-20 bg-gray-200 rounded-full h-2">
                               <div 
-                                className="bg-gradient-to-r from-green-400 to-green-500 h-2 rounded-full"
+                                className="bg-linear-to-r from-green-400 to-green-500 h-2 rounded-full"
                                 style={{ width: `${mentor.matchScore}%` }}
                               />
                             </div>
@@ -422,12 +403,12 @@ const Mentors = () => {
                         </button>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 ))
                 )}
-              </motion.div>
+              </div>
             )}
-      </motion.div>
+      </div>
     </DashboardLayout>
   )
 }

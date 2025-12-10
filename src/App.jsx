@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider } from './context/AuthProvider'
 import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import Signup from './pages/Signup'
@@ -37,8 +37,8 @@ import MyGroups from './pages/Mentor/MyGroups'
 import Analytics from './pages/Analytics'
 import Settings from './pages/Settings'
 import Profile from './pages/Profile'
-import EnterpriseProducts from './enterprise/EnterpriseProducts'
-import EnterpriseStorefront from './enterprise/EnterpriseStorefront'
+import EnterpriseProducts from './pages/Enterprise/EnterpriseProducts'
+import EnterpriseStorefront from './pages/Enterprise/EnterpriseStorefront'
 
 function App() {
   return (

@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { motion } from 'framer-motion'
 import DashboardLayout from '../../components/DashboardLayout'
-import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
-import { startupsApi } from '../../api'
+import EntrepreneurSidebar from '../../components/EntrepreneurSidebar';
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../firebase'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 import { 
   CheckCircleIcon, 
   ClockIcon, 
@@ -14,8 +15,16 @@ import {
   ChartBarIcon
 } from '@heroicons/react/24/outline'
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid'
+import { motion } from 'framer-motion'
+
+// --- Custom Pink Styles ---
+const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
+const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
+const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
+// ----------------------------
 
 const Journey = () => {
+  const { currentUser } = useAuth();
   const [startupStage, setStartupStage] = useState('Ideation')
   const [loading, setLoading] = useState(true)
 
@@ -35,12 +44,13 @@ const Journey = () => {
   useEffect(() => {
     const fetchStartup = async () => {
       try {
-        const userId = localStorage.getItem('userId')
+        const userId = currentUser.uid;
         if (userId) {
-          const response = await startupsApi.getByUserId(userId)
-          if (response.data && response.data.length > 0) {
-            // Get the first startup's stage
-            setStartupStage(response.data[0].stage || 'Ideation')
+          const q = query(collection(db, 'startups'), where('userId', '==', userId));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            const startupData = querySnapshot.docs[0].data();
+            setStartupStage(startupData.stage || 'Ideation');
           }
         }
       } catch (error) {
@@ -57,7 +67,7 @@ const Journey = () => {
 
     // Cleanup interval on unmount
     return () => clearInterval(pollInterval)
-  }, [])
+  }, [currentUser.uid])
 
   const overallProgress = stageToProgress[startupStage] || 12.5
 
@@ -66,11 +76,19 @@ const Journey = () => {
     const currentProgress = stageToProgress[startupStage] || 12.5
     const milestoneProgress = stageToProgress[milestoneStage] || 0
     
-    if (currentProgress >= milestoneProgress) {
-      return currentProgress === milestoneProgress ? 'in_progress' : 'completed'
-    } else if (currentProgress >= milestoneProgress - 12.5) {
+    // Status is 'completed' if overall progress is past this milestone
+    if (currentProgress > milestoneProgress) {
+      return 'completed'
+    } 
+    // Status is 'in_progress' if overall progress matches this milestone
+    else if (currentProgress === milestoneProgress) {
+      return 'in_progress'
+    } 
+    // Status is 'pending' if it's the next immediate milestone
+    else if (currentProgress === milestoneProgress - 12.5) {
       return 'pending'
     }
+    // Otherwise, it's locked
     return 'locked'
   }
 
@@ -255,11 +273,11 @@ const Journey = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed':
-        return 'text-green-600 bg-green-100'
+        return 'text-green-600 bg-green-100' // Keep clear contrast for completed/status
       case 'in_progress':
-        return 'text-blue-600 bg-blue-100'
+        return 'text-pink-600 bg-pink-100' // Use pink for in progress
       case 'pending':
-        return 'text-yellow-600 bg-yellow-100'
+        return 'text-yellow-600 bg-yellow-100' // Keep yellow for warning/pending
       case 'locked':
         return 'text-gray-400 bg-gray-100'
       default:
@@ -306,7 +324,8 @@ const Journey = () => {
               </div>
               <div className="w-full bg-gray-200 rounded-full h-4">
                 <div 
-                  className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 h-4 rounded-full transition-all duration-500 shadow-md"
+                  // Overall progress bar using the defined pink gradient
+                  className={`${pinkGradient} h-4 rounded-full transition-all duration-500 shadow-md`}
                   style={{ width: `${overallProgress}%` }}
                 />
               </div>
@@ -355,7 +374,8 @@ const Journey = () => {
                         {/* Progress Bar */}
                         <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
                           <div 
-                            className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 h-3 rounded-full transition-all duration-500 shadow-sm"
+                            // Milestone progress bar using the defined pink gradient
+                            className={`${pinkGradient} h-3 rounded-full transition-all duration-500 shadow-sm`}
                             style={{ width: `${milestone.progress}%` }}
                           />
                         </div>
@@ -385,8 +405,8 @@ const Journey = () => {
 
                         {/* Recommendations */}
                         {milestone.recommendations.length > 0 && (
-                          <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-4">
-                            <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                          <div className="bg-pink-50 border border-pink-200 rounded-xl p-4">
+                            <h4 className="text-sm font-medium text-pink-700 mb-2 flex items-center">
                               <LightBulbIcon className="w-4 h-4 mr-1" />
                               AI Recommendations:
                             </h4>
@@ -400,19 +420,11 @@ const Journey = () => {
                           </div>
                         )}
 
-                        {/* Action Button */}
-                        {milestone.status === 'in_progress' && (
+                        {/* Action Buttons */}
+                        {(milestone.status === 'in_progress' || milestone.status === 'pending') && (
                           <div className="mt-4">
-                            <button className="bg-gradient-to-r from-primary to-accent text-gray-800 px-4 py-2 rounded-lg font-medium hover:shadow-md transition-all duration-200">
-                              Continue Working
-                            </button>
-                          </div>
-                        )}
-
-                        {milestone.status === 'pending' && (
-                          <div className="mt-4">
-                            <button className="bg-gradient-to-r from-primary to-accent text-gray-800 px-4 py-2 rounded-lg font-medium hover:shadow-md transition-all duration-200">
-                              Start This Milestone
+                            <button className={`px-4 py-2 ${primaryButtonClass}`}>
+                              {milestone.status === 'in_progress' ? 'Continue Working' : 'Start This Milestone'}
                             </button>
                           </div>
                         )}

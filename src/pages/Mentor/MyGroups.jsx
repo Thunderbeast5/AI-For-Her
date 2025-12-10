@@ -1,42 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../firebase';
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import mentorGroupsApi from '../../api/mentorGroups';
-import groupChatsApi from '../../api/groupChats';
 import DashboardLayout from '../../components/DashboardLayout';
 import MentorSidebar from '../../components/MentorSidebar';
-import GroupChatInterface from '../../components/GroupChatInterface';
+import UnifiedChat from '../../components/UnifiedChat';
+
+const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
+const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
+const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
+
+const toastVariants = {
+  initial: { opacity: 0, x: 100 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: 100 },
+};
 
 export default function MyGroups() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [myGroups, setMyGroups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedGroupChat, setSelectedGroupChat] = useState(null);
+  const [activeChat, setActiveChat] = useState(null); // unified chat
   const [deletingId, setDeletingId] = useState(null);
+  const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    fetchMyGroups();
-  }, [currentUser]);
-
-  const fetchMyGroups = async () => {
+  const fetchMyGroups = useCallback(async () => {
     try {
-      if (currentUser?.userId) {
-        const data = await mentorGroupsApi.getByMentor(currentUser.userId);
-        setMyGroups(Array.isArray(data) ? data : []);
-      }
+      const q = query(collection(db, 'mentorGroups'), where('mentorId', '==', currentUser.uid));
+      const querySnapshot = await getDocs(q);
+      const groups = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setMyGroups(groups);
     } catch (error) {
       console.error('Error fetching groups:', error);
       setMyGroups([]);
+      setMessage('Failed to load groups. Please try again.');
+      setTimeout(() => setMessage(''), 4000);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser?.uid) {
+      fetchMyGroups();
+    }
+  }, [currentUser, fetchMyGroups]);
 
   const handleOpenGroupChat = (group) => {
-    setSelectedGroupChat({
-      groupId: group._id,
-      groupName: group.groupName
+    // Use unified chat just like entrepreneur free groups
+    setActiveChat({
+      type: 'group',
+      id: group.id,
+      groupType: 'mentor',
+      groupName: group.groupName,
     });
   };
 
@@ -47,12 +66,14 @@ export default function MyGroups() {
 
     setDeletingId(groupId);
     try {
-      await mentorGroupsApi.delete(groupId, currentUser.userId);
-      alert('Group deleted successfully');
+      await deleteDoc(doc(db, 'mentorGroups', groupId));
+      setMessage('Group deleted successfully (success)');
+      setTimeout(() => setMessage(''), 3000);
       fetchMyGroups();
     } catch (error) {
       console.error('Error deleting group:', error);
-      alert('Failed to delete group: ' + (error.response?.data?.message || error.message));
+      setMessage('Failed to delete group: ' + error.message);
+      setTimeout(() => setMessage(''), 4000);
     } finally {
       setDeletingId(null);
     }
@@ -61,14 +82,30 @@ export default function MyGroups() {
   const handleToggleStatus = async (groupId, currentStatus) => {
     try {
       const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-      await mentorGroupsApi.update(groupId, { status: newStatus });
-      alert(`Group ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
+      const groupRef = doc(db, 'mentorGroups', groupId);
+      await updateDoc(groupRef, { status: newStatus });
+      setMessage(`Group ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully (success)`);
+      setTimeout(() => setMessage(''), 3000);
       fetchMyGroups();
     } catch (error) {
       console.error('Error updating group status:', error);
-      alert('Failed to update group status');
+      setMessage('Failed to update group status');
+      setTimeout(() => setMessage(''), 4000);
     }
   };
+
+  if (activeChat) {
+    return (
+      <DashboardLayout sidebar={<MentorSidebar />}>
+        <UnifiedChat
+          chatInfo={activeChat}
+          currentUser={currentUser}
+          onBack={() => setActiveChat(null)}
+          userRole="mentor"
+        />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout sidebar={<MentorSidebar />}>
@@ -81,11 +118,9 @@ export default function MyGroups() {
           </div>
           <button
             onClick={() => navigate('/mentor/create-group')}
-            className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-pink-600 hover:to-purple-700 transition font-medium flex items-center space-x-2"
+            className={` text-white px-6 py-3 rounded-lg transition font-medium flex items-center space-x-2 ${primaryButtonClass}`}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            
             <span>Create New Group</span>
           </button>
         </div>
@@ -104,18 +139,16 @@ export default function MyGroups() {
             <p className="text-gray-500 mb-6">Create your first Telegram-style group to connect with entrepreneurs</p>
             <button
               onClick={() => navigate('/mentor/create-group')}
-              className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-pink-600 hover:to-purple-700 transition font-medium inline-flex items-center space-x-2"
+            className={` text-white px-6 py-3 rounded-lg transition font-medium flex items-center space-x-2 ${primaryButtonClass}`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+             
               <span>Create Your First Group</span>
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {myGroups.map((group) => (
-              <div key={group._id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition overflow-hidden">
+              <div key={group.id} className="bg-white rounded-lg shadow-md hover:shadow-xl transition overflow-hidden">
                 {/* Group Image */}
                 {group.groupImage ? (
                   <img 
@@ -124,7 +157,7 @@ export default function MyGroups() {
                     className="w-full h-48 object-cover"
                   />
                 ) : (
-                  <div className="w-full h-48 bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
+                  <div className="w-full h-48 bg-linear-to-br from-pink-400 to-purple-500 flex items-center justify-center">
                     <span className="text-white text-6xl font-bold">
                       {group.groupName?.charAt(0) || 'G'}
                     </span>
@@ -151,7 +184,7 @@ export default function MyGroups() {
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500">Participants:</span>
                       <span className="font-semibold text-gray-800">
-                        {group.currentParticipants?.length || 0}/{group.maxParticipants}
+                        {(group.participants?.length || 0)}/{group.maxParticipants}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -186,27 +219,25 @@ export default function MyGroups() {
                   <div className="space-y-2">
                     <button
                       onClick={() => handleOpenGroupChat(group)}
-                      className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-2 rounded-lg hover:from-pink-600 hover:to-purple-700 transition font-medium flex items-center justify-center space-x-2"
+                      className={`w-full  text-white py-2 rounded-lg  transition font-medium flex items-center justify-center space-x-2 ${primaryButtonClass}`}
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
+                      
                       <span>Open Chat</span>
                     </button>
 
                     <div className="grid grid-cols-2 gap-2">
                       <button
-                        onClick={() => handleToggleStatus(group._id, group.status)}
+                        onClick={() => handleToggleStatus(group.id, group.status)}
                         className="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition text-sm font-medium"
                       >
-                        {group.status === 'active' ? '⏸️ Pause' : '▶️ Activate'}
+                        {group.status === 'active' ? 'Pause' : 'Activate'}
                       </button>
                       <button
-                        onClick={() => handleDeleteGroup(group._id, group.groupName)}
-                        disabled={deletingId === group._id}
+                        onClick={() => handleDeleteGroup(group.id, group.groupName)}
+                        disabled={deletingId === group.id}
                         className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition text-sm font-medium disabled:opacity-50"
                       >
-                        {deletingId === group._id ? '⏳' : '🗑️ Delete'}
+                        {deletingId === group.id ? '' : 'Delete'}
                       </button>
                     </div>
                   </div>
@@ -216,19 +247,30 @@ export default function MyGroups() {
           </div>
         )}
 
-        {/* Group Chat Interface */}
-        {selectedGroupChat && (
-          <GroupChatInterface
-            groupId={selectedGroupChat.groupId}
-            groupName={selectedGroupChat.groupName}
-            currentUser={{
-              userId: currentUser.userId,
-              name: `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.email
-            }}
-            onClose={() => setSelectedGroupChat(null)}
-          />
-        )}
       </div>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {message && (
+          <motion.div
+            key="mygroups-toast"
+            variants={toastVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ duration: 0.3 }}
+            className="fixed top-6 right-6 z-60 w-full max-w-sm"
+          >
+            <div className={`p-4 rounded-lg shadow-lg text-sm font-medium ${
+              message.includes('success')
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+              {message}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }

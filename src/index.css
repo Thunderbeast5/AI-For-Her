@@ -134,3 +134,64 @@ body.translated-ltr {
 .logo-pratibhara {
   font-family: 'Fabrica Heavy', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
+
+/* Pink marquee ticker for storefront */
+.marquee-strip {
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.marquee-strip::before,
+.marquee-strip::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, #f9a8d4, #ec4899);
+}
+
+.marquee-strip::before {
+  top: 0;
+}
+
+.marquee-strip::after {
+  bottom: 0;
+}
+
+.marquee-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 2rem;
+  padding-block: 0.5rem;
+  color: #be185d; /* pink-700 */
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: marquee-scroll 22s linear infinite;
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Hero text slide-in animation */
+.hero-slide-in {
+  animation: hero-slide-in 800ms ease-out;
+}
+
+@keyframes hero-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

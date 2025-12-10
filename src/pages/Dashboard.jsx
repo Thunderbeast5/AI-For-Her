@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import EntrepreneurDashboard from './Entrepreneur/EntrepreneurDashboard'
 import MentorDashboard from './Mentor/MentorDashboard'
 import InvestorDashboard from './Investor/InvestorDashboard'
 
 const Dashboard = () => {
-  const navigate = useNavigate()
-  const { currentUser, userRole } = useAuth()
+    const { currentUser, userRole } = useAuth()
   const [loading, setLoading] = useState(true)
   const [role, setRole] = useState(null)
 

@@ -1,13 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useMemo } from 'react';
+import { db } from '../../firebase';
+import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { usersApi, startupsApi, connectionsApi, API_BASE_URL } from '../../api'
-import mentorGroupsApi from '../../api/mentorGroups'
-import groupSessionsApi from '../../api/groupSessions'
-import groupChatsApi from '../../api/groupChats'
 import GroupChatInterface from '../../components/GroupChatInterface'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../hooks/useAuth'
 import DashboardLayout from '../../components/DashboardLayout'
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
 import { 
@@ -52,6 +49,8 @@ const EntrepreneurDashboard = () => {
   const [investmentProjects, setInvestmentProjects] = useState([])
   const [selectedInvestmentProject, setSelectedInvestmentProject] = useState(null)
   const [showDeleteProjectConfirm, setShowDeleteProjectConfirm] = useState(null)
+  const [showAllStartups, setShowAllStartups] = useState(false)
+  const [showAllInvestmentProjects, setShowAllInvestmentProjects] = useState(false)
 
   const quickActions = [
     {
@@ -189,15 +188,15 @@ const EntrepreneurDashboard = () => {
 
   const handleDeleteStartup = async (startupId) => {
     try {
-      await startupsApi.delete(startupId)
-      setMyStartups(prev => prev.filter(s => (s._id || s.id) !== startupId))
-      setShowDeleteConfirm(null)
-      alert('Startup deleted successfully')
+      await deleteDoc(doc(db, 'startups', startupId));
+      setMyStartups(prev => prev.filter(s => (s._id || s.id) !== startupId));
+      setShowDeleteConfirm(null);
+      alert('Startup deleted successfully');
     } catch (error) {
-      console.error('Error deleting startup:', error)
-      alert('Failed to delete startup. Please try again.')
+      console.error('Error deleting startup:', error);
+      alert('Failed to delete startup. Please try again.');
     }
-  }
+  };
 
   const handleEditStartup = (startup) => {
     // Navigate to create-startup page with startup data
@@ -206,172 +205,93 @@ const EntrepreneurDashboard = () => {
 
   const handleDeleteInvestmentProject = async (projectId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/investment-projects/${projectId}`, {
-        method: 'DELETE'
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to delete project')
-      }
-      
-      setInvestmentProjects(prev => prev.filter(p => p._id !== projectId))
-      setShowDeleteProjectConfirm(null)
-      alert('Investment project deleted successfully')
+      await deleteDoc(doc(db, 'investment-projects', projectId));
+      setInvestmentProjects(prev => prev.filter(p => p._id !== projectId));
+      setShowDeleteProjectConfirm(null);
+      alert('Investment project deleted successfully');
     } catch (error) {
-      console.error('Error deleting investment project:', error)
-      alert('Failed to delete project. Please try again.')
+      console.error('Error deleting investment project:', error);
+      alert('Failed to delete project. Please try again.');
     }
-  }
+  };
 
 
-  // Fetch user data and stats from MongoDB
   useEffect(() => {
-    const fetchUserData = async () => {
-      console.log('🔍 EntrepreneurDashboard: Starting fetchUserData')
-      console.log('👤 currentUser:', currentUser)
-      
-      if (currentUser) {
-        try {
-          // Set basic user data from currentUser
-          setUserData(currentUser)
-          console.log('✅ User data set:', currentUser)
-
-          // Fetch startups from MongoDB
-          try {
-            console.log('📡 Fetching startups for userId:', currentUser.userId)
-            const response = await startupsApi.getByUserId(currentUser.userId)
-            console.log('📦 Startups response:', response)
-            console.log('📦 Response type:', typeof response)
-            console.log('📦 Response.data:', response.data)
-            console.log('📦 Response.success:', response.success)
-            
-            // Handle the response format: { success: true, data: [...] }
-            let startups = []
-            if (response && response.data) {
-              startups = Array.isArray(response.data) ? response.data : []
-            } else if (Array.isArray(response)) {
-              startups = response
-            }
-            
-            console.log('🚀 Startups data:', startups)
-            console.log('🚀 Startups length:', startups.length)
-            console.log('🚀 Startups array:', JSON.stringify(startups))
-            setMyStartups(startups)
-            console.log('✅ setMyStartups called with:', startups.length, 'items')
-            
-            // Fetch connections for mentor connections count
-            let mentorConnectionsCount = 0
-            try {
-              console.log('📡 Fetching connections for userId:', currentUser.userId)
-              const connectionsResponse = await connectionsApi.getByUser(currentUser.userId, 'entrepreneur')
-              console.log('🔗 Raw connections response:', connectionsResponse)
-              
-              // Handle response - it comes as { success: true, data: [...] }
-              let connectionsArray = []
-              if (connectionsResponse?.success && connectionsResponse?.data) {
-                connectionsArray = Array.isArray(connectionsResponse.data) ? connectionsResponse.data : []
-              } else if (Array.isArray(connectionsResponse)) {
-                connectionsArray = connectionsResponse
-              } else if (connectionsResponse?.data && Array.isArray(connectionsResponse.data)) {
-                connectionsArray = connectionsResponse.data
-              }
-              
-              console.log('🔗 Connections array:', connectionsArray)
-              
-              // Count active connections (active = accepted and ongoing)
-              mentorConnectionsCount = connectionsArray.filter(conn => {
-                console.log('🔍 Connection:', conn._id, 'Status:', conn.status)
-                return conn.status === 'active' || conn.status === 'completed'
-              }).length
-              console.log('✅ Mentor connections count:', mentorConnectionsCount)
-            } catch (error) {
-              console.error('❌ Error fetching connections:', error.message, error)
-              mentorConnectionsCount = 0
-            }
-
-            // Fetch free groups
-            console.log('📡 Fetching free groups for userId:', currentUser.userId)
-            const groupsResponse = await mentorGroupsApi.getByParticipant(currentUser.userId)
-            console.log('🎯 Free groups response:', groupsResponse)
-            const freeGroups = Array.isArray(groupsResponse) ? groupsResponse : []
-            setMyFreeGroups(freeGroups)
-            
-            // Fetch paid group sessions
-            console.log('📡 Fetching group sessions for userId:', currentUser.userId)
-            const sessionsResponse = await groupSessionsApi.getByParticipant(currentUser.userId)
-            console.log('💎 Group sessions response:', sessionsResponse)
-            const groupSessions = Array.isArray(sessionsResponse) ? sessionsResponse : []
-            setMyGroupSessions(groupSessions)
-
-            // Fetch investment projects
-            console.log('📡 Fetching investment projects for userId:', currentUser.userId)
-            try {
-              const investmentResponse = await fetch(`${API_BASE_URL}/investment-projects/user/${currentUser.userId}`)
-              const investmentData = await investmentResponse.json()
-              console.log('💰 Investment projects response:', investmentData)
-              const projects = Array.isArray(investmentData) ? investmentData : investmentData.data || []
-              setInvestmentProjects(projects)
-              console.log('✅ Investment projects set:', projects.length, 'items')
-            } catch (error) {
-              console.error('❌ Error fetching investment projects:', error)
-              setInvestmentProjects([])
-            }
-
-            // Calculate opportunities applied (startups created + groups joined)
-            const opportunitiesApplied = startups.length + freeGroups.length + groupSessions.length
-
-            // Update stats with real data
-            setStats({
-              mentorConnections: mentorConnectionsCount,
-              aiConversations: 0, // This would need chat API integration
-              opportunitiesApplied: opportunitiesApplied,
-              journeyProgress: calculateJourneyProgress(startups)
-            })
-            console.log('✅ Stats updated with real data')
-            
-            // Build recent activity
-            const activities = []
-            if (startups.length > 0) {
-              const recentStartup = startups[0]
-              activities.push({
-                title: `Created startup: ${recentStartup.name}`,
-                time: new Date(recentStartup.createdAt).toLocaleDateString(),
-                icon: SparklesIcon
-              })
-            }
-            
-            if (activities.length === 0) {
-              activities.push({
-                title: 'Welcome to AI For Her!',
-                time: 'Just now',
-                icon: SparklesIcon
-              })
-            }
-            
-            setRecentActivity(activities)
-          } catch (error) {
-            console.error('❌ Error fetching startups:', error)
-            console.error('❌ Error details:', error.response?.data || error.message)
-            setRecentActivity([{
-              title: 'Welcome to AI For Her!',
-              time: 'Just now',
-              icon: SparklesIcon
-            }])
-          }
-        } catch (error) {
-          console.error('❌ Error fetching user data:', error)
-        } finally {
-          console.log('✅ Setting loading to false')
-          setLoading(false)
-        }
-      } else {
-        console.log('⚠️ No currentUser found')
-        setLoading(false)
-      }
+    if (!currentUser?.uid) {
+      setLoading(false);
+      return;
     }
 
-    fetchUserData()
-  }, [currentUser])
+    const fetchData = async () => {
+      try {
+        setUserData(currentUser);
+
+        // Fetch startups
+        const startupsQuery = query(collection(db, 'startups'), where('userId', '==', currentUser.uid));
+        const startupsSnapshot = await getDocs(startupsQuery);
+        const startups = startupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setMyStartups(startups);
+
+        // Fetch connections
+        const connectionsQuery = query(collection(db, 'connections'), where('menteeId', '==', currentUser.uid), where('status', 'in', ['active', 'completed']));
+        const connectionsSnapshot = await getDocs(connectionsQuery);
+        const mentorConnectionsCount = connectionsSnapshot.size;
+
+        // Fetch groups
+        const groupsQuery = query(collection(db, 'mentorGroups'), where('participants', 'array-contains', currentUser.uid));
+        const groupsSnapshot = await getDocs(groupsQuery);
+        const freeGroups = groupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setMyFreeGroups(freeGroups);
+
+        // Fetch sessions
+        const sessionsQuery = query(collection(db, 'groupSessions'), where('participants', 'array-contains', currentUser.uid));
+        const sessionsSnapshot = await getDocs(sessionsQuery);
+        const groupSessions = sessionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setMyGroupSessions(groupSessions);
+
+        // Fetch investment projects
+        const investmentProjectsQuery = query(collection(db, 'investment-projects'), where('userId', '==', currentUser.uid));
+        const investmentProjectsSnapshot = await getDocs(investmentProjectsQuery);
+        const projects = investmentProjectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setInvestmentProjects(projects);
+
+        const opportunitiesApplied = startups.length + freeGroups.length + groupSessions.length;
+
+        setStats({
+          mentorConnections: mentorConnectionsCount,
+          aiConversations: 0, // Placeholder
+          opportunitiesApplied: opportunitiesApplied,
+          journeyProgress: calculateJourneyProgress(startups),
+        });
+
+        // Build recent activity
+        const activities = [];
+        if (startups.length > 0) {
+          const recentStartup = startups.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate())[0];
+          activities.push({
+            title: `Created startup: ${recentStartup.name}`,
+            time: new Date(recentStartup.createdAt.toDate()).toLocaleDateString(),
+            icon: SparklesIcon,
+          });
+        }
+        if (activities.length === 0) {
+          activities.push({
+            title: 'Welcome to AI For Her!',
+            time: 'Just now',
+            icon: SparklesIcon,
+          });
+        }
+        setRecentActivity(activities);
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [currentUser]);
 
   // Calculate journey progress based on startup stages
   const calculateJourneyProgress = (startups) => {
@@ -401,40 +321,7 @@ const EntrepreneurDashboard = () => {
     return maxProgress
   }
 
-  // Calculate profile progress
-  const calculateProgress = (user) => {
-    let progress = 0
-    let totalFields = 0
-    
-    // Basic info (5 fields x 10% each = 50%)
-    const basicFields = [
-      user?.firstName,
-      user?.lastName,
-      user?.email,
-      user?.phone,
-      user?.bio
-    ]
-    basicFields.forEach(field => {
-      totalFields++
-      if (field) progress += 10
-    })
-    
-    // Additional profile fields (5 fields x 10% each = 50%)
-    const additionalFields = [
-      user?.address?.city,
-      user?.address?.state,
-      user?.profilePhoto,
-      user?.socialMedia?.linkedIn,
-      user?.alternatePhone
-    ]
-    additionalFields.forEach(field => {
-      totalFields++
-      if (field) progress += 10
-    })
-    
-    return Math.min(progress, 100)
-  }
-
+  
   // Memoize sidebar to prevent re-rendering on state changes
   const sidebar = useMemo(() => <EntrepreneurSidebar />, [])
 
@@ -463,7 +350,7 @@ const EntrepreneurDashboard = () => {
   return (
     <DashboardLayout sidebar={sidebar}>
       {/* Welcome Section */}
-      <motion.div
+      <div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
@@ -472,43 +359,30 @@ const EntrepreneurDashboard = () => {
           {t('dashboard.welcome')}, {getDisplayName()} 
         </h1>
         <p className="text-gray-600">{t('dashboard.subtitle')}</p>
-      </motion.div>
+      </div>
 
       {/* Your AI Mentor Hub */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('dashboard.mentorHub')}</h2>
         <div className="grid md:grid-cols-3 gap-6">
           {quickActions.map((action, index) => (
-            <motion.div
+            <div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + index * 0.1 }}
               onClick={action.action}
               className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg cursor-pointer transition-all duration-200 hover:scale-105"
             >
-              <div className={`w-12 h-12 bg-gradient-to-r ${action.color} rounded-xl flex items-center justify-center mb-4`}>
+              <div className={`w-12 h-12 bg-linear-to-r ${action.color} rounded-xl flex items-center justify-center mb-4`}>
                 <action.icon className="w-6 h-6 text-gray-700" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{action.title}</h3>
               <p className="text-gray-600 text-sm">{action.description}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* Stats Cards */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="grid md:grid-cols-4 gap-4 mb-8"
-      >
+      <div className="grid md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="text-2xl font-bold text-gray-900">{stats.mentorConnections}</div>
           <div className="text-sm text-gray-600">{t('dashboard.stats.mentorConnections')}</div>
@@ -525,15 +399,10 @@ const EntrepreneurDashboard = () => {
           <div className="text-2xl font-bold text-gray-900">{stats.journeyProgress}%</div>
           <div className="text-sm text-gray-600">{t('dashboard.stats.journeyProgress')}</div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Recent Activity */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="bg-white rounded-2xl p-6 shadow-sm mb-8"
-      >
+      <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.recentActivity')}</h3>
         <div className="space-y-4">
           {recentActivity.map((activity, index) => (
@@ -551,15 +420,10 @@ const EntrepreneurDashboard = () => {
             </div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* My Startups */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="bg-white rounded-2xl p-6 shadow-sm mb-8"
-      >
+      <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900">My Startups ({myStartups.length})</h3>
           <button
@@ -576,7 +440,7 @@ const EntrepreneurDashboard = () => {
         {myStartups.length > 0 ? (
           <div className="space-y-4">
             {console.log('✨ Rendering startup cards...')}
-            {myStartups.map((startup, index) => {
+            {(showAllStartups ? myStartups : myStartups.slice(0, 1)).map((startup, index) => {
               console.log(`📇 Rendering card ${index}:`, startup.name, 'ID:', startup._id || startup.id)
               return (
               <div 
@@ -624,7 +488,7 @@ const EntrepreneurDashboard = () => {
                         e.stopPropagation()
                         handleDownloadStartupPDF(startup)
                       }}
-                      className="p-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
+                      className="p-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-all shadow-md hover:shadow-lg"
                       title="Download PDF"
                     >
                       <ArrowDownTrayIcon className="w-5 h-5" />
@@ -726,18 +590,7 @@ const EntrepreneurDashboard = () => {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-200">
-                  <div className="flex items-center gap-1 text-xs text-gray-500">
-                    <CalendarIcon className="w-4 h-4" />
-                    Created: {startup.createdAt 
-                      ? new Date(startup.createdAt).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })
-                      : 'Recently'
-                    }
-                  </div>
+                <div className="flex items-center justify-end pt-4 mt-4 border-t border-gray-200">
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
@@ -752,6 +605,16 @@ const EntrepreneurDashboard = () => {
               </div>
             )}
           )}
+            {myStartups.length > 1 && (
+              <div className="pt-4 flex justify-center">
+                <button
+                  onClick={() => setShowAllStartups(!showAllStartups)}
+                  className="text-sm text-pink-600 hover:text-pink-700 font-semibold"
+                >
+                  {showAllStartups ? 'Show Less' : 'Show More'}
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-12">
@@ -763,21 +626,16 @@ const EntrepreneurDashboard = () => {
             <p className="text-gray-600 mb-6">Create your first startup profile to get started!</p>
             <button
               onClick={() => navigate('/create-startup')}
-              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all font-medium"
+              className="px-6 py-3 bg-linear-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all font-medium"
             >
               Create Your First Startup
             </button>
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Investment Projects Listed for Funding */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.65 }}
-        className="bg-white rounded-2xl p-6 shadow-sm mb-8"
-      >
+      <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
         <div className="flex justify-between items-center mb-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Projects Listed for Investment ({investmentProjects.length})</h3>
@@ -796,7 +654,7 @@ const EntrepreneurDashboard = () => {
         
         {investmentProjects.length > 0 ? (
           <div className="space-y-4">
-            {investmentProjects.map((project) => {
+            {(showAllInvestmentProjects ? investmentProjects : investmentProjects.slice(0, 1)).map((project, index) => {
               const fundingPercentage = project.fundingPercentage || 0
               const remainingAmount = project.fundingGoal - (project.currentFunding || 0)
               const daysLeft = project.fundingDeadline 
@@ -805,7 +663,7 @@ const EntrepreneurDashboard = () => {
               
               return (
                 <div 
-                  key={project._id}
+                  key={project._id || project.id || index}
                   className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all"
                 >
                   <div className="flex justify-between items-start mb-4">
@@ -865,7 +723,7 @@ const EntrepreneurDashboard = () => {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                       <div 
-                        className="bg-gradient-to-r from-pink-500 to-purple-500 h-full rounded-full transition-all duration-500"
+                        className="bg-linear-to-r from-pink-500 to-purple-500 h-full rounded-full transition-all duration-500"
                         style={{ width: `${Math.min(fundingPercentage, 100)}%` }}
                       />
                     </div>
@@ -873,7 +731,7 @@ const EntrepreneurDashboard = () => {
 
                   {/* Funding Stats */}
                   <div className="grid md:grid-cols-3 gap-4 mb-4">
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3">
+                    <div className="bg-linear-to-br from-green-50 to-green-100 rounded-lg p-3">
                       <div className="flex items-center gap-2 text-green-700 mb-1">
                         <CurrencyDollarIcon className="w-4 h-4" />
                         <span className="text-xs font-semibold">Raised</span>
@@ -881,7 +739,7 @@ const EntrepreneurDashboard = () => {
                       <p className="text-sm font-bold text-green-900">₹{(project.currentFunding || 0).toLocaleString()}</p>
                     </div>
                     
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3">
+                    <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg p-3">
                       <div className="flex items-center gap-2 text-blue-700 mb-1">
                         <UsersIcon className="w-4 h-4" />
                         <span className="text-xs font-semibold">Investors</span>
@@ -889,7 +747,7 @@ const EntrepreneurDashboard = () => {
                       <p className="text-sm font-bold text-blue-900">{project.investors?.length || 0}</p>
                     </div>
                     
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3">
+                    <div className="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg p-3">
                       <div className="flex items-center gap-2 text-purple-700 mb-1">
                         <CurrencyDollarIcon className="w-4 h-4" />
                         <span className="text-xs font-semibold">Remaining</span>
@@ -917,32 +775,27 @@ const EntrepreneurDashboard = () => {
           </div>
         ) : (
           <div className="text-center py-12">
-            <div className="w-20 h-20 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-20 h-20 bg-linear-to-br from-pink-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CurrencyDollarIcon className="w-10 h-10 text-pink-500" />
             </div>
             <h4 className="text-lg font-semibold text-gray-900 mb-2">No Projects Listed Yet</h4>
             <p className="text-gray-600 mb-6">List your startup for investment to attract investors!</p>
             <button
               onClick={() => navigate('/list-project')}
-              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all font-medium"
+              className="px-6 py-3 bg-linear-to-r from-pink-300 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-900 transition-all font-medium"
             >
               List Your First Project
             </button>
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* My Groups Section - Horizontal Layout */}
       {(myFreeGroups.length > 0 || myGroupSessions.length > 0) && (
         <div className="grid md:grid-cols-2 gap-6 mt-8">
           {/* My Free Groups */}
           {myFreeGroups.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="bg-white rounded-2xl p-6 shadow-sm"
-            >
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">My Free Groups</h3>
@@ -950,23 +803,23 @@ const EntrepreneurDashboard = () => {
                 </div>
                 <button
                   onClick={() => navigate('/mentors')}
-                  className="text-sm text-green-600 hover:text-green-700 font-medium"
+                  className="text-sm text-pink-600 hover:text-pink-700 font-medium"
                 >
                   Browse +
                 </button>
               </div>
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {myFreeGroups.map((group) => (
+                {myFreeGroups.map((group, index) => (
                   <div 
-                    key={group._id}
-                    className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all bg-gradient-to-br from-green-50 to-blue-50"
+                    key={group._id || group.id || index}
+                    className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h4 className="text-lg font-semibold text-gray-900 mb-1">{group.groupName}</h4>
                         <p className="text-xs text-gray-600 mb-2">by {group.mentorName}</p>
                       </div>
-                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                      <span className="px-2 py-1  text-pink-700 text-xs rounded-full font-medium">
                         FREE
                       </span>
                     </div>
@@ -979,31 +832,26 @@ const EntrepreneurDashboard = () => {
                     </div>
 
                     <div className="flex gap-2">
-                      <button
+                      {/* <button
                         onClick={() => setSelectedGroupChat({
                           groupId: group._id,
                           groupName: group.groupName
                         })}
-                        className="flex-1 bg-gradient-to-r from-green-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-blue-700 transition-all font-medium text-sm flex items-center justify-center gap-2"
+                        className="flex-1 bg-linear-to-r from-green-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-blue-700 transition-all font-medium text-sm flex items-center justify-center gap-2"
                       >
-                        <ChatBubbleLeftRightIcon className="w-4 h-4" />
+                        
                         Open Chat
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           )}
 
           {/* My Group Mentoring Sessions (Paid) */}
           {myGroupSessions.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="bg-white rounded-2xl p-6 shadow-sm"
-            >
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">My Group Mentoring Sessions</h3>
@@ -1011,23 +859,23 @@ const EntrepreneurDashboard = () => {
                 </div>
                 <button
                   onClick={() => navigate('/mentors')}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-sm text-pink-600 hover:text-pink-700 font-medium"
                 >
                   Browse +
                 </button>
               </div>
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {myGroupSessions.map((session) => (
+                {myGroupSessions.map((session, index) => (
                   <div 
-                    key={session._id}
-                    className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all bg-gradient-to-br from-blue-50 to-indigo-50"
+                    key={session._id || session.id || index}
+                    className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all "
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h4 className="text-lg font-semibold text-gray-900 mb-1">{session.groupName}</h4>
-                        <p className="text-xs text-blue-600 font-semibold mb-2">by {session.mentorName}</p>
+                        <p className="text-xs text-pink-600 font-semibold mb-2">by {session.mentorName}</p>
                       </div>
-                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                      <span className="px-2 py-1 bg-blue-100 text-pink-700 text-xs rounded-full font-medium">
                         PAID
                       </span>
                     </div>
@@ -1049,7 +897,7 @@ const EntrepreneurDashboard = () => {
                       </div>
                       <div className="flex items-center">
                         <CurrencyDollarIcon className="w-4 h-4 mr-2 text-gray-500" />
-                        <span className="font-semibold text-blue-700">₹{session.price}</span>
+                        <span className="font-semibold text-pink-700">₹{session.price}</span>
                       </div>
                     </div>
 
@@ -1059,7 +907,7 @@ const EntrepreneurDashboard = () => {
                           href={session.meetingLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all font-medium text-sm flex items-center justify-center gap-2"
+                          className="flex-1 bg-linear-to-r from-pink-500 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-pink-600 hover:to-pink-700 transition-all font-medium text-sm flex items-center justify-center gap-2"
                         >
                           <VideoCameraIcon className="w-4 h-4" />
                           Join Session
@@ -1069,7 +917,7 @@ const EntrepreneurDashboard = () => {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           )}
         </div>
       )}
@@ -1094,12 +942,8 @@ const EntrepreneurDashboard = () => {
       {/* Startup Details Modal */}
       {selectedStartup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
-          >
-            <div className="sticky top-0 bg-gradient-to-r from-pink-500 to-purple-500 text-white p-6 rounded-t-2xl flex justify-between items-center">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-linear-to-r from-pink-500 to-purple-500 text-white p-6 rounded-t-2xl flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold mb-1">{selectedStartup.name}</h2>
                 <div className="flex items-center gap-2">
@@ -1134,7 +978,7 @@ const EntrepreneurDashboard = () => {
                 </button>
                 <button
                   onClick={() => handleDownloadStartupPDF(selectedStartup)}
-                  className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white px-4 py-3 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all flex items-center justify-center gap-2 font-medium"
+                  className="flex-1 bg-linear-to-r from-pink-500 to-purple-500 text-white px-4 py-3 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all flex items-center justify-center gap-2 font-medium"
                 >
                   <ArrowDownTrayIcon className="w-5 h-5" />
                   Download PDF
@@ -1440,7 +1284,7 @@ const EntrepreneurDashboard = () => {
                     <div className="w-1 h-6 bg-pink-500 rounded"></div>
                     What We're Looking For
                   </h3>
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4">
+                  <div className="bg-linear-to-br from-purple-50 to-pink-50 rounded-lg p-4">
                     <div className="flex flex-wrap gap-2">
                       {selectedStartup.lookingFor.map((item, index) => (
                         <span 
@@ -1455,18 +1299,14 @@ const EntrepreneurDashboard = () => {
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
 
       {/* Delete Investment Project Confirmation Modal */}
       {showDeleteProjectConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
-          >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <TrashIcon className="w-8 h-8 text-red-600" />
@@ -1490,20 +1330,16 @@ const EntrepreneurDashboard = () => {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
 
       {/* Investment Project Detail Modal */}
       {selectedInvestmentProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto my-8"
-          >
+        <div className="fixed inset-0 backdrop-blur-md bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto my-8">
             {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-pink-500 to-purple-500 text-white p-6 rounded-t-2xl flex justify-between items-center z-10">
+            <div className="sticky top-0 bg-pink-400 text-white p-6 rounded-t-2xl flex justify-between items-center z-10">
               <div>
                 <h2 className="text-2xl font-bold mb-1">{selectedInvestmentProject.projectName}</h2>
                 <div className="flex items-center gap-2">
@@ -1572,7 +1408,7 @@ const EntrepreneurDashboard = () => {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div 
-                      className="bg-gradient-to-r from-pink-500 to-purple-500 h-3 rounded-full transition-all"
+                      className="bg-linear-to-r from-pink-500 to-purple-500 h-3 rounded-full transition-all"
                       style={{ width: `${Math.min(selectedInvestmentProject.fundingPercentage || 0, 100)}%` }}
                     ></div>
                   </div>
@@ -1805,18 +1641,14 @@ const EntrepreneurDashboard = () => {
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
-          >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <TrashIcon className="w-8 h-8 text-red-600" />
@@ -1840,7 +1672,7 @@ const EntrepreneurDashboard = () => {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
     </DashboardLayout>
