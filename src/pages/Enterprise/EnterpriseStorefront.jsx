@@ -345,13 +345,13 @@ const EnterpriseStorefront = () => {
 
             {/* Navigation Links */}
             <nav className="hidden md:flex space-x-10 items-center">
-              <Link to="/" className="text-sm font-medium text-gray-700 hover:text-pink-600 transition-colors py-2">
+              <Link to="/" className="text-base font-medium text-gray-700 hover:text-pink-600 transition-colors py-2">
                 Home
               </Link>
               
               {/* Category Dropdown */}
               <div className="relative group">
-                <span className="text-sm font-medium text-gray-700 hover:text-pink-600 transition-colors py-2 cursor-pointer">
+                <span className="text-base font-medium text-gray-700 hover:text-pink-600 transition-colors py-2 cursor-pointer">
                     Shop By Category
                 </span>
                 <div className="absolute left-0 mt-2 hidden group-hover:block w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
@@ -377,17 +377,17 @@ const EnterpriseStorefront = () => {
 
               <button
                 onClick={() => scrollToSection(newArrivalsRef)}
-                className="text-sm font-medium text-gray-700 hover:text-pink-600 transition-colors py-2"
+                className="text-base font-medium text-gray-700 hover:text-pink-600 transition-colors py-2"
               >
                 New Arrivals
               </button>
               <button
                 onClick={() => scrollToSection(bestSellersRef)}
-                className="text-sm font-medium text-gray-700 hover:text-pink-600 transition-colors py-2"
+                className="text-base font-medium text-gray-700 hover:text-pink-600 transition-colors py-2"
               >
                 Bestsellers
               </button>
-              {/* <Link to="/reviews" className="text-sm font-medium text-gray-700 hover:text-pink-600 transition-colors py-2">
+              {/* <Link to="/reviews" className="text-base font-medium text-gray-700 hover:text-pink-600 transition-colors py-2">
                 Reviews
               </Link> */}
             </nav>
@@ -456,7 +456,7 @@ const EnterpriseStorefront = () => {
                     <button
                       type="button"
                       onClick={() => bestSellersRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                      className="inline-flex items-center px-5 py-2.5 rounded-full bg-pink-500 hover:bg-pink-600 text-sm font-medium shadow-lg shadow-pink-500/30 transition-colors"
+                      className="inline-flex items-center px-5 py-2.5 rounded-full bg-pink-500 hover:bg-pink-600 text-base font-medium shadow-lg shadow-pink-500/30 transition-colors"
                     >
                       Shop Bestsellers
                     </button>
@@ -560,7 +560,7 @@ const EnterpriseStorefront = () => {
                 <button
                     type="button"
                     onClick={() => setSelectedCategory('all')}
-                    className={`px-4 py-2 rounded-full border text-sm font-medium whitespace-nowrap transition-colors ${
+                    className={`px-4 py-2 rounded-full border text-base font-medium whitespace-nowrap transition-colors ${
                     selectedCategory === 'all'
                         ? 'bg-pink-500 text-white border-pink-500 shadow-md'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-pink-50'
@@ -573,7 +573,7 @@ const EnterpriseStorefront = () => {
                     key={cat}
                     type="button"
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-2 rounded-full border text-sm font-medium whitespace-nowrap transition-colors ${
+                    className={`px-4 py-2 rounded-full border text-base font-medium whitespace-nowrap transition-colors ${
                         selectedCategory === cat
                         ? 'bg-pink-500 text-white border-pink-500 shadow-md'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-pink-50'
@@ -615,7 +615,7 @@ const EnterpriseStorefront = () => {
                         <button
                             type="button"
                             onClick={() => handleAddToCart(p)}
-                            className="px-4 py-2 text-sm font-medium rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors shadow-md"
+                            className="px-4 py-2 text-base font-medium rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors shadow-md"
                         >
                             Add to Cart
                         </button>
@@ -654,7 +654,7 @@ const EnterpriseStorefront = () => {
                         <button
                             type="button"
                             onClick={() => handleAddToCart(p)}
-                            className="px-4 py-2 text-sm font-medium rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors shadow-md"
+                            className="px-4 py-2 text-base font-medium rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors shadow-md"
                         >
                             Add to Cart
                         </button>
@@ -717,7 +717,7 @@ const EnterpriseStorefront = () => {
                             <button
                             type="button"
                             onClick={() => handleAddToCart(p)}
-                            className="px-4 py-2 text-sm font-medium rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors shadow-md"
+                            className="px-4 py-2 text-base font-medium rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors shadow-md"
                             >
                             Add to Cart
                             </button>
@@ -786,7 +786,7 @@ const EnterpriseStorefront = () => {
                           className="flex items-center justify-between border-b border-gray-100 pb-3"
                         >
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{item.name}</p>
+                            <p className="text-base font-medium text-gray-900">{item.name}</p>
                             <p className="text-xs text-gray-500">
                               ₹{item.price} each
                             </p>
@@ -833,7 +833,7 @@ const EnterpriseStorefront = () => {
                       type="button"
                       disabled={cartItems.length === 0}
                       onClick={() => setCheckoutStep('details')}
-                      className="w-full px-4 py-2.5 rounded-full text-sm font-medium text-white bg-pink-500 disabled:opacity-50 hover:bg-pink-600 transition-colors"
+                      className="w-full px-4 py-2.5 rounded-full text-base font-medium text-white bg-pink-500 disabled:opacity-50 hover:bg-pink-600 transition-colors"
                     >
                       Checkout
                     </button>
@@ -1182,7 +1182,7 @@ const EnterpriseStorefront = () => {
                     if (!ok) return
                     setCheckoutStep('payment')
                   }}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-pink-500 hover:bg-pink-600 transition-colors"
+                  className="px-4 py-2 rounded-lg text-base font-medium text-white bg-pink-500 hover:bg-pink-600 transition-colors"
                 >
                   Continue to Payment
                 </button>
@@ -1205,7 +1205,7 @@ const EnterpriseStorefront = () => {
                   type="button"
                   disabled={checkingOut}
                   onClick={handleCheckout}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-pink-500 disabled:opacity-50 hover:bg-pink-600 transition-colors"
+                  className="px-4 py-2 rounded-lg text-base font-medium text-white bg-pink-500 disabled:opacity-50 hover:bg-pink-600 transition-colors"
                 >
                   {checkingOut ? 'Processing Payment...' : 'Complete Payment'}
                 </button>
@@ -1238,7 +1238,7 @@ const EnterpriseStorefront = () => {
                       cardCvv: '',
                     })
                   }}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-pink-500 hover:bg-pink-600 transition-colors"
+                  className="px-4 py-2 rounded-lg text-base font-medium text-white bg-pink-500 hover:bg-pink-600 transition-colors"
                 >
                   Close
                 </button>
