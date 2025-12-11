@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { db } from '../../firebase';
-import { collection, query, where, getDocs, doc, updateDoc, addDoc, arrayUnion, arrayRemove, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, addDoc, arrayUnion, arrayRemove, orderBy, onSnapshot } from 'firebase/firestore';
 import DashboardLayout from '../../components/DashboardLayout';
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar';
 import ConnectionRequestModal from '../../components/ConnectionRequestModal';
@@ -12,12 +12,13 @@ import UnifiedChat from '../../components/UnifiedChat';
 export default function Mentors() {
   const [activeTab, setActiveTab] = useState('find'); // find, freeGroups, groupSessions, myMentors, chat
   const [mentors, setMentors] = useState([]);
-  const [freeGroups, setFreeGroups] = useState([]); // Telegram-style free groups (price = 0)
+  const [newMessage, setNewMessage] = useState('');
+  const [message, setMessage] = useState('');
+  const [freeGroups, setFreeGroups] = useState([]); 
   const [myFreeGroups, setMyFreeGroups] = useState([]); // Joined free groups
   const [groupSessions, setGroupSessions] = useState([]); // Paid group mentoring (price > 0)
   const [myGroupSessions, setMyGroupSessions] = useState([]); // Enrolled paid group sessions
   const [connections, setConnections] = useState([]);
-  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mentorTypeFilter, setMentorTypeFilter] = useState('all'); // all, personal, group
   const [sectorFilter, setSectorFilter] = useState('all');
@@ -29,14 +30,17 @@ export default function Mentors() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState(null);
-  const [selectedGroupChat, setSelectedGroupChat] = useState(null);
   const [pendingPaymentConnection, setPendingPaymentConnection] = useState(null);
-  const [showPersonalChat, setShowPersonalChat] = useState(false);
-  const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeChat, setActiveChat] = useState(null); // unified chat view for personal + group
-  const [message, setMessage] = useState('');
   const [openPaymentFromNotification, setOpenPaymentFromNotification] = useState(false);
+  const [entrepreneurProfile, setEntrepreneurProfile] = useState(null);
+  const [matchingMode, setMatchingMode] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackTarget, setFeedbackTarget] = useState(null); // { connection, mentor }
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState('');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const { currentUser } = useAuth();
   const location = useLocation();
 
@@ -49,6 +53,86 @@ export default function Mentors() {
     initial: { opacity: 0, x: 100 },
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: 100 },
+  };
+
+  const calculateMatchScore = (entrepreneur, mentor) => {
+    if (!entrepreneur) return 0;
+
+    let score = 0;
+    const weights = {
+      primaryIndustry: 30,
+      secondaryIndustries: 20,
+      businessStage: 15,
+      skills: 15,
+      language: 10,
+      location: 5,
+      rating: 5,
+    };
+
+    const primaryIndustry = entrepreneur.primaryIndustry;
+    const secondaryIndustries = entrepreneur.secondaryIndustries || [];
+    const businessStage = entrepreneur.businessStage;
+    const skills = entrepreneur.skills || [];
+    const languages = entrepreneur.language || entrepreneur.languages || [];
+    const entCity = entrepreneur.address?.city;
+    const mentorSector = mentor.sector;
+    const mentorExpertiseAreas = mentor.expertiseAreas || [];
+    const mentorExperience = mentor.experience || mentor.experienceLevel || '';
+    const mentorSpecializations = mentor.specializations || mentor.expertiseAreas || [];
+    const mentorLanguages = mentor.languages || [];
+    const mentorCity = mentor.location?.city;
+    const mentorRating = mentor.rating || 0;
+
+    if (primaryIndustry && mentorSector && primaryIndustry.toLowerCase() === mentorSector.toLowerCase()) {
+      score += weights.primaryIndustry;
+    }
+
+    if (secondaryIndustries.length > 0 && mentorExpertiseAreas.length > 0) {
+      const commonIndustries = secondaryIndustries.filter(ind =>
+        mentorExpertiseAreas.some(exp =>
+          typeof exp === 'string' && exp.toLowerCase().includes(ind.toLowerCase())
+        )
+      );
+      if (commonIndustries.length > 0) {
+        score += commonIndustries.length * (weights.secondaryIndustries / mentorExpertiseAreas.length || 1);
+      }
+    }
+
+    if (businessStage && mentorExperience) {
+      if (mentorExperience.toLowerCase().includes(businessStage.toLowerCase())) {
+        score += weights.businessStage;
+      }
+    }
+
+    if (skills.length > 0 && mentorSpecializations.length > 0) {
+      const commonSkills = skills.filter(skill =>
+        mentorSpecializations.some(spec =>
+          typeof spec === 'string' && spec.toLowerCase().includes(skill.toLowerCase())
+        )
+      );
+      if (commonSkills.length > 0) {
+        score += commonSkills.length * (weights.skills / mentorSpecializations.length || 1);
+      }
+    }
+
+    if (languages.length > 0 && mentorLanguages.length > 0) {
+      const commonLanguages = languages.filter(lang => mentorLanguages.includes(lang));
+      if (commonLanguages.length > 0) {
+        score += weights.language;
+      }
+    }
+
+    if (entCity && mentorCity && typeof entCity === 'string' && typeof mentorCity === 'string') {
+      if (entCity.toLowerCase() === mentorCity.toLowerCase()) {
+        score += weights.location;
+      }
+    }
+
+    if (mentorRating > 0) {
+      score += (mentorRating / 5) * weights.rating;
+    }
+
+    return Math.min(100, Math.round(score));
   };
 
   // Fetch functions
@@ -68,6 +152,22 @@ export default function Mentors() {
       setLoading(false);
     }
   };
+
+  const fetchEntrepreneurProfile = useCallback(async () => {
+    if (!currentUser?.uid) return;
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        setEntrepreneurProfile(snap.data());
+      } else {
+        setEntrepreneurProfile(null);
+      }
+    } catch (error) {
+      console.error('Error fetching entrepreneur profile:', error);
+      setEntrepreneurProfile(null);
+    }
+  }, [currentUser]);
 
   // Unified chat opener
   const handleOpenChat = (chatData) => {
@@ -141,7 +241,7 @@ export default function Mentors() {
     const messagesQuery = query(collection(db, 'chats', connectionId, 'messages'), orderBy('timestamp'));
     const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
       const messagesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMessages(messagesData);
+      // setMessages(messagesData); // This was commented out, so the state is not needed
     });
     return unsubscribe;
   }, []);
@@ -152,10 +252,11 @@ export default function Mentors() {
     fetchFreeGroups();
     fetchGroupSessions();
     if (currentUser?.uid) {
+      fetchEntrepreneurProfile();
       fetchMyFreeGroups();
       fetchMyGroupSessions();
     }
-  }, [currentUser, fetchConnections, fetchMyFreeGroups, fetchMyGroupSessions]);
+  }, [currentUser, fetchConnections, fetchMyFreeGroups, fetchMyGroupSessions, fetchEntrepreneurProfile]);
 
   // Detect if this page was opened from a mentor-connection notification with payment intent
   useEffect(() => {
@@ -328,39 +429,6 @@ export default function Mentors() {
     }
   };
 
-  const handlePayment = async () => {
-    // This old payment handler is kept for backward compatibility
-    // but should not be used anymore
-    const confirmed = window.confirm(
-      `Pay ₹${selectedMentor.personalSessionPrice.toLocaleString('en-IN')} for personal mentorship with ${selectedMentor.name}?`
-    );
-    
-    if (confirmed) {
-      try {
-        const paymentId = `PAY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        await addDoc(collection(db, 'connections'), {
-          entrepreneurId: currentUser.uid,
-          mentorId: selectedMentor.id,
-          mentorType: 'personal',
-          status: 'active',
-          paymentStatus: 'completed',
-          paymentAmount: selectedMentor.personalSessionPrice,
-          paymentId: paymentId
-        });
-        
-        setShowPaymentModal(false);
-        setSelectedMentor(null);
-        fetchConnections();
-        alert('Payment successful! You are now connected with your mentor.');
-        setActiveTab('myMentors');
-      } catch (error) {
-        console.error('Error processing payment:', error);
-        alert('Payment failed. Please try again.');
-      }
-    }
-  };
-
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConnection) return;
 
@@ -390,54 +458,75 @@ export default function Mentors() {
     });
   };
 
-  const filteredMentors = mentors.filter(mentor => {
-    // Mentor Type Filter
-    const matchesType = mentorTypeFilter === 'all' || 
-                       mentor.mentorType === mentorTypeFilter || 
-                       mentor.mentorType === 'both';
-    
-    // Search Filter
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery ||
-      (mentor.name && typeof mentor.name === 'string' && mentor.name.toLowerCase().includes(searchLower)) ||
-      (mentor.sector && typeof mentor.sector === 'string' && mentor.sector.toLowerCase().includes(searchLower)) ||
-      (mentor.expertise && typeof mentor.expertise === 'string' && mentor.expertise.toLowerCase().includes(searchLower)) ||
-      (mentor.location?.city && mentor.location.city.toLowerCase().includes(searchLower)) ||
-      (mentor.location?.state && mentor.location.state.toLowerCase().includes(searchLower));
-    
-    // Sector Filter
-    const matchesSector = sectorFilter === 'all' || mentor.sector === sectorFilter;
-    
-    // Experience Filter
-    let matchesExperience = true;
-    if (experienceFilter !== 'all') {
-      const years = mentor.yearsOfExperience || 0;
-      if (experienceFilter === '0-2') matchesExperience = years <= 2;
-      else if (experienceFilter === '3-5') matchesExperience = years >= 3 && years <= 5;
-      else if (experienceFilter === '6-10') matchesExperience = years >= 6 && years <= 10;
-      else if (experienceFilter === '10+') matchesExperience = years > 10;
-    }
-    
-    // Price Range Filter (for personal mentors)
-    let matchesPrice = true;
-    if (priceRangeFilter !== 'all' && (mentor.mentorType === 'personal' || mentor.mentorType === 'both')) {
-      const price = mentor.personalSessionPrice || 0;
-      if (priceRangeFilter === '0-2000') matchesPrice = price <= 2000;
-      else if (priceRangeFilter === '2001-3500') matchesPrice = price > 2000 && price <= 3500;
-      else if (priceRangeFilter === '3501+') matchesPrice = price > 3500;
-    }
-    
-    // Language Filter
-    const matchesLanguage = languageFilter === 'all' || 
-      (mentor.languages && Array.isArray(mentor.languages) && mentor.languages.includes(languageFilter));
-    
-    return matchesType && matchesSearch && matchesSector && matchesExperience && matchesPrice && matchesLanguage;
-  });
-
-  const getConnectionStatus = (mentorId) => {
-    if (!Array.isArray(connections)) return null;
-    return connections.find(conn => conn.mentorId === mentorId);
+  const openFeedbackModal = (connection, mentor) => {
+    setFeedbackTarget({ connection, mentor });
+    setFeedbackRating(0);
+    setFeedbackComment('');
+    setFeedbackModalOpen(true);
   };
+
+  const submitFeedback = async () => {
+    if (!feedbackTarget || !currentUser?.uid || !feedbackRating) return;
+    setSubmittingFeedback(true);
+    try {
+      const { connection, mentor } = feedbackTarget;
+
+      await addDoc(collection(db, 'mentorFeedback'), {
+        connectionId: connection.id,
+        mentorId: mentor.id,
+        entrepreneurId: currentUser.uid,
+        rating: feedbackRating,
+        comment: feedbackComment || '',
+        createdAt: new Date(),
+      });
+
+      const feedbackQuery = query(
+        collection(db, 'mentorFeedback'),
+        where('mentorId', '==', mentor.id)
+      );
+      const feedbackSnap = await getDocs(feedbackQuery);
+      const ratings = feedbackSnap.docs.map(d => d.data().rating || 0);
+      const totalReviews = ratings.length;
+      const avgRating = totalReviews > 0
+        ? ratings.reduce((sum, r) => sum + Number(r || 0), 0) / totalReviews
+        : 0;
+
+      const mentorRef = doc(db, 'users', mentor.id);
+      await updateDoc(mentorRef, {
+        rating: Number(avgRating.toFixed(1)),
+        totalReviews,
+      });
+
+      setFeedbackModalOpen(false);
+      setFeedbackTarget(null);
+      setFeedbackRating(0);
+      setFeedbackComment('');
+
+      await fetchMentors();
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      alert('Failed to submit feedback. Please try again.');
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  };
+
+  const filteredMentors = React.useMemo(() => mentors.filter(mentor => {
+    const matchesType = mentorTypeFilter === 'all' || mentor.mentorType === mentorTypeFilter;
+    const matchesSearch = !searchQuery || mentor.name.toLowerCase().includes(searchQuery.toLowerCase()) || mentor.sector.toLowerCase().includes(searchQuery.toLowerCase()) || mentor.expertise.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSector = sectorFilter === 'all' || mentor.sector === sectorFilter;
+    const matchesExperience = experienceFilter === 'all' || mentor.yearsOfExperience === experienceFilter;
+    const matchesPrice = priceRangeFilter === 'all' || (mentor.personalSessionPrice >= 0 && mentor.personalSessionPrice <= 2000 && priceRangeFilter === '0-2000') || (mentor.personalSessionPrice >= 2001 && mentor.personalSessionPrice <= 3500 && priceRangeFilter === '2001-3500') || (mentor.personalSessionPrice >= 3501 && priceRangeFilter === '3501+');
+    const matchesLanguage = languageFilter === 'all' || mentor.languages.includes(languageFilter);
+
+    return matchesType && matchesSearch && matchesSector && matchesExperience && matchesPrice && matchesLanguage;
+  }), [mentors, mentorTypeFilter, searchQuery, sectorFilter, experienceFilter, priceRangeFilter, languageFilter]);
+
+  const sorted = matchingMode && entrepreneurProfile
+    ? [...filteredMentors]
+        .map(m => ({ ...m, _matchScore: calculateMatchScore(entrepreneurProfile, m) }))
+        .sort((a, b) => (b._matchScore || 0) - (a._matchScore || 0))
+    : filteredMentors;
 
   if (activeChat) {
     return (
@@ -464,6 +553,57 @@ export default function Mentors() {
 
   return (
     <DashboardLayout sidebar={<EntrepreneurSidebar />}>
+      <AnimatePresence>
+        {feedbackModalOpen && (
+          <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+              <h2 className="text-2xl font-bold mb-4">Give Feedback for {feedbackTarget?.mentor.name}</h2>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">Rating</label>
+                <div className="flex space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setFeedbackRating(star)}
+                      className={`text-3xl ${star <= feedbackRating ? 'text-yellow-400' : 'text-gray-300'}`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-6">
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="feedbackComment">
+                  Comment (optional)
+                </label>
+                <textarea
+                  id="feedbackComment"
+                  value={feedbackComment}
+                  onChange={(e) => setFeedbackComment(e.target.value)}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  rows="4"
+                  placeholder="Share your experience..."
+                />
+              </div>
+              <div className="flex items-center justify-end space-x-4">
+                <button
+                  onClick={() => setFeedbackModalOpen(false)}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitFeedback}
+                  disabled={submittingFeedback || feedbackRating === 0}
+                  className="bg-pink-500 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+                >
+                  {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
       <div className="p-6 bg-gray-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold mb-6 text-gray-800">Connect with Mentors</h1>
@@ -536,17 +676,6 @@ export default function Mentors() {
         {/* Personal Mentors Tab */}
         {activeTab === 'find' && (
           <div>
-            {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start space-x-3">
-                <svg className="w-6 h-6 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <div className="text-sm text-blue-800">
-                  <p className="font-semibold mb-1">💼 1-on-1 Personal Mentoring</p>
-                  <p>Send a request → Mentor approves → Complete payment → Start chatting</p>
-                </div>
-              </div>
-            </div> */}
             {/* Filters */}
             <div className="bg-white rounded-lg shadow p-4 mb-6">
               <div className="space-y-4">
@@ -574,6 +703,21 @@ export default function Mentors() {
                   >
                     {showAdvancedFilters ? '− Less Filters' : '+ More Filters'}
                   </button>
+
+                  {entrepreneurProfile && (
+                    <div className="flex items-center justify-center md:justify-start">
+                      <span className="mr-3 text-sm font-medium text-gray-900">Smart Match</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={matchingMode}
+                          onChange={() => setMatchingMode(!matchingMode)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-pink-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-500"></div>
+                      </label>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Advanced Filters */}
@@ -697,8 +841,8 @@ export default function Mentors() {
 
             {/* Mentor Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMentors.map((mentor) => {
-                const connection = getConnectionStatus(mentor.id);
+              {sorted.map((mentor) => {
+                const connection = connections.find(conn => conn.mentorId === mentor.id);
                 const isConnected = connection && connection.status === 'active';
                 const mentorDisplayName =
                   (mentor.name && typeof mentor.name === 'string' && mentor.name.trim()) ||
@@ -710,13 +854,18 @@ export default function Mentors() {
                   <div key={mentor.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h2 className="text-xl font-semibold text-gray-800">{mentorDisplayName}</h2>
+                        <h2 className="text-xl font-bold text-gray-800">{mentorDisplayName}</h2>
                         <p className="text-sm text-gray-500">{mentor.sector}</p>
                       </div>
                       {mentor.mentorType && (
                         <span className={`px-2 py-1 text-xs rounded-full bg-pink-50 text-pink-700`}>
                           {mentor.mentorType === 'both' ? 'Personal & Group' : 
                            mentor.mentorType.charAt(0).toUpperCase() + mentor.mentorType.slice(1)}
+                        </span>
+                      )}
+                      {matchingMode && entrepreneurProfile && (
+                        <span className="ml-2 px-2 py-1 text-xs rounded-full bg-green-50 text-green-700 font-semibold">
+                          {calculateMatchScore(entrepreneurProfile, mentor)}% Match
                         </span>
                       )}
                     </div>
@@ -744,7 +893,6 @@ export default function Mentors() {
                       
                       {mentor.rating > 0 && (
                         <p className="text-gray-500 text-sm flex items-center">
-                          <span className="font-semibold mr-2">Rating:</span>
                           <span className="text-pink-500">{'★'.repeat(Math.round(mentor.rating))}{'☆'.repeat(5 - Math.round(mentor.rating))}</span>
                           <span className="ml-1 text-xs">({mentor.totalReviews || 0})</span>
                         </p>
@@ -774,12 +922,20 @@ export default function Mentors() {
                     </div>
                     
                     {isConnected ? (
-                      <button
-                        onClick={() => openChat(connection)}
-                        className={`w-full py-2 px-4 ${primaryButtonClass}`}
-                      >
-                        Chat Now
-                      </button>
+                      <>
+                        <button
+                          onClick={() => openChat(connection)}
+                          className={`w-full py-2 px-4 ${primaryButtonClass}`}>
+                          Chat Now
+                        </button>
+                        {(connection.status === 'completed' || connection.status === 'active') && (
+                          <button 
+                            onClick={() => openFeedbackModal(connection, mentor)}
+                            className="w-full mt-2 py-2 px-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">
+                            Give Feedback
+                          </button>
+                        )}
+                      </>
                     ) : connection && connection.status === 'pending' ? (
                       <div className="w-full bg-pink-50 border border-pink-200 text-pink-700 py-2 px-4 rounded-lg font-semibold text-center">
                         Request Pending
@@ -1270,16 +1426,24 @@ className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center s
                         </p>
                       </div>
                       
-                      {connection.status === 'active' ? (
-                        <button
-                          onClick={() => {
-                            console.log('💬 Chat button clicked for connection:', connection.id);
-                            openChat(connection);
-                          }}
-                          className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 px-4 rounded-lg font-semibold transition"
-                        >
-                           Open Chat
-                        </button>
+                      {connection.status === 'active' || connection.status === 'completed' ? (
+                        <>
+                          <button
+                            onClick={() => {
+                              console.log('💬 Chat button clicked for connection:', connection.id);
+                              openChat(connection);
+                            }}
+                            className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 px-4 rounded-lg font-semibold transition mb-2"
+                          >
+                             Open Chat
+                          </button>
+                          <button
+                            onClick={() => openFeedbackModal(connection, { id: connection.mentorId, name: connection.mentorName })}
+                            className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg font-semibold transition text-sm"
+                          >
+                            Give Feedback
+                          </button>
+                        </>
                       ) : (
                         <div className="text-center text-sm text-gray-500 py-2">
                           {connection.paymentStatus === 'pending' ? 'Payment pending...' : 'Connection pending...'}
