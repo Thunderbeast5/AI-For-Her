@@ -4,17 +4,15 @@ import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
 import { PaperAirplaneIcon, MicrophoneIcon } from '@heroicons/react/24/outline'
 import { SparklesIcon } from '@heroicons/react/24/solid'
 import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { useAuth } from '../../hooks/useAuth'
+import Message from '../../components/Message'
+import * as api from '../../services/api'
 
 // --- CHANGED ---
 // Define your API endpoints. This is the main fix.
-const API_BASE_URL = 'https://chatbot-1f9h.onrender.com/api' 
+const API_BASE_URL = 'https://pratibhara-chatbot.onrender.com' 
 // // Use your deployed URL
 // const API_BASE_URL = "https://localhost:5001"; // or your actual port
-const CHAT_ENDPOINT = `${API_BASE_URL}/chat`
-const BUTTON_CLICK_ENDPOINT = `${API_BASE_URL}/button_click`
-const SELECT_IDEA_ENDPOINT = `${API_BASE_URL}/select_idea`
 
 const Chat = () => {
   const { currentUser } = useAuth()
@@ -39,6 +37,18 @@ const Chat = () => {
   const [resources, setResources] = useState([])
   const [schemes, setSchemes] = useState([])
   const [plan, setPlan] = useState(null) // --- CHANGED --- Added state for the business plan
+
+  // States from new chatbot
+  const [userContext, setUserContext] = useState({});
+  const [userLocation, setUserLocation] = useState(null);
+  const [showLocationHint, setShowLocationHint] = useState(false);
+  const [isQuestionMode, setIsQuestionMode] = useState(false);
+  const [uploadedPDF, setUploadedPDF] = useState(null);
+  const [showMap, setShowMap] = useState(false);
+  const [mapData, setMapData] = useState({ userLocation: null, businesses: [], businessType: '' });
+  const [infoPanelContent, setInfoPanelContent] = useState(null);
+  const [infoPanelType, setInfoPanelType] = useState('');
+  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
 
   const messagesEndRef = useRef(null)
   const recognitionRef = useRef(null)
@@ -80,44 +90,6 @@ const Chat = () => {
 
   // --- CHANGED ---
   // This function now handles all API fetches to reduce code duplication
-  const postToApi = async (endpoint, body) => {
-    setIsTyping(true)
-    // Clear previous interactive elements
-    setButtons([])
-    setIdeas([])
-    setResources([])
-    setSchemes([])
-    setPlan(null)
-
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ...body, session_id: sessionId }) // Always include session_id
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      handleApiResponse(data)
-
-    } catch (error) {
-      console.error('Error in API call:', error)
-      const errorMessage = {
-        id: Date.now(),
-        text: "I apologize, but I'm having trouble connecting to the chatbot service. Please try again.",
-        sender: 'ai',
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, errorMessage])
-    } finally {
-      setIsTyping(false)
-    }
-  }
 
   // This function is for user-typed text messages
   const handleSendMessage = async (e) => {
@@ -138,8 +110,22 @@ const Chat = () => {
     setMessages(prev => [...prev, userMessage])
     setInputText('')
 
-    // Call the /chat endpoint
-    await postToApi(CHAT_ENDPOINT, { message: textToSend })
+    setIsTyping(true);
+    try {
+      const data = await api.sendChatMessage(textToSend, sessionId, language);
+      handleApiResponse(data);
+    } catch (error) {
+      console.error('Error in API call:', error);
+      const errorMessage = {
+        id: Date.now(),
+        text: "I apologize, but I'm having trouble connecting to the chatbot service. Please try again.",
+        sender: 'ai',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
   }
 
   // --- CHANGED ---
@@ -154,8 +140,22 @@ const Chat = () => {
     }
     setMessages(prev => [...prev, userMessage])
 
-    // Call the /button_click endpoint
-    await postToApi(BUTTON_CLICK_ENDPOINT, { value: buttonValue })
+    setIsTyping(true);
+    try {
+      const data = await api.handleButtonClick(buttonValue, sessionId, language);
+      handleApiResponse(data);
+    } catch (error) {
+      console.error('Error in API call:', error);
+      const errorMessage = {
+        id: Date.now(),
+        text: "I apologize, but I'm having trouble connecting to the chatbot service. Please try again.",
+        sender: 'ai',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
   }
 
   // --- CHANGED ---
@@ -170,9 +170,22 @@ const Chat = () => {
     }
     setMessages(prev => [...prev, userMessage])
 
-    // Call the /select_idea endpoint
-    // Your backend 'select_idea' endpoint expects 'idea_id'
-    await postToApi(SELECT_IDEA_ENDPOINT, { idea_id: ideaId })
+    setIsTyping(true);
+    try {
+      const data = await api.selectIdea(ideaId, sessionId, language);
+      handleApiResponse(data);
+    } catch (error) {
+      console.error('Error selecting idea:', error);
+      const errorMessage = {
+        id: Date.now(),
+        text: "I apologize, but I'm having trouble with that request. Please try again.",
+        sender: 'ai',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
   }
 
   // (Speech recognition, formatTime, speakText, toggleVoiceRecording, toggleTTS functions remain the same)
@@ -407,48 +420,14 @@ const Chat = () => {
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 min-h-0">
-            {messages.map((message) => ( // --- CHANGED --- (removed index, using message.id)
-              <div
-                key={message.id} // Use a unique ID
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`max-w-xs lg:max-w-md xl:max-w-2xl px-4 py-3 rounded-2xl ${
-                  message.sender === 'user' 
-                    ? 'bg-linear-to-r from-primary to-accent text-gray-800' // Your pink/white theme
-                    : 'bg-white text-gray-900 shadow-sm border border-gray-100'
-                }`}>
-                  {/* ... (Your existing message rendering logic with ReactMarkdown) ... */}
-                  {message.sender === 'user' ? (
-                    <p className="text-sm">{message.text}</p>
-                  ) : (
-                    <div className="text-sm prose prose-sm max-w-none">
-                      <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          h1: (props) => <h1 className="text-lg font-bold mt-2 mb-1" {...props} />,
-                          h2: (props) => <h2 className="text-base font-bold mt-2 mb-1" {...props} />,
-                          h3: (props) => <h3 className="text-sm font-bold mt-1 mb-1" {...props} />,
-                          p: (props) => <p className="mb-2" {...props} />,
-                          ul: (props) => <ul className="list-disc list-inside mb-2 space-y-1" {...props} />,
-                          ol: (props) => <ol className="list-decimal list-inside mb-2 space-y-1" {...props} />,
-                          li: (props) => <li className="ml-2" {...props} />,
-                          strong: (props) => <strong className="font-semibold" {...props} />,
-                        }}
-                      >
-                        {message.text}
-                      </ReactMarkdown>
-                    </div>
-                  )}
-                  <p className={`text-xs mt-2 ${
-                    message.sender === 'user' ? 'text-gray-600' : 'text-gray-500'
-                  }`}>
-                    {formatTime(message.timestamp)}
-                  </p>
-                </div>
-              </div>
+            {messages.map((message, index) => (
+              <Message
+                key={index}
+                message={message}
+                onButtonClick={handleButtonClick}
+                onIdeaSelect={handleSelectIdea}
+                language={language}
+              />
             ))}
 
             {isTyping && (
@@ -499,7 +478,7 @@ const Chat = () => {
               >
                 <div className="text-sm font-semibold text-gray-700 mb-2">💡 Business Ideas for You:</div>
                 {ideas.map((idea, index) => (
-                  <div key={idea.id || index} className="bg-linear-to-r from-pink-50 to-purple-50 border-2 border-pink-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-all">
+                  <div key={index} className="bg-linear-to-r from-pink-50 to-purple-50 border-2 border-pink-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-all">
                     {/* ... (Your existing idea rendering JSX) ... */}
                     <div className="flex items-start justify-between mb-3">
                       <h3 className="font-bold text-gray-900 text-lg">{idea.title}</h3>
@@ -510,7 +489,7 @@ const Chat = () => {
                     
                     {/* --- CHANGED --- Call handleSelectIdea with the idea.id */}
                     <button 
-                      onClick={() => handleSelectIdea(idea.id, idea.title)}
+                      onClick={(e) => { e.stopPropagation(); handleSelectIdea(index, idea.title); }}
                       className="mt-3 w-full bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 py-2 rounded-lg font-semibold hover:shadow-md transition-all"
                     >
                       📋 Create Business Plan
