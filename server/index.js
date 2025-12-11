@@ -1,3 +1,4 @@
+/* eslint-env node */
 import dotenv from 'dotenv';
 // IMPORTANT: Configure dotenv FIRST before other imports
 dotenv.config();
@@ -11,7 +12,7 @@ console.log('===================================');
 
 import express from 'express';
 import cors from 'cors';
-import mongoose from 'mongoose';
+import './config/firebase.js'; // Initialize Firebase Admin SDK
 import authRoutes from './routes/auth.js';
 import entrepreneurRoutes from './routes/entrepreneurs.js';
 import mentorRoutes from './routes/mentors.js';
@@ -26,6 +27,7 @@ import mentorGroupRoutes from './routes/mentorGroups.js';
 import groupChatRoutes from './routes/groupChats.js';
 import groupSessionRoutes from './routes/groupSessions.js';
 import investmentProjectRoutes from './routes/investmentProjects.js';
+import matchingRoutes from './routes/matching.js';
 
 import selfHelpGroupRoutes from './routes/selfHelpGroups.js';
 import selfHelpGroupChatRoutes from './routes/selfHelpGroupChats.js';
@@ -41,12 +43,6 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://women:women@cluster0.a770erh.mongodb.net/ai_for_her?retryWrites=true&w=majority&appName=Cluster0";
-
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ Connected to MongoDB Atlas'))
-  .catch((err) => console.error('❌ MongoDB connection error:', err));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -69,6 +65,7 @@ app.use('/api/self-help-group-chats', selfHelpGroupChatRoutes);
 
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/matching', matchingRoutes);
 
 
 // Health check

@@ -24,7 +24,8 @@ const connectionSchema = new mongoose.Schema({
   
   // Ratings
   rating: Number,
-  feedback: String
+  feedback: String,
+  matchScore: { type: Number, default: 0 }
 });
 
 // Compound index for querying connections
