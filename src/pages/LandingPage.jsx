@@ -149,17 +149,39 @@ const LandingPage = () => {
           <div className="flex items-center space-x-4">
             <GoogleTranslate />
             {currentUser ? (
-              <motion.button
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                onClick={() => navigate('/dashboard')}
-                className="text-gray-900 font-semibold hover:text-pink-600 transition-colors"
-              >
-                Dashboard
-              </motion.button>
+              <>
+
+                <motion.button
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  onClick={() => navigate('/aboutus')}
+                  className="text-gray-900 font-semibold hover:text-pink-600 transition-colors"
+                >
+                  About Us
+                </motion.button>
+                <motion.button
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  onClick={() => navigate('/dashboard')}
+                  className="text-gray-900 font-semibold hover:text-pink-600 transition-colors"
+                >
+                  Dashboard
+                </motion.button>
+              </>
             ) : (
               <>
+
+                 <motion.button
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  onClick={() => navigate('/aboutus')}
+                  className="text-gray-900 font-semibold hover:text-pink-600 transition-colors"
+                >
+                  About Us
+                </motion.button>
                 <motion.button
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}

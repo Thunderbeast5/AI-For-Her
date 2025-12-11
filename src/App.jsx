@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import RoleSelection from './pages/RoleSelection'
 import EmailVerification from './pages/EmailVerification'
 import ProtectedRoute from './components/ProtectedRoute'
+import AboutUs from './pages/AboutUs'
 
 // Entrepreneur Pages
 import Chat from './pages/Entrepreneur/Chat'
@@ -50,6 +51,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
             <Route path="/verify-email" element={<EmailVerification />} />
+            <Route path="/aboutus" element={<AboutUs />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
