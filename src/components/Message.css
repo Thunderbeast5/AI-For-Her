@@ -1,0 +1,71 @@
+/* Base message container */
+.message {
+  display: flex;
+  flex-direction: column; /* stack bubble and timestamp vertically */
+  margin-bottom: 0.5rem;
+}
+
+/* Common bubble styling */
+.message-content {
+  max-width: 75%;
+  border-radius: 1rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+/* AI / bot messages: left side */
+.message.ai,
+.message.bot {
+  align-items: flex-start; /* left side */
+}
+
+.message.ai .message-content,
+.message.bot .message-content {
+  background-color: #fdf2f8; /* pink-50 */
+  border: 1px solid #f9a8d4; /* pink-300 */
+  color: #111827; /* gray-900 */
+}
+
+/* User messages: right side */
+.message.user {
+  align-items: flex-end; /* right side */
+}
+
+.message.user .message-content {
+  background: #ec4899; /* pink-500 → pink-300 */
+  color: #fdf2f8; /* very light text */
+}
+
+/* Timestamp below bubbles */
+.message-timestamp {
+  font-size: 0.7rem;
+  color: #9ca3af; /* gray-400 */
+  margin-top: 0.2rem; /* a bit more space but still tight under bubble */
+}
+
+/* Ensure timestamp aligns with its bubble side */
+.message.ai .message-timestamp,
+.message.bot .message-timestamp {
+  text-align: left;
+}
+
+.message.user .message-timestamp {
+  text-align: right;
+}
+
+/* Keep existing rich sections (ideas, schemes, plan) full width inside bot bubble */
+.message.ai .business-ideas,
+.message.bot .business-ideas,
+.message.ai .schemes-section,
+.message.bot .schemes-section,
+.message.ai .business-plan-inline,
+.message.bot .business-plan-inline {
+  margin-top: 0.75rem;
+}
+
+/* Speak button stays under bot bubble */
+.speak-button {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+}
+

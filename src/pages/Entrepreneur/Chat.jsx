@@ -379,10 +379,10 @@ const Chat = () => {
 
   return (
     <DashboardLayout sidebar={sidebar}>
-      <div className="flex flex-col h-[calc(100vh-0px)] -m-6">
+      <div className="flex flex-col h-[calc(89vh-0px)] -m-4">
         <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden min-h-0 shrink-0">
-          {/* Chat Header */}
-          <div className="bg-white border-b border-gray-100 px-6 py-4 shrink-0">
+          {/* Chat Header (fixed at top of chat area) */}
+          <div className="bg-white border-b border-gray-100 px-4 py-3 shrink-0 sticky top-0 z-20">
             {/* ... (Your existing header JSX) ... */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -418,148 +418,150 @@ const Chat = () => {
             </div>
           </div>
 
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 min-h-0">
-            {messages.map((message, index) => (
-              <Message
-                key={index}
-                message={message}
-                onButtonClick={handleButtonClick}
-                onIdeaSelect={handleSelectIdea}
-                language={language}
-              />
-            ))}
+          {/* Scrollable chat content (messages, ideas, buttons, suggestions) */}
+          <div className="flex-1 overflow-y-auto bg-gray-50 min-h-0">
+            <div className="p-4 space-y-3">
+              {messages.map((message, index) => (
+                <Message
+                  key={index}
+                  message={message}
+                  onButtonClick={handleButtonClick}
+                  onIdeaSelect={handleSelectIdea}
+                  language={language}
+                />
+              ))}
 
-            {isTyping && (
-              // ... (Your existing isTyping JSX) ...
-               <div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-start"
-              >
-                <div className="bg-white text-gray-900 shadow-sm border border-gray-100 px-4 py-3 rounded-2xl max-w-xs">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              {isTyping && (
+                // ... (Your existing isTyping JSX) ...
+                <div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-start"
+                >
+                  <div className="bg-white text-gray-900 shadow-sm border border-gray-100 px-4 py-3 rounded-2xl max-w-xs">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Interactive Buttons from Chatbot */}
-            {buttons.length > 0 && (
-              <div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-start"
-              >
-                <div className="flex flex-wrap gap-2 max-w-2xl">
-                  {buttons.map((button, index) => (
-                    <button
-                      key={index}
-                      // --- CHANGED --- Call handleButtonClick with both value and text
-                      onClick={() => handleButtonClick(button.value, button.text)}
-                      className="px-4 py-2 bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 rounded-lg text-sm font-medium hover:shadow-md transition-all duration-200"
-                    >
-                      {button.text}
-                    </button>
+              {/* Interactive Buttons from Chatbot */}
+              {buttons.length > 0 && (
+                <div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-start"
+                >
+                  <div className="flex flex-wrap gap-2 max-w-2xl">
+                    {buttons.map((button, index) => (
+                      <button
+                        key={index}
+                        // --- CHANGED --- Call handleButtonClick with both value and text
+                        onClick={() => handleButtonClick(button.value, button.text)}
+                        className="px-4 py-2 bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 rounded-lg text-sm font-medium hover:shadow-md transition-all duration-200"
+                      >
+                        {button.text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Business Ideas Display */}
+              {ideas.length > 0 && (
+                <div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-3"
+                >
+                  <div className="text-sm font-semibold text-gray-700 mb-2">💡 Business Ideas for You:</div>
+                  {ideas.map((idea, index) => (
+                    <div key={index} className="bg-linear-to-r from-pink-50 to-purple-50 border-2 border-pink-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-all">
+                      {/* ... (Your existing idea rendering JSX) ... */}
+                      <div className="flex items-start justify-between mb-3">
+                        <h3 className="font-bold text-gray-900 text-lg">{idea.title}</h3>
+                        {idea.home_based && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">🏠 Home-based</span>}
+                      </div>
+                      <p className="text-sm text-gray-700 mb-3 leading-relaxed">{idea.description}</p>
+                      {/* ... */}
+
+                      {/* --- CHANGED --- Call handleSelectIdea with the idea.id */}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleSelectIdea(index, idea.title); }}
+                        className="mt-3 w-full bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 py-2 rounded-lg font-semibold hover:shadow-md transition-all"
+                      >
+                        📋 Create Business Plan
+                      </button>
+                    </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Business Ideas Display */}
-            {ideas.length > 0 && (
-              <div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-3"
-              >
-                <div className="text-sm font-semibold text-gray-700 mb-2">💡 Business Ideas for You:</div>
-                {ideas.map((idea, index) => (
-                  <div key={index} className="bg-linear-to-r from-pink-50 to-purple-50 border-2 border-pink-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-all">
-                    {/* ... (Your existing idea rendering JSX) ... */}
-                    <div className="flex items-start justify-between mb-3">
-                      <h3 className="font-bold text-gray-900 text-lg">{idea.title}</h3>
-                      {idea.home_based && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">🏠 Home-based</span>}
+              {/* --- CHANGED --- Added rendering for the business plan */}
+              {plan && <PlanDisplay plan={plan} />}
+
+              {/* Resources Display */}
+              {resources.length > 0 && (
+                // ... (Your existing resources mapping JSX) ...
+                <div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-3"
+                >
+                  <div className="text-sm font-semibold text-gray-700 mb-2">📍 Local Resources Near You:</div>
+                  {resources.map((resource, index) => (
+                    <div key={index} className="bg-white border-l-4 border-pink-300 rounded-lg p-4 shadow-sm">
+                      {/* ... */}
                     </div>
-                    <p className="text-sm text-gray-700 mb-3 leading-relaxed">{idea.description}</p>
-                    {/* ... */}
-                    
-                    {/* --- CHANGED --- Call handleSelectIdea with the idea.id */}
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleSelectIdea(index, idea.title); }}
-                      className="mt-3 w-full bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 py-2 rounded-lg font-semibold hover:shadow-md transition-all"
-                    >
-                      📋 Create Business Plan
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
 
-            {/* --- CHANGED --- Added rendering for the business plan */}
-            {plan && <PlanDisplay plan={plan} />}
+              {/* Government Schemes Display */}
+              {schemes.length > 0 && (
+                // ... (Your existing schemes mapping JSX) ...
+                <div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-3"
+                >
+                  <div className="text-sm font-semibold text-gray-700 mb-2">💰 Government Schemes for You:</div>
+                  {schemes.map((scheme, index) => (
+                    <div key={index} className="bg-linear-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-5 shadow-md">
+                      {/* ... */}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            {/* Resources Display */}
-            {resources.length > 0 && (
-              // ... (Your existing resources mapping JSX) ...
-              <div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-3"
-              >
-                <div className="text-sm font-semibold text-gray-700 mb-2">📍 Local Resources Near You:</div>
-                {resources.map((resource, index) => (
-                  <div key={index} className="bg-white border-l-4 border-pink-300 rounded-lg p-4 shadow-sm">
-                    {/* ... */}
+              {/* Suggested Questions (now inside scrollable area) */}
+              {messages.length === 1 && (
+                // ... (Your existing suggested questions JSX) ...
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-600 mb-3">Try asking:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {suggestedQuestions.map((question, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setInputText(question)}
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        {question}
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              )}
 
-            {/* Government Schemes Display */}
-            {schemes.length > 0 && (
-              // ... (Your existing schemes mapping JSX) ...
-               <div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-3"
-              >
-                <div className="text-sm font-semibold text-gray-700 mb-2">💰 Government Schemes for You:</div>
-                {schemes.map((scheme, index) => (
-                  <div key={index} className="bg-linear-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-5 shadow-md">
-                   {/* ... */}
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
+              <div ref={messagesEndRef} />
+            </div>
           </div>
 
-          {/* Suggested Questions */}
-          {messages.length === 1 && (
-            // ... (Your existing suggested questions JSX) ...
-            <div className="px-6 pb-4 shrink-0 bg-white border-t border-gray-100">
-              <p className="text-sm text-gray-600 mb-3">Try asking:</p>
-              <div className="flex flex-wrap gap-2">
-                {suggestedQuestions.map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setInputText(question)}
-                    className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Input Area */}
-          <div className="bg-white border-t border-gray-100 p-6 shrink-0">
+          <div className="bg-white border-t border-gray-100 px-4 py-3 shrink-0">
             {/* --- CHANGED --- This form now only calls handleSendMessage */}
             <form onSubmit={handleSendMessage} className="flex space-x-4">
               <div className="flex-1 relative">
