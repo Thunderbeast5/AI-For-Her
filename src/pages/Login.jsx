@@ -6,7 +6,7 @@ import GoogleTranslate from '../components/GoogleTranslate';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, resetPassword } = useAuth();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -14,6 +14,7 @@ const Login = () => {
   });
   
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -35,6 +36,7 @@ const Login = () => {
 
     try {
       setError('');
+      setInfo('');
       setLoading(true);
       const userCredential = await login(formData.email, formData.password);
       const user = userCredential.user;
@@ -59,6 +61,24 @@ const Login = () => {
       setError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      setError('Please enter your email address first so we can send a reset link.');
+      return;
+    }
+
+    try {
+      setError('');
+      setInfo('');
+      await resetPassword(formData.email);
+      setInfo('Password reset email sent. Please check your inbox (and spam folder).');
+    } catch (err) {
+      console.error('Reset password error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to send password reset email.';
+      setError(errorMessage);
     }
   };
 
@@ -91,6 +111,13 @@ const Login = () => {
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Info Message */}
+          {info && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-700 text-sm">{info}</p>
             </div>
           )}
 
@@ -128,6 +155,15 @@ const Login = () => {
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all"
                 placeholder="Enter your password"
               />
+              <div className="mt-2 text-right">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-sm text-pink-500 hover:text-pink-600 font-semibold transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
             </div>
 
             {/* Submit Button */}

@@ -6,6 +6,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendEmailVerification,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
@@ -61,6 +62,11 @@ export const AuthProvider = ({ children }) => {
     return signOut(auth);
   };
 
+  // Reset password function
+  const resetPassword = (email) => {
+    return sendPasswordResetEmail(auth, email);
+  };
+
   // Resend verification email
   const resendVerificationEmail = () => {
     if (auth.currentUser) {
@@ -108,6 +114,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     resendVerificationEmail,
     reloadUser, // Expose the reload function
+    resetPassword,
   };
 
   return (
