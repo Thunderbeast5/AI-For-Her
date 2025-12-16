@@ -65,13 +65,6 @@ const Portfolio = () => {
               const investmentAmount = investment.amount;
               const equityPercent = Number(investment.equityPercentage) || 0;
               
-              console.log('Debug investment:', {
-                investmentId: investment.id,
-                amount: investmentAmount,
-                equityPercentage: investment.equityPercentage,
-                parsedEquity: equityPercent
-              });
-              
               let growthRate = 0;
               if (project.fundingPercentage >= 80) {
                 growthRate = 0.15 + (Math.random() * 0.15);
@@ -86,13 +79,6 @@ const Portfolio = () => {
               
               totalInv += investmentAmount;
               totalEq += equityPercent;
-
-              console.log('Debug totals:', {
-                totalInv,
-                totalEq,
-                investmentAmount,
-                equityPercent
-              });
 
               myInvestments.push({
                 investmentId: investment.id,
@@ -131,14 +117,6 @@ const Portfolio = () => {
             activeProjects: uniqueProjects.size,
             totalTransactions: totalTransactions,
             avgInvestment: totalTransactions > 0 ? totalInv / totalTransactions : 0
-          });
-
-          console.log('Final stats:', {
-            totalInv,
-            totalEq,
-            portfolioValue,
-            totalReturns,
-            myInvestmentsCount: myInvestments.length
           });
 
           setLoading(false);

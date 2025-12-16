@@ -229,8 +229,7 @@ const CreateStartup = () => {
       } else {
         // Create new startup
         startupData.createdAt = new Date();
-        const docRef = await addDoc(collection(db, 'startups'), startupData);
-        console.log('Startup created with ID:', docRef.id);
+        await addDoc(collection(db, 'startups'), startupData);
         setMessage('Startup created successfully!');
       }
       

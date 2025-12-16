@@ -3,13 +3,6 @@ import dotenv from 'dotenv';
 // IMPORTANT: Configure dotenv FIRST before other imports
 dotenv.config();
 
-// Debug: Check if .env is loaded
-console.log('=== Environment Variables Debug ===');
-console.log('EMAIL_USER:', process.env.EMAIL_USER);
-console.log('EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '***' : 'undefined');
-console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'defined' : 'undefined');
-console.log('===================================');
-
 import express from 'express';
 import cors from 'cors';
 import './config/firebase.js'; // Initialize Firebase Admin SDK
@@ -74,7 +67,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 
 export default app;

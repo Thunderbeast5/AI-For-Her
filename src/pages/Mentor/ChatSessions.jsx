@@ -25,18 +25,13 @@ const ChatSessions = () => {
   useEffect(() => {
     const fetchContacts = async () => {
       if (!currentUser || !userRole) {
-        console.log('ChatSessions: Waiting for user or role...', { currentUser: !!currentUser, userRole })
         return
       }
-      
-      console.log('ChatSessions: Fetching contacts for', { userId: currentUser.uid, userRole })
       
       try {
         // Query based on user role
         const isMentor = userRole === 'mentor'
         const fieldName = isMentor ? 'mentorId' : 'menteeId'
-        
-        console.log('ChatSessions: Querying connections where', fieldName, '==', currentUser.uid, 'and status == accepted')
         
         const connectionsQuery = query(
           collection(db, 'connections'),
@@ -45,13 +40,11 @@ const ChatSessions = () => {
         )
         
         const connectionsSnapshot = await getDocs(connectionsQuery)
-        console.log('ChatSessions: Found', connectionsSnapshot.size, 'connections')
         
         const contactsMap = new Map() // Use Map to avoid duplicates
         
         for (const connectionDoc of connectionsSnapshot.docs) {
           const connection = connectionDoc.data()
-          console.log('ChatSessions: Processing connection:', connection)
           
           const contactId = isMentor ? connection.menteeId : connection.mentorId
           
@@ -65,7 +58,6 @@ const ChatSessions = () => {
           const contactDoc = await getDoc(doc(db, 'users', contactId))
           if (contactDoc.exists()) {
             const contactData = contactDoc.data()
-            console.log('ChatSessions: Found contact profile:', contactData)
             
             contactsMap.set(contactId, {
               id: contactId,
@@ -77,13 +69,11 @@ const ChatSessions = () => {
               unreadCount: 0
             })
           } else {
-            console.log('ChatSessions: Contact profile not found for:', contactId)
           }
         }
         
         // Convert Map to array
         const contactsList = Array.from(contactsMap.values())
-        console.log('ChatSessions: Final contacts list:', contactsList)
         setContacts(contactsList)
       } catch (error) {
         console.error('ChatSessions: Error fetching contacts:', error)

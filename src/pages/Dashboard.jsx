@@ -11,21 +11,15 @@ const Dashboard = () => {
 
   // Determine user role and set loading state
   useEffect(() => {
-    console.log('🎯 Dashboard useEffect - userRole:', userRole, 'currentUser:', currentUser)
-    
     if (userRole) {
-      console.log('✅ Using userRole from context:', userRole)
       setRole(userRole)
       setLoading(false)
     } else if (currentUser) {
       // Use role from currentUser or localStorage
       const storedRole = localStorage.getItem('userRole')
-      console.log('📦 Stored role from localStorage:', storedRole)
-      console.log('👤 Role from currentUser:', currentUser.role)
       setRole(storedRole || currentUser.role || 'entrepreneur')
       setLoading(false)
     } else {
-      console.log('⚠️ No userRole or currentUser')
       setLoading(false)
     }
   }, [currentUser, userRole])
@@ -42,20 +36,15 @@ const Dashboard = () => {
   }
 
   // Render appropriate dashboard based on role
-  console.log('🎨 Rendering dashboard for role:', role)
-  
   if (role === 'mentor') {
-    console.log('👨‍🏫 Rendering MentorDashboard')
     return <MentorDashboard />
   }
 
   if (role === 'investor') {
-    console.log('💰 Rendering InvestorDashboard')
     return <InvestorDashboard />
   }
 
   // Default to entrepreneur dashboard
-  console.log('🚀 Rendering EntrepreneurDashboard (default)')
   return <EntrepreneurDashboard />
 }
 

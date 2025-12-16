@@ -1430,7 +1430,6 @@ className={`w-full py-2 ${primaryButtonClass} flex items-center justify-center s
                         <>
                           <button
                             onClick={() => {
-                              console.log('💬 Chat button clicked for connection:', connection.id);
                               openChat(connection);
                             }}
                             className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 px-4 rounded-lg font-semibold transition mb-2"

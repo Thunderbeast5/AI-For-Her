@@ -236,32 +236,55 @@ const EntrepreneurDashboard = () => {
       try {
         setUserData(currentUser);
 
-        // Fetch startups
-        const startupsQuery = query(collection(db, 'startups'), where('userId', '==', currentUser.uid));
-        const startupsSnapshot = await getDocs(startupsQuery);
+        // Prepare queries
+        const startupsQuery = query(
+          collection(db, 'startups'),
+          where('userId', '==', currentUser.uid)
+        );
+        const connectionsQuery = query(
+          collection(db, 'connections'),
+          where('menteeId', '==', currentUser.uid),
+          where('status', 'in', ['active', 'completed'])
+        );
+        const groupsQuery = query(
+          collection(db, 'mentorGroups'),
+          where('participants', 'array-contains', currentUser.uid)
+        );
+        const sessionsQuery = query(
+          collection(db, 'groupSessions'),
+          where('participants', 'array-contains', currentUser.uid)
+        );
+        const investmentProjectsQuery = query(
+          collection(db, 'investment-projects'),
+          where('userId', '==', currentUser.uid)
+        );
+
+        // Run Firestore reads in parallel
+        const [
+          startupsSnapshot,
+          connectionsSnapshot,
+          groupsSnapshot,
+          sessionsSnapshot,
+          investmentProjectsSnapshot,
+        ] = await Promise.all([
+          getDocs(startupsQuery),
+          getDocs(connectionsQuery),
+          getDocs(groupsQuery),
+          getDocs(sessionsQuery),
+          getDocs(investmentProjectsQuery),
+        ]);
+
         const startups = startupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setMyStartups(startups);
 
-        // Fetch connections
-        const connectionsQuery = query(collection(db, 'connections'), where('menteeId', '==', currentUser.uid), where('status', 'in', ['active', 'completed']));
-        const connectionsSnapshot = await getDocs(connectionsQuery);
         const mentorConnectionsCount = connectionsSnapshot.size;
 
-        // Fetch groups
-        const groupsQuery = query(collection(db, 'mentorGroups'), where('participants', 'array-contains', currentUser.uid));
-        const groupsSnapshot = await getDocs(groupsQuery);
         const freeGroups = groupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setMyFreeGroups(freeGroups);
 
-        // Fetch sessions
-        const sessionsQuery = query(collection(db, 'groupSessions'), where('participants', 'array-contains', currentUser.uid));
-        const sessionsSnapshot = await getDocs(sessionsQuery);
         const groupSessions = sessionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setMyGroupSessions(groupSessions);
 
-        // Fetch investment projects
-        const investmentProjectsQuery = query(collection(db, 'investment-projects'), where('userId', '==', currentUser.uid));
-        const investmentProjectsSnapshot = await getDocs(investmentProjectsQuery);
         const projects = investmentProjectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setInvestmentProjects(projects);
 
@@ -443,17 +466,11 @@ const EntrepreneurDashboard = () => {
             Create New +
           </button>
         </div>
-        
-        {console.log('🎨 Rendering startups section, myStartups.length:', myStartups.length)}
-        {console.log('🎨 myStartups:', myStartups)}
-        
+
         {myStartups.length > 0 ? (
           <div className="space-y-4">
-            {console.log('✨ Rendering startup cards...')}
-            {(showAllStartups ? myStartups : myStartups.slice(0, 1)).map((startup, index) => {
-              console.log(`📇 Rendering card ${index}:`, startup.name, 'ID:', startup._id || startup.id)
-              return (
-              <div 
+            {(showAllStartups ? myStartups : myStartups.slice(0, 1)).map((startup) => (
+              <div
                 key={startup._id || startup.id}
                 className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer"
                 onClick={() => setSelectedStartup(startup)}
@@ -519,7 +536,7 @@ const EntrepreneurDashboard = () => {
                       <p className="text-sm text-gray-800">{startup.targetMarket}</p>
                     </div>
                   )}
-                  
+
                   {startup.fundingGoal && (
                     <div className="bg-gray-50 rounded-lg p-3">
                       <div className="flex items-center gap-2 text-gray-600 mb-1">
@@ -529,7 +546,7 @@ const EntrepreneurDashboard = () => {
                       <p className="text-sm text-gray-800">₹{startup.fundingGoal.toLocaleString()}</p>
                     </div>
                   )}
-                  
+
                   {startup.teamSize && (
                     <div className="bg-gray-50 rounded-lg p-3">
                       <div className="flex items-center gap-2 text-gray-600 mb-1">
@@ -549,7 +566,7 @@ const EntrepreneurDashboard = () => {
                       <p className="text-sm text-blue-800 mt-1">{startup.revenueModel}</p>
                     </div>
                   )}
-                  
+
                   {startup.uniqueSellingPoint && (
                     <div className="bg-purple-50 rounded-lg p-3">
                       <span className="text-xs font-semibold text-purple-900">USP</span>
@@ -613,8 +630,8 @@ const EntrepreneurDashboard = () => {
                   </button>
                 </div>
               </div>
-            )}
-          )}
+            ))}
+
             {myStartups.length > 1 && (
               <div className="pt-4 flex justify-center">
                 <button
@@ -628,7 +645,6 @@ const EntrepreneurDashboard = () => {
           </div>
         ) : (
           <div className="text-center py-12">
-            {console.log('❌ Showing empty state, myStartups.length:', myStartups.length)}
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <SparklesIcon className="w-10 h-10 text-gray-400" />
             </div>
@@ -658,9 +674,6 @@ const EntrepreneurDashboard = () => {
             List New Project +
           </button>
         </div>
-        
-        {console.log('💰 Rendering investment projects section, length:', investmentProjects.length)}
-        {console.log('💰 Investment projects data:', investmentProjects)}
         
         {investmentProjects.length > 0 ? (
           <div className="space-y-4">

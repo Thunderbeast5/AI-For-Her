@@ -63,12 +63,23 @@ const calculateMatchScore = (entrepreneur, mentor) => {
 };
 
 export const findMatches = async (entrepreneurId) => {
-  const entrepreneur = await Entrepreneur.findOne({ userId: entrepreneurId });
+  const entrepreneur = await Entrepreneur.findOne({ userId: entrepreneurId }).lean();
   if (!entrepreneur) {
     throw new Error('Entrepreneur not found');
   }
 
-  const mentors = await Mentor.find({ availability: true });
+  const mentors = await Mentor.find(
+    { availability: true },
+    {
+      sector: 1,
+      expertiseAreas: 1,
+      experience: 1,
+      specializations: 1,
+      languages: 1,
+      location: 1,
+      rating: 1,
+    }
+  ).lean();
 
   const matches = mentors.map(mentor => ({
     mentor,

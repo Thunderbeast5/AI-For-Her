@@ -63,8 +63,6 @@ const Profile = () => {
           const userDoc = await getDoc(userDocRef);
           const data = userDoc.data();
           
-          console.log('Profile data loaded from MongoDB:', data);
-          
           // Ensure nested objects exist
           const completeData = {
             ...data,
@@ -85,8 +83,6 @@ const Profile = () => {
               website: ''
             }
           };
-          
-          console.log('Complete profile data:', completeData);
           setProfileData(completeData);
           setOriginalData(completeData);
         } catch (error) {
@@ -148,12 +144,8 @@ const Profile = () => {
         updatedAt: new Date()
       };
       
-      console.log('Saving profile data to MongoDB:', dataToSave);
-      console.log('User ID:', currentUser.uid, 'Role:', userRole);
-      
       await setDoc(doc(db, 'users', currentUser.uid), dataToSave, { merge: true });
       
-      console.log('Profile data saved successfully');
       setOriginalData(profileData); // Update original data after successful save
       setIsEditing(false); // Exit edit mode
       setMessage('Profile updated successfully! ');
@@ -179,10 +171,8 @@ const Profile = () => {
   };
 
   const handleInputChange = (field, value) => {
-    console.log(`Updating field: ${field} with value:`, value);
     setProfileData(prev => {
       const updated = { ...prev, [field]: value };
-      console.log('Updated profileData:', updated);
       return updated;
     });
   };
