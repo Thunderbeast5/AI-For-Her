@@ -21,14 +21,7 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
   
-  // Check if email is verified (Firebase property)
-  // Add a small delay to ensure Firebase auth state is fully loaded
-  if (currentUser && !currentUser.emailVerified) {
-    // Redirect to email verification page if email is not verified
-    return <Navigate to="/verify-email" replace />;
-  }
-  
-  // Render the protected component if user is authenticated and verified
+  // Render the protected component if user is authenticated
   return children;
 };
 

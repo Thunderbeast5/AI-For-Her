@@ -5,7 +5,6 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  sendEmailVerification,
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -29,9 +28,6 @@ export const AuthProvider = ({ children }) => {
       email,
       role,
     });
-
-    // Send verification email
-    await sendEmailVerification(user);
 
     // Manually set user role for immediate use
     setUserRole(role);
@@ -67,23 +63,6 @@ export const AuthProvider = ({ children }) => {
     return sendPasswordResetEmail(auth, email);
   };
 
-  // Resend verification email
-  const resendVerificationEmail = () => {
-    if (auth.currentUser) {
-      return sendEmailVerification(auth.currentUser);
-    }
-    throw new Error('No user is currently signed in.');
-  };
-
-  // Force reload of user to get latest state (e.g., emailVerified)
-  const reloadUser = async () => {
-    if (auth.currentUser) {
-      await auth.currentUser.reload();
-      // onAuthStateChanged will handle updating the state
-      setCurrentUser({ ...auth.currentUser }); // Trigger re-render
-    }
-  };
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -112,8 +91,6 @@ export const AuthProvider = ({ children }) => {
     signup,
     login,
     logout,
-    resendVerificationEmail,
-    reloadUser, // Expose the reload function
     resetPassword,
   };
 

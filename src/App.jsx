@@ -5,7 +5,6 @@ import Dashboard from './pages/Dashboard'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
 import RoleSelection from './pages/RoleSelection'
-import EmailVerification from './pages/EmailVerification'
 import ProtectedRoute from './components/ProtectedRoute'
 import AboutUs from './pages/AboutUs'
 
@@ -50,7 +49,6 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/verify-email" element={<EmailVerification />} />
             <Route path="/aboutus" element={<AboutUs />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>

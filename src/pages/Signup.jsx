@@ -144,8 +144,8 @@ const Signup = () => {
         selectedRole
       );
       
-      // Redirect to email verification page
-      navigate('/verify-email');
+      // Redirect to dashboard after successful signup
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to create an account');
     } finally {
