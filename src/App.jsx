@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
+import GetStarted from './pages/GetStarted'
 import RoleSelection from './pages/RoleSelection'
 import ProtectedRoute from './components/ProtectedRoute'
 import AboutUs from './pages/AboutUs'
@@ -49,6 +50,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/get-started" element={<GetStarted />} />
             <Route path="/aboutus" element={<AboutUs />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>

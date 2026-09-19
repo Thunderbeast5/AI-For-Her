@@ -3,10 +3,14 @@ import { Link } from 'react-router-dom'
 import { db } from '../../firebase';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { ShoppingCartIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import heroFactoryWorkers from '../../assets/storefront/store-hero-1.jpg'
-import heroWomenAtWork from '../../assets/storefront/store-hero-2.jpg'
-import heroWomenAtWork1 from '../../assets/storefront/store-hero-3.jpeg'
-import logo from '../../../logo1.png'
+
+import heroFactoryWorkers from '../../assets/storefront/store-hero-1.png'
+import heroWomenAtWork from '../../assets/storefront/store-hero-2.png'
+import heroWomenAtWork1 from '../../assets/storefront/store-hero-3.png'
+
+// Updated Logos
+import logo from '../../assets/bg.png'
+import wordmark from '../../assets/text.png'
 
 const categoriesList = [
   'Clothing',
@@ -48,12 +52,10 @@ const EnterpriseStorefront = () => {
   const [checkingOut, setCheckingOut] = useState(false)
   const [orderNumber, setOrderNumber] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
-  // Removed [minPrice, setMinPrice] and [maxPrice, setMaxPrice] states
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [carouselIndex, setCarouselIndex] = useState(0)
   const [showSearchInput, setShowSearchInput] = useState(false) 
 
-  // Refs for scrolling
   const bestSellersRef = useRef(null)
   const newArrivalsRef = useRef(null)
   const searchInputRef = useRef(null) 
@@ -77,7 +79,6 @@ const EnterpriseStorefront = () => {
     loadProducts()
   }, [])
   
-  // Effect to focus on the search input when it becomes visible
   useEffect(() => {
     if (showSearchInput && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -190,7 +191,7 @@ const EnterpriseStorefront = () => {
       return
     }
     setCheckingOut(true)
-        setOrderNumber('')
+    setOrderNumber('')
 
     try {
       const fullName = `${customerDetails.firstName} ${customerDetails.lastName}`.trim()
@@ -219,7 +220,7 @@ const EnterpriseStorefront = () => {
           method: paymentMethod,
         },
       }
-            // Get owner IDs from the products in the cart
+      
       const productIds = cartItems.map(item => item.id);
       const productsRef = collection(db, 'products');
       const q = query(productsRef, where('__name__', 'in', productIds));
@@ -261,24 +262,14 @@ const EnterpriseStorefront = () => {
     )
   }
 
-  // Categories derived from products
-  const productCategories = useMemo(() => {
-    const set = new Set()
-    products.forEach((p) => {
-      if (p.category) set.add(p.category)
-    })
-    return Array.from(set)
-  }, [products])
-
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const nameMatch = p.name?.toLowerCase().includes(searchTerm.toLowerCase())
-      // Price filtering logic removed as requested
       const categoryOk =
         selectedCategory === 'all' || !selectedCategory
           ? true
           : p.category === selectedCategory
-      return nameMatch && categoryOk // Filter only by name and category
+      return nameMatch && categoryOk
     })
   }, [products, searchTerm, selectedCategory])
 
@@ -298,29 +289,22 @@ const EnterpriseStorefront = () => {
       return sorted.slice(0, 3);
   }, [products]);
 
-  // Static hero images for the top carousel (using provided local images)
   const heroImages = [
     heroFactoryWorkers,
     heroWomenAtWork,
     heroWomenAtWork1
-     // repeat to keep three slides; replace with a third image if desired
   ]
  
-  // Auto-advance hero carousel
   useEffect(() => {
     if (!heroImages.length) return;
-
     const intervalId = setInterval(() => {
       setCarouselIndex((prev) =>
         prev === heroImages.length - 1 ? 0 : prev + 1
       )
     }, 6000)
-
     return () => clearInterval(intervalId)
   }, [heroImages.length])
   
-  // Scroll handlers
-  // Adjusted offset for the taller header (h-20 is 80px)
   const scrollToSection = (ref) => {
       if (ref.current) {
           ref.current.scrollIntoView({ behavior: 'smooth', block: 'start', offset: -80 }); 
@@ -328,37 +312,38 @@ const EnterpriseStorefront = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* --- Updated Header/Navbar Section (Increased height: h-20) --- */}
-      <header className="w-full bg-pink-300 shadow-md fixed top-0 z-40">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20"> {/* Increased height */}
+    <div className="min-h-screen bg-[#fffdf9] font-sans">
+      {/* --- Themed Header --- */}
+      <header className="w-full bg-[#fffdf9]/95 backdrop-blur-md border-b border-[#e8dcc4] shadow-sm fixed top-0 z-40 transition-all">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12">
+          <div className="flex justify-between items-center h-20">
             
-            {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2">
-              <img
-                src={logo}
-                alt="Pratibhara logo"
-                className="h-24 md:h-24 w-auto"
-              />
+            {/* Themed Logo */}
+            <Link to="/" className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
+              <img src={logo} alt="Pratibhara emblem" className="h-12 w-auto object-contain" />
+              <img src={wordmark} alt="Pratibhara" className="h-9 w-auto object-contain" />
             </Link>
 
             {/* Navigation Links */}
-            <nav className="hidden md:flex space-x-10 items-center">
-              <Link to="/" className="text-base font-medium text-gray-700 hover:text-pink-600 transition-colors py-2">
+            <nav className="hidden md:flex space-x-8 items-center">
+              <Link
+                to="/"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="text-sm font-bold uppercase tracking-widest text-[#3b1f16] hover:text-[#efb84a] transition-colors py-2"
+              >
                 Home
               </Link>
               
               {/* Category Dropdown */}
               <div className="relative group">
-                <span className="text-base font-medium text-gray-700 hover:text-pink-600 transition-colors py-2 cursor-pointer">
+                <span className="text-sm font-bold uppercase tracking-widest text-[#3b1f16] hover:text-[#efb84a] transition-colors py-2 cursor-pointer">
                     Shop By Category
                 </span>
-                <div className="absolute left-0 mt-2 hidden group-hover:block w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                    <div className="py-1">
+                <div className="absolute left-0 mt-2 hidden group-hover:block w-56 rounded-xl shadow-[0_10px_40px_rgba(59,31,22,0.1)] bg-white border border-[#e8dcc4] z-50 overflow-hidden">
+                    <div className="py-2">
                         <span 
                             onClick={() => {setSelectedCategory('all'); document.getElementById('shop-by-category').scrollIntoView({ behavior: 'smooth', block: 'start', offset: -80 });}} 
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 cursor-pointer"
+                            className="block px-5 py-2.5 text-sm font-medium text-[#3b1f16] hover:bg-[#efb84a]/10 hover:text-[#d99a2b] cursor-pointer transition-colors"
                         >
                             All Products
                         </span>
@@ -366,7 +351,7 @@ const EnterpriseStorefront = () => {
                             <span 
                                 key={cat}
                                 onClick={() => {setSelectedCategory(cat); document.getElementById('shop-by-category').scrollIntoView({ behavior: 'smooth', block: 'start', offset: -80 });}} 
-                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 cursor-pointer"
+                                className="block px-5 py-2.5 text-sm font-medium text-[#3b1f16] hover:bg-[#efb84a]/10 hover:text-[#d99a2b] cursor-pointer transition-colors"
                             >
                                 {cat}
                             </span>
@@ -377,46 +362,41 @@ const EnterpriseStorefront = () => {
 
               <button
                 onClick={() => scrollToSection(newArrivalsRef)}
-                className="text-base font-medium text-gray-700 hover:text-pink-600 transition-colors py-2"
+                className="text-sm font-bold uppercase tracking-widest text-[#3b1f16] hover:text-[#efb84a] transition-colors py-2"
               >
                 New Arrivals
               </button>
               <button
                 onClick={() => scrollToSection(bestSellersRef)}
-                className="text-base font-medium text-gray-700 hover:text-pink-600 transition-colors py-2"
+                className="text-sm font-bold uppercase tracking-widest text-[#3b1f16] hover:text-[#efb84a] transition-colors py-2"
               >
                 Bestsellers
               </button>
-              {/* <Link to="/reviews" className="text-base font-medium text-gray-700 hover:text-pink-600 transition-colors py-2">
-                Reviews
-              </Link> */}
             </nav>
 
             {/* Icons: Search & Cart */}
-            <div className="flex items-center space-x-4">
-              {/* Search Icon (Toggle Input Visibility) */}
+            <div className="flex items-center space-x-6">
               <button
                 type="button"
                 onClick={() => setShowSearchInput(prev => !prev)}
-                className="text-gray-700 hover:text-pink-600 transition-colors p-2 rounded-full hover:bg-pink-100"
+                className="text-[#3b1f16] hover:text-[#d99a2b] transition-colors p-2"
                 aria-label="Search"
               >
-                <MagnifyingGlassIcon className="w-6 h-6" /> {/* Increased size */}
+                <MagnifyingGlassIcon className="w-6 h-6 stroke-2" /> 
               </button>
 
-              {/* Cart Icon */}
               <button
                 type="button"
                 onClick={() => {
                   setShowCheckout(true)
                   setCheckoutStep('cart')
                 }}
-                className="relative p-3 text-white bg-pink-500 hover:bg-pink-600 transition-colors rounded-full"
+                className="relative p-2 text-[#3b1f16] hover:text-[#d99a2b] transition-colors"
                 aria-label="Shopping Cart"
               >
-                <ShoppingCartIcon className="w-6 h-6" /> {/* Increased size */}
+                <ShoppingCartIcon className="w-7 h-7 stroke-2" /> 
                 {cartItems.length > 0 && (
-                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] rounded-full bg-red-600 text-white font-bold leading-none">
+                  <span className="absolute top-0 -right-1 w-5 h-5 flex items-center justify-center text-[10px] rounded-full bg-[#6f1d1b] text-white font-bold shadow-sm">
                     {cartItems.length}
                   </span>
                 )}
@@ -426,37 +406,39 @@ const EnterpriseStorefront = () => {
         </div>
       </header>
       
-      {/* Main Content Container: Adjusted padding for taller header (h-20 is pt-20) */}
+      {/* Main Content Container */}
       <div className="pt-20"> 
         
-        {/* --- Hero Carousel Section (Full Width) using 3 static images --- */}
+        {/* --- Hero Carousel --- */}
         {heroImages.length > 0 && (
-          <section className="mb-10 relative w-full overflow-hidden shadow-xl">
-            <div className="relative w-full h-[600px]"> {/* Increased height */}
+          <section className="mb-0 relative w-full overflow-hidden">
+            <div className="relative w-full h-[84vh] min-h-[590px] max-h-[840px]"> 
               <img
+                key={carouselIndex}
                 src={heroImages[carouselIndex]}
                 alt={`Pratibhara hero ${carouselIndex + 1}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover hero-image-transition"
               />
               
-              <div className="absolute inset-0 bg-black/20"></div> 
+              {/* Warm Themed Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-l from-[#3b1f16]/80 via-[#3b1f16]/40 to-transparent"></div> 
 
               <div className="absolute inset-0 flex items-center">
-                <div className="max-w-6xl mx-auto px-6 lg:px-12">
-                  <div key={carouselIndex} className="hero-slide-in max-w-xl text-white">
-                    <p className="text-xs md:text-sm uppercase tracking-[0.25em] text-pink-200 mb-2">
-                      Pratibhara Store
+                <div className="max-w-7xl mx-auto px-6 lg:px-12 w-full">
+                  <div key={carouselIndex} className="max-w-5xl ml-auto text-right text-[#fdf9f1] hero-slide-in">
+                    <p className="text-xs md:text-sm uppercase font-bold tracking-[0.25em] text-[#efb84a] mb-4">
+                      Pratibhara Storefront
                     </p>
-                    <h1 className="text-2xl md:text-4xl font-bold mb-2 leading-snug drop-shadow">
+                    <h1 className="max-w-5xl text-balance text-4xl md:text-6xl font-normal italic font-playfair mb-6 leading-tight tracking-tight drop-shadow-md">
                       Support women-led businesses with every purchase.
                     </h1>
-                    <p className="text-sm md:text-base text-pink-50 mb-4 max-w-lg drop-shadow">
-                      Discover hand-crafted products, wellness essentials, and forest-to-table goodness curated from women entrepreneurs across India.
+                    <p className="text-lg md:text-xl text-[#e8dcc4] mb-8 max-w-lg ml-auto leading-relaxed">
+                      Discover hand-crafted products, wellness essentials, and curated goods from women entrepreneurs across India.
                     </p>
                     <button
                       type="button"
-                      onClick={() => bestSellersRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                      className="inline-flex items-center px-5 py-2.5 rounded-full bg-pink-500 hover:bg-pink-600 text-base font-medium shadow-lg shadow-pink-500/30 transition-colors"
+                      onClick={() => bestSellersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start', offset: -100 })}
+                      className="border-4 border-[#3b1f16] bg-gradient-to-b from-[#efb84a] to-[#d99a2b] text-[#3b1f16] px-8 py-3 rounded-full font-bold uppercase tracking-[0.12em] shadow-[0_5px_0_#3b1f16] transition-all hover:from-[#f6c967] hover:to-[#efb84a] hover:-translate-y-0.5 hover:shadow-[0_7px_0_#3b1f16] active:translate-y-1 active:shadow-[0_1px_0_#3b1f16]"
                     >
                       Shop Bestsellers
                     </button>
@@ -464,43 +446,17 @@ const EnterpriseStorefront = () => {
                 </div>
               </div>
 
-              {/* Left arrow */}
-              <button
-                type="button"
-                onClick={() =>
-                  setCarouselIndex((prev) =>
-                    prev === 0 ? heroImages.length - 1 : prev - 1
-                  )
-                }
-                className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/70 flex items-center justify-center text-gray-900 shadow-lg hover:bg-white transition-opacity text-xl font-bold"
-              >
-                ‹
-              </button>
-
-              {/* Right arrow */}
-              <button
-                type="button"
-                onClick={() =>
-                  setCarouselIndex((prev) =>
-                    prev === heroImages.length - 1 ? 0 : prev + 1
-                  )
-                }
-                className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/70 flex items-center justify-center text-gray-900 shadow-lg hover:bg-white transition-opacity text-xl font-bold"
-              >
-                ›
-              </button>
-
-              {/* Dots */}
-              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-3">
+              {/* Navigation Dots */}
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-20">
                 {heroImages.map((_, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setCarouselIndex(idx)}
-                    className={`h-2.5 rounded-full transition-all ${
+                    className={`h-2 rounded-full transition-all duration-300 ${
                       idx === carouselIndex
-                        ? 'w-7 bg-pink-500'
-                        : 'w-2.5 bg-white/70 hover:bg-pink-100'
+                        ? 'w-10 bg-[#efb84a]'
+                        : 'w-2 bg-[#fdf9f1]/50 hover:bg-[#efb84a]/80'
                     }`}
                   />
                 ))}
@@ -509,257 +465,231 @@ const EnterpriseStorefront = () => {
           </section>
         )}
 
-        {/* Brand marquee ticker */}
-        <section className="marquee-strip bg-white">
-          <div className="marquee-content">
-            <span>Hand-crafted by women-led enterprises</span>
-            <span className="text-pink-300">●</span>
-            <span>Pure forest-to-table goodness</span>
-            <span className="text-pink-300">●</span>
-            <span>Every purchase supports livelihoods</span>
-            <span className="text-pink-300">●</span>
-            <span>Hand-crafted by women-led enterprises</span>
-            <span className="text-pink-300">●</span>
-            <span>Pure forest-to-table goodness</span>
-            <span className="text-pink-300">●</span>
-            <span>Every purchase supports livelihoods</span>
+        {/* Themed Marquee Ticker */}
+        <section className="bg-[#3b1f16] text-[#e8dcc4] py-3 text-sm tracking-[0.2em] uppercase font-bold overflow-hidden shadow-inner">
+          <div className="marquee-track">
+            <div className="marquee-group">
+              <span>Hand-crafted by women-led enterprises</span>
+              <span className="text-[#efb84a]">✦</span>
+              <span>Quality curated goods</span>
+              <span className="text-[#efb84a]">✦</span>
+              <span>Every purchase supports livelihoods</span>
+              <span className="text-[#efb84a]">✦</span>
+            </div>
+            <div className="marquee-group" aria-hidden="true">
+              <span>Hand-crafted by women-led enterprises</span>
+              <span className="text-[#efb84a]">✦</span>
+              <span>Quality curated goods</span>
+              <span className="text-[#efb84a]">✦</span>
+              <span>Every purchase supports livelihoods</span>
+              <span className="text-[#efb84a]">✦</span>
+            </div>
           </div>
         </section>
         
-        {/* --- Search Input Bar (Shown when icon is clicked) --- */}
-        {showSearchInput && (
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
-                <div className="flex items-center p-3 bg-white rounded-xl shadow-lg border border-pink-200">
-                    <input
-                        ref={searchInputRef}
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Type to search products..."
-                        className="flex-1 px-2 py-2 border-none focus:outline-none text-base"
-                    />
-                    <button
-                        type="button"
-                        onClick={() => setSearchTerm('')}
-                        className="text-gray-400 hover:text-pink-600 ml-2"
-                    >
-                        Clear
-                    </button>
-                </div>
-            </div>
-        )}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-12 space-y-16">
 
-        {/* --- Main Content area with max-width --- */}
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          {/* Search Input Bar */}
+          {showSearchInput && (
+              <div className="mb-6 transform transition-all">
+                  <div className="flex items-center p-2 bg-white rounded-2xl shadow-[0_8px_30px_rgba(59,31,22,0.08)] border border-[#e8dcc4]">
+                      <MagnifyingGlassIcon className="w-5 h-5 text-[#3b1f16] ml-3 opacity-50" />
+                      <input
+                          ref={searchInputRef}
+                          type="text"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          placeholder="Search for products..."
+                          className="flex-1 px-4 py-3 border-none focus:outline-none text-[#3b1f16] bg-transparent font-medium"
+                      />
+                      <button
+                          type="button"
+                          onClick={() => {setSearchTerm(''); setShowSearchInput(false);}}
+                          className="px-4 py-2 text-sm font-bold text-[#6f1d1b] hover:bg-[#6f1d1b]/10 rounded-xl transition-colors"
+                      >
+                          Close
+                      </button>
+                  </div>
+              </div>
+          )}
 
-            {/* --- Shop By Category (Filter buttons using product categories) --- */}
-            {/* {productCategories.length > 0 && (
-            <section id="shop-by-category" className="mb-8 pt-4"> 
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Shop By Category</h2>
-                <div className="flex gap-4 overflow-x-auto pb-2">
-                <button
-                    type="button"
-                    onClick={() => setSelectedCategory('all')}
-                    className={`px-4 py-2 rounded-full border text-base font-medium whitespace-nowrap transition-colors ${
-                    selectedCategory === 'all'
-                        ? 'bg-pink-500 text-white border-pink-500 shadow-md'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-pink-50'
-                    }`}
-                >
-                    All Products
-                </button>
-                {productCategories.map((cat) => (
-                    <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-2 rounded-full border text-base font-medium whitespace-nowrap transition-colors ${
-                        selectedCategory === cat
-                        ? 'bg-pink-500 text-white border-pink-500 shadow-md'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-pink-50'
-                    }`}
-                    >
-                    {cat}
-                    </button>
-                ))}
-                </div>
-            </section>
-            )} */}
+          {/* New Arrivals Section */}
+          {!loading && newArrivals.length > 0 && (
+          <section ref={newArrivalsRef}>
+              <div className="flex items-center gap-4 mb-8">
+                <h2 className="text-3xl md:text-4xl font-normal italic font-playfair text-[#6f1d1b] tracking-tight">New Arrivals</h2>
+                <div className="h-px bg-[#e8dcc4] flex-grow"></div>
+              </div>
 
-            {/* Filter by Price section has been removed here. */}
-
-            {/* --- New Arrivals Section --- */}
-            {!loading && newArrivals.length > 0 && (
-            <section ref={newArrivalsRef} className="mb-10 pt-4">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">New Arrivals</h2>
-                <div className="flex gap-5 overflow-x-auto pb-2">
-                {newArrivals.map((p) => (
-                    <div
-                    key={`new-${p._id || p.id}`}
-                    className="min-w-[280px] w-72 bg-white border border-pink-200 rounded-xl shadow-lg overflow-hidden flex flex-col hover:shadow-xl transition-shadow"
-                    >
+              <div className="flex gap-6 overflow-x-auto pb-6 snap-x">
+              {newArrivals.map((p) => (
+                  <div
+                  key={`new-${p._id || p.id}`}
+                  className="snap-start min-w-[300px] w-80 bg-white border border-[#e8dcc4] rounded-3xl shadow-[0_8px_24px_rgba(59,31,22,0.04)] overflow-hidden flex flex-col hover:shadow-[0_12px_40px_rgba(59,31,22,0.1)] hover:-translate-y-1 transition-all duration-300"
+                  >
+                  <div className="relative h-56 bg-[#fdf9f1] p-4">
                     {p.imageUrl ? (
-                        <img
-                        src={p.imageUrl}
-                        alt={p.name}
-                        className="w-full h-40 object-cover"
-                        />
+                        <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover rounded-xl" />
                     ) : (
-                        <div className="w-full h-40 bg-gray-100 flex items-center justify-center text-gray-400">No Image</div>
+                        <div className="w-full h-full rounded-xl bg-[#e8dcc4]/30 flex items-center justify-center text-[#3b1f16]/40 font-medium">No Image</div>
                     )}
-                    <div className="p-4 flex-1 flex flex-col">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">{p.name}</h3>
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{p.description}</p>
-                        <div className="mt-auto flex items-center justify-between">
-                        <span className="text-pink-600 font-bold text-lg">₹{p.price}</span>
-                        <button
-                            type="button"
-                            onClick={() => handleAddToCart(p)}
-                            className="px-4 py-2 text-base font-medium rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors shadow-md"
-                        >
-                            Add to Cart
-                        </button>
-                        </div>
-                    </div>
-                    </div>
-                ))}
-                </div>
-            </section>
-            )}
+                    <span className="absolute top-6 left-6 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full bg-white text-[#3b1f16] shadow-sm">New</span>
+                  </div>
 
-            {/* --- Best Sellers Section --- */}
-            {!loading && bestSellers.length > 0 && (
-            <section ref={bestSellersRef} className="mb-10 pt-4">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">⭐ Bestsellers</h2>
-                <div className="flex gap-5 overflow-x-auto pb-2">
-                {bestSellers.map((p) => (
-                    <div
-                    key={`best-${p._id || p.id}`}
-                    className="min-w-[280px] w-72 bg-white border border-pink-200 rounded-xl shadow-lg overflow-hidden flex flex-col hover:shadow-xl transition-shadow"
-                    >
+                  <div className="p-6 flex-1 flex flex-col">
+                      <h3 className="text-xl font-bold text-[#6f1d1b] mb-2 line-clamp-1">{p.name}</h3>
+                      <p className="text-sm text-[#3b1f16]/70 mb-6 line-clamp-2 leading-relaxed">{p.description}</p>
+                      <div className="mt-auto flex items-center justify-between">
+                      <span className="text-2xl font-bold text-[#3b1f16]">₹{p.price}</span>
+                      <button
+                          type="button"
+                          onClick={() => handleAddToCart(p)}
+                          className="px-5 py-2 text-sm font-bold uppercase tracking-wider rounded-full border-2 border-[#3b1f16] bg-gradient-to-b from-[#efb84a] to-[#d99a2b] text-[#3b1f16] shadow-[0_3px_0_#3b1f16] hover:-translate-y-0.5 hover:shadow-[0_5px_0_#3b1f16] active:translate-y-1 active:shadow-none transition-all"
+                      >
+                          Add +
+                      </button>
+                      </div>
+                  </div>
+                  </div>
+              ))}
+              </div>
+          </section>
+          )}
+
+          {/* Best Sellers Section */}
+          {!loading && bestSellers.length > 0 && (
+          <section ref={bestSellersRef}>
+              <div className="flex items-center gap-4 mb-8">
+                <h2 className="text-3xl md:text-4xl font-normal italic font-playfair text-[#6f1d1b] tracking-tight">Bestsellers</h2>
+                <div className="h-px bg-[#e8dcc4] flex-grow"></div>
+              </div>
+
+              <div className="flex gap-6 overflow-x-auto pb-6 snap-x">
+              {bestSellers.map((p) => (
+                  <div
+                  key={`best-${p._id || p.id}`}
+                  className="snap-start min-w-[300px] w-80 bg-white border border-[#e8dcc4] rounded-3xl shadow-[0_8px_24px_rgba(59,31,22,0.04)] overflow-hidden flex flex-col hover:shadow-[0_12px_40px_rgba(59,31,22,0.1)] hover:-translate-y-1 transition-all duration-300"
+                  >
+                  <div className="relative h-56 bg-[#fdf9f1] p-4">
                     {p.imageUrl ? (
-                        <img
-                        src={p.imageUrl}
-                        alt={p.name}
-                        className="w-full h-40 object-cover"
-                        />
+                        <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover rounded-xl" />
                     ) : (
-                        <div className="w-full h-40 bg-gray-100 flex items-center justify-center text-gray-400">No Image</div>
+                        <div className="w-full h-full rounded-xl bg-[#e8dcc4]/30 flex items-center justify-center text-[#3b1f16]/40 font-medium">No Image</div>
                     )}
-                    <div className="p-4 flex-1 flex flex-col">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">{p.name}</h3>
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{p.description}</p>
-                        <div className="mt-auto flex items-center justify-between">
-                        <span className="text-pink-600 font-bold text-lg">₹{p.price}</span>
-                        <button
-                            type="button"
-                            onClick={() => handleAddToCart(p)}
-                            className="px-4 py-2 text-base font-medium rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors shadow-md"
-                        >
-                            Add to Cart
-                        </button>
-                        </div>
-                    </div>
-                    </div>
-                ))}
-                </div>
-            </section>
-            )}
+                    <span className="absolute top-6 left-6 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full bg-[#3b1f16] text-[#efb84a] shadow-sm">Popular</span>
+                  </div>
 
+                  <div className="p-6 flex-1 flex flex-col">
+                      <h3 className="text-xl font-bold text-[#6f1d1b] mb-2 line-clamp-1">{p.name}</h3>
+                      <p className="text-sm text-[#3b1f16]/70 mb-6 line-clamp-2 leading-relaxed">{p.description}</p>
+                      <div className="mt-auto flex items-center justify-between">
+                      <span className="text-2xl font-bold text-[#3b1f16]">₹{p.price}</span>
+                      <button
+                          type="button"
+                          onClick={() => handleAddToCart(p)}
+                          className="px-5 py-2 text-sm font-bold uppercase tracking-wider rounded-full border-2 border-[#3b1f16] bg-gradient-to-b from-[#efb84a] to-[#d99a2b] text-[#3b1f16] shadow-[0_3px_0_#3b1f16] hover:-translate-y-0.5 hover:shadow-[0_5px_0_#3b1f16] active:translate-y-1 active:shadow-none transition-all"
+                      >
+                          Add +
+                      </button>
+                      </div>
+                  </div>
+                  </div>
+              ))}
+              </div>
+          </section>
+          )}
 
-            {/* --- All Products Grid --- */}
-            <section className="mb-8">
-                <h2 className="text-xl font-bold text-gray-900 mb-1">All Products</h2>
-                {selectedCategory && selectedCategory !== 'all' && !loading && (
-                  <p className="mb-3 text-xs text-gray-600">
-                    Showing results for <span className="font-semibold">{selectedCategory}</span>
-                    {` (${filteredProducts.length} product${filteredProducts.length === 1 ? '' : 's'})`}
-                  </p>
-                )}
-                {loading ? (
-                <div className="text-center py-12 text-gray-500">Loading products...</div>
-                ) : filteredProducts.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                    <p className="text-lg font-medium">No products available yet.</p>
-                    <p className="text-sm mt-2">Check back soon or try adjusting your filters.</p>
-                </div>
-                ) : (
-                <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {filteredProducts.map((p) => (
-                    <div
-                        key={p._id || p.id}
-                        className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden flex flex-col hover:shadow-2xl transition-shadow duration-300"
-                    >
+          {/* All Products Grid */}
+          <section id="shop-by-category">
+              <div className="flex items-center gap-4 mb-4">
+                <h2 className="text-3xl md:text-4xl font-normal italic font-playfair text-[#6f1d1b] tracking-tight">The Collection</h2>
+                <div className="h-px bg-[#e8dcc4] flex-grow"></div>
+              </div>
+
+              {selectedCategory && selectedCategory !== 'all' && !loading && (
+                <p className="mb-8 text-sm text-[#3b1f16] font-medium">
+                  Showing results for <span className="text-[#6f1d1b] font-bold">"{selectedCategory}"</span>
+                  <span className="opacity-60 ml-2">({filteredProducts.length} items)</span>
+                </p>
+              )}
+              
+              {loading ? (
+              <div className="text-center py-20 text-[#3b1f16]/50 font-bold uppercase tracking-widest">Curating products...</div>
+              ) : filteredProducts.length === 0 ? (
+              <div className="text-center py-20 text-[#3b1f16]">
+                  <p className="text-xl font-bold font-playfair italic text-[#6f1d1b] mb-2">No products found.</p>
+                  <p className="opacity-70">Try adjusting your category or search terms.</p>
+              </div>
+              ) : (
+              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {filteredProducts.map((p) => (
+                  <div
+                      key={p._id || p.id}
+                      className="bg-white border border-[#e8dcc4] rounded-3xl shadow-[0_4px_20px_rgba(59,31,22,0.03)] overflow-hidden flex flex-col hover:shadow-[0_12px_40px_rgba(59,31,22,0.08)] hover:-translate-y-1 transition-all duration-300 group"
+                  >
+                      <div className="relative h-60 bg-[#fdf9f1] p-4 overflow-hidden">
                         {p.imageUrl ? (
-                        <img
-                            src={p.imageUrl}
-                            alt={p.name}
-                            className="w-full h-56 object-cover"
-                        />
+                            <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover rounded-2xl group-hover:scale-105 transition-transform duration-500" />
                         ) : (
-                        <div className="w-full h-56 bg-gray-100 flex items-center justify-center text-gray-400">No Image</div>
+                            <div className="w-full h-full rounded-2xl bg-[#e8dcc4]/30 flex items-center justify-center text-[#3b1f16]/40 font-medium">No Image</div>
                         )}
-                        <div className="p-4 flex-1 flex flex-col">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1 flex items-center justify-between gap-2">
-                            <span>{p.name}</span>
-                            <div className="flex gap-1">
-                            {p.tags?.includes('new') && (
-                                <span className="px-2 py-0.5 text-[10px] rounded-full bg-green-100 text-green-700 font-medium">New</span>
-                            )}
-                            {p.tags?.includes('bestseller') && (
-                                <span className="px-2 py-0.5 text-[10px] rounded-full bg-yellow-100 text-yellow-700 font-medium">Best Seller</span>
-                            )}
-                            </div>
-                        </h2>
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{p.description}</p>
-                        <div className="mt-auto flex items-center justify-between">
-                            <span className="text-pink-600 font-bold text-xl">₹{p.price}</span>
-                            <button
-                            type="button"
-                            onClick={() => handleAddToCart(p)}
-                            className="px-4 py-2 text-base font-medium rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-colors shadow-md"
-                            >
-                            Add to Cart
-                            </button>
+                        <div className="absolute top-6 left-6 flex flex-col gap-2">
+                          {p.tags?.includes('new') && (
+                              <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-white text-[#3b1f16] shadow-sm">New</span>
+                          )}
+                          {p.tags?.includes('bestseller') && (
+                              <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-[#3b1f16] text-[#efb84a] shadow-sm">Hot</span>
+                          )}
                         </div>
-                        </div>
-                    </div>
-                    ))}
-                </div>
-                )}
-            </section>
+                      </div>
+
+                      <div className="p-6 flex-1 flex flex-col">
+                      <h2 className="text-lg font-bold text-[#6f1d1b] mb-2 line-clamp-1">
+                          {p.name}
+                      </h2>
+                      <p className="text-sm text-[#3b1f16]/70 mb-6 line-clamp-2 leading-relaxed">{p.description}</p>
+                      
+                      <div className="mt-auto flex items-center justify-between">
+                          <span className="text-xl font-bold text-[#3b1f16]">₹{p.price}</span>
+                          <button
+                          type="button"
+                          onClick={() => handleAddToCart(p)}
+                          className="px-5 py-2 text-sm font-bold uppercase tracking-wider rounded-full border-2 border-[#3b1f16] bg-gradient-to-b from-[#efb84a] to-[#d99a2b] text-[#3b1f16] shadow-[0_3px_0_#3b1f16] hover:-translate-y-0.5 hover:shadow-[0_5px_0_#3b1f16] active:translate-y-1 active:shadow-none transition-all"
+                          >
+                          Add +
+                          </button>
+                      </div>
+                      </div>
+                  </div>
+                  ))}
+              </div>
+              )}
+          </section>
         </main>
       </div>
 
-      {/* Checkout / Cart Drawer (Kept existing functionality, restyled) */}
+      {/* --- Themed Checkout / Cart Drawer --- */}
       {showCheckout && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
-            className="flex-1 bg-black/40"
+            className="flex-1 bg-[#3b1f16]/40 backdrop-blur-sm transition-opacity"
             onClick={() => {
               setShowCheckout(false)
-                            setCheckoutStep('cart')
+              setCheckoutStep('cart')
             }}
           />
 
-          <div className="w-full max-w-md h-full bg-white shadow-2xl border-l border-gray-200 flex flex-col">
-            {/* Header */}
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="w-full max-w-md h-full bg-[#fffdf9] shadow-2xl border-l border-[#e8dcc4] flex flex-col animate-slide-in-right">
+            
+            {/* Drawer Header */}
+            <div className="px-6 py-5 border-b border-[#e8dcc4] bg-white flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {checkoutStep === 'cart' && `Shopping Cart (${cartItems.length})`}
-                  {checkoutStep === 'details' && 'Customer Details'}
-                  {checkoutStep === 'payment' && 'Payment'}
-                  {checkoutStep === 'success' && 'Order Successful'}
+                <h2 className="text-2xl font-bold font-playfair italic text-[#6f1d1b]">
+                  {checkoutStep === 'cart' && `Your Cart (${cartItems.length})`}
+                  {checkoutStep === 'details' && 'Shipping Details'}
+                  {checkoutStep === 'payment' && 'Secure Payment'}
+                  {checkoutStep === 'success' && 'Order Confirmed'}
                 </h2>
-                {checkoutStep === 'cart' && (
-                  <p className="mt-1 text-xs text-pink-600 flex items-center gap-1">
-                    <span>🔥</span>
-                    <span>Products are limited, checkout within&nbsp;
-                      <span className="font-semibold tracking-wide">10 mins</span>
-                    </span>
-                  </p>
-                )}
               </div>
               <button
                 type="button"
@@ -767,52 +697,61 @@ const EnterpriseStorefront = () => {
                   setShowCheckout(false)
                   setCheckoutStep('cart')
                 }}
-                className="text-gray-400 hover:text-gray-600 text-sm"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#fdf9f1] text-[#3b1f16] hover:bg-[#e8dcc4] transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-4 bg-gradient-to-b from-pink-50/60 via-white to-white">
+            {/* Drawer Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 bg-[#fffdf9]">
               {checkoutStep === 'cart' && (
                 <>
                   {cartItems.length === 0 ? (
-                    <p className="text-gray-500 text-sm mb-4">Your cart is empty. Add products to get started.</p>
+                    <div className="flex flex-col items-center justify-center h-full text-[#3b1f16]/60">
+                      <ShoppingCartIcon className="w-16 h-16 mb-4 opacity-50" />
+                      <p className="text-lg font-medium">Your cart is empty.</p>
+                      <p className="text-sm mt-2">Discover unique products in our store.</p>
+                    </div>
                   ) : (
-                    <div className="space-y-4 mb-6">
+                    <div className="space-y-5 mb-8">
                       {cartItems.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center justify-between border-b border-gray-100 pb-3"
+                          className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-[#e8dcc4] shadow-sm"
                         >
-                          <div>
-                            <p className="text-base font-medium text-gray-900">{item.name}</p>
-                            <p className="text-xs text-gray-500">
-                              ₹{item.price} each
-                            </p>
+                          <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#fdf9f1] shrink-0 border border-[#e8dcc4]/50">
+                            {item.imageUrl && <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleDecreaseQty(item.id)}
-                              className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-300 text-xs text-gray-700 hover:bg-gray-100"
-                            >
-                              -
-                            </button>
-                            <span className="text-sm text-gray-800 w-6 text-center">
-                              {item.quantity}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleIncreaseQty(item.id)}
-                              className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-300 text-xs text-gray-700 hover:bg-gray-100"
-                            >
-                              +
-                            </button>
+                          <div className="flex-1">
+                            <p className="text-base font-bold text-[#6f1d1b] line-clamp-1">{item.name}</p>
+                            <p className="text-sm text-[#3b1f16]/70 font-medium mt-1">₹{item.price}</p>
+                          </div>
+                          
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="flex items-center gap-3 bg-[#fdf9f1] rounded-full border border-[#e8dcc4] px-1 py-1">
+                              <button
+                                type="button"
+                                onClick={() => handleDecreaseQty(item.id)}
+                                className="w-6 h-6 flex items-center justify-center rounded-full text-[#3b1f16] hover:bg-white hover:shadow-sm transition-all"
+                              >
+                                -
+                              </button>
+                              <span className="text-sm font-bold text-[#3b1f16] w-4 text-center">
+                                {item.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleIncreaseQty(item.id)}
+                                className="w-6 h-6 flex items-center justify-center rounded-full text-[#3b1f16] hover:bg-white hover:shadow-sm transition-all"
+                              >
+                                +
+                              </button>
+                            </div>
                             <button
                               type="button"
                               onClick={() => handleRemoveFromCart(item.id)}
-                              className="text-xs text-red-500 hover:text-red-600 ml-2"
+                              className="text-xs font-bold text-red-500 hover:text-red-700 uppercase tracking-wider mr-1"
                             >
                               Remove
                             </button>
@@ -822,199 +761,162 @@ const EnterpriseStorefront = () => {
                     </div>
                   )}
 
-                  <div className="pt-4 border-t border-dashed border-pink-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">Subtotal</span>
-                      <span className="text-lg font-bold text-pink-600">₹{cartTotal}</span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 mb-3">Taxes and shipping calculated at checkout.</p>
+                  {cartItems.length > 0 && (
+                    <div className="mt-auto pt-6 border-t border-[#e8dcc4]">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-base font-bold text-[#3b1f16]">Subtotal</span>
+                        <span className="text-2xl font-bold text-[#6f1d1b]">₹{cartTotal}</span>
+                      </div>
+                      <p className="text-xs text-[#3b1f16]/60 mb-6 font-medium">Taxes and shipping calculated at checkout.</p>
 
-                    <button
-                      type="button"
-                      disabled={cartItems.length === 0}
-                      onClick={() => setCheckoutStep('details')}
-                      className="w-full px-4 py-2.5 rounded-full text-base font-medium text-white bg-pink-500 disabled:opacity-50 hover:bg-pink-600 transition-colors"
-                    >
-                      Checkout
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => setCheckoutStep('details')}
+                        className="w-full border-4 border-[#3b1f16] bg-gradient-to-b from-[#efb84a] to-[#d99a2b] text-[#3b1f16] px-8 py-4 rounded-full font-bold uppercase tracking-[0.12em] shadow-[0_5px_0_#3b1f16] transition-all hover:from-[#f6c967] hover:to-[#efb84a] hover:-translate-y-0.5 hover:shadow-[0_7px_0_#3b1f16] active:translate-y-1 active:shadow-[0_1px_0_#3b1f16]"
+                      >
+                        Proceed to Checkout
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
 
+              {/* DETAILS STEP */}
               {checkoutStep === 'details' && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">First Name</label>
+                      <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">First Name</label>
                       <input
                         type="text"
                         value={customerDetails.firstName}
                         onChange={(e) => {
                           setCustomerDetails({ ...customerDetails, firstName: e.target.value })
-                          if (customerErrors.firstName) {
-                            setCustomerErrors({ ...customerErrors, firstName: undefined })
-                          }
+                          if (customerErrors.firstName) setCustomerErrors({ ...customerErrors, firstName: undefined })
                         }}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                        className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                       />
-                      {customerErrors.firstName && (
-                        <p className="mt-1 text-[11px] text-red-500">{customerErrors.firstName}</p>
-                      )}
+                      {customerErrors.firstName && <p className="mt-1 text-xs text-red-500 font-bold">{customerErrors.firstName}</p>}
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
+                      <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">Last Name</label>
                       <input
                         type="text"
                         value={customerDetails.lastName}
                         onChange={(e) => {
                           setCustomerDetails({ ...customerDetails, lastName: e.target.value })
-                          if (customerErrors.lastName) {
-                            setCustomerErrors({ ...customerErrors, lastName: undefined })
-                          }
+                          if (customerErrors.lastName) setCustomerErrors({ ...customerErrors, lastName: undefined })
                         }}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                        className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                       />
-                      {customerErrors.lastName && (
-                        <p className="mt-1 text-[11px] text-red-500">{customerErrors.lastName}</p>
-                      )}
+                      {customerErrors.lastName && <p className="mt-1 text-xs text-red-500 font-bold">{customerErrors.lastName}</p>}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                    <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">Email</label>
                     <input
                       type="email"
                       value={customerDetails.email}
                       onChange={(e) => {
                         setCustomerDetails({ ...customerDetails, email: e.target.value })
-                        if (customerErrors.email) {
-                          setCustomerErrors({ ...customerErrors, email: undefined })
-                        }
+                        if (customerErrors.email) setCustomerErrors({ ...customerErrors, email: undefined })
                       }}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                      className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                     />
-                    {customerErrors.email && (
-                      <p className="mt-1 text-[11px] text-red-500">{customerErrors.email}</p>
-                    )}
+                    {customerErrors.email && <p className="mt-1 text-xs text-red-500 font-bold">{customerErrors.email}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Mobile Number</label>
+                    <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">Mobile Number</label>
                     <input
                       type="tel"
                       value={customerDetails.phone}
                       onChange={(e) => {
                         setCustomerDetails({ ...customerDetails, phone: e.target.value })
-                        if (customerErrors.phone) {
-                          setCustomerErrors({ ...customerErrors, phone: undefined })
-                        }
+                        if (customerErrors.phone) setCustomerErrors({ ...customerErrors, phone: undefined })
                       }}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                      className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                     />
-                    {customerErrors.phone && (
-                      <p className="mt-1 text-[11px] text-red-500">{customerErrors.phone}</p>
-                    )}
+                    {customerErrors.phone && <p className="mt-1 text-xs text-red-500 font-bold">{customerErrors.phone}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Address Line 1</label>
+                    <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">Address Line 1</label>
                     <textarea
                       rows={2}
                       value={customerDetails.addressLine1}
                       onChange={(e) => {
                         setCustomerDetails({ ...customerDetails, addressLine1: e.target.value })
-                        if (customerErrors.addressLine1) {
-                          setCustomerErrors({ ...customerErrors, addressLine1: undefined })
-                        }
+                        if (customerErrors.addressLine1) setCustomerErrors({ ...customerErrors, addressLine1: undefined })
                       }}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                      className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                     />
-                    {customerErrors.addressLine1 && (
-                      <p className="mt-1 text-[11px] text-red-500">{customerErrors.addressLine1}</p>
-                    )}
+                    {customerErrors.addressLine1 && <p className="mt-1 text-xs text-red-500 font-bold">{customerErrors.addressLine1}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Address Line 2 (optional)</label>
+                    <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">Address Line 2 (optional)</label>
                     <input
                       type="text"
                       value={customerDetails.addressLine2}
                       onChange={(e) => setCustomerDetails({ ...customerDetails, addressLine2: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                      className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">City</label>
+                      <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">City</label>
                       <input
                         type="text"
                         value={customerDetails.city}
                         onChange={(e) => {
                           setCustomerDetails({ ...customerDetails, city: e.target.value })
-                          if (customerErrors.city) {
-                            setCustomerErrors({ ...customerErrors, city: undefined })
-                          }
+                          if (customerErrors.city) setCustomerErrors({ ...customerErrors, city: undefined })
                         }}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                        className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                       />
-                      {customerErrors.city && (
-                        <p className="mt-1 text-[11px] text-red-500">{customerErrors.city}</p>
-                      )}
+                      {customerErrors.city && <p className="mt-1 text-xs text-red-500 font-bold">{customerErrors.city}</p>}
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">State</label>
+                      <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">State</label>
                       <input
                         type="text"
                         value={customerDetails.state}
                         onChange={(e) => {
                           setCustomerDetails({ ...customerDetails, state: e.target.value })
-                          if (customerErrors.state) {
-                            setCustomerErrors({ ...customerErrors, state: undefined })
-                          }
+                          if (customerErrors.state) setCustomerErrors({ ...customerErrors, state: undefined })
                         }}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                        className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                       />
-                      {customerErrors.state && (
-                        <p className="mt-1 text-[11px] text-red-500">{customerErrors.state}</p>
-                      )}
+                      {customerErrors.state && <p className="mt-1 text-xs text-red-500 font-bold">{customerErrors.state}</p>}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">PIN Code</label>
+                    <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">PIN Code</label>
                     <input
                       type="text"
                       value={customerDetails.postalCode}
                       onChange={(e) => {
                         setCustomerDetails({ ...customerDetails, postalCode: e.target.value })
-                        if (customerErrors.postalCode) {
-                          setCustomerErrors({ ...customerErrors, postalCode: undefined })
-                        }
+                        if (customerErrors.postalCode) setCustomerErrors({ ...customerErrors, postalCode: undefined })
                       }}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                      className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                     />
-                    {customerErrors.postalCode && (
-                      <p className="mt-1 text-[11px] text-red-500">{customerErrors.postalCode}</p>
-                    )}
+                    {customerErrors.postalCode && <p className="mt-1 text-xs text-red-500 font-bold">{customerErrors.postalCode}</p>}
                   </div>
                 </div>
               )}
 
+              {/* PAYMENT STEP */}
               {checkoutStep === 'payment' && (
-                <div className="space-y-4 text-sm text-gray-700">
+                <div className="space-y-6">
                   <div>
-                    <p className="font-medium mb-2">Choose Payment Method</p>
-                    <div className="flex gap-2 text-xs">
+                    <p className="text-sm font-bold text-[#3b1f16] uppercase tracking-wide mb-3">Payment Method</p>
+                    <div className="flex gap-3">
                       <button
                         type="button"
                         onClick={() => setPaymentMethod('upi')}
-                        className={`px-3 py-2 rounded-lg border flex-1 text-center ${
+                        className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all border-2 ${
                           paymentMethod === 'upi'
-                            ? 'bg-pink-500 text-white border-pink-500'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                            ? 'border-[#3b1f16] bg-[#efb84a] text-[#3b1f16] shadow-[0_3px_0_#3b1f16]'
+                            : 'border-[#e8dcc4] bg-white text-[#3b1f16] hover:bg-[#fdf9f1]'
                         }`}
                       >
                         UPI
@@ -1022,10 +924,10 @@ const EnterpriseStorefront = () => {
                       <button
                         type="button"
                         onClick={() => setPaymentMethod('card')}
-                        className={`px-3 py-2 rounded-lg border flex-1 text-center ${
+                        className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all border-2 ${
                           paymentMethod === 'card'
-                            ? 'bg-pink-500 text-white border-pink-500'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                            ? 'border-[#3b1f16] bg-[#efb84a] text-[#3b1f16] shadow-[0_3px_0_#3b1f16]'
+                            : 'border-[#e8dcc4] bg-white text-[#3b1f16] hover:bg-[#fdf9f1]'
                         }`}
                       >
                         Card
@@ -1033,147 +935,136 @@ const EnterpriseStorefront = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-gray-200 bg-white px-3 py-3 space-y-3">
-                    <p className="text-xs font-medium text-gray-700 flex items-center justify-between">
-                      <span>Payable Amount</span>
-                      <span className="text-pink-600 text-sm font-semibold">₹{cartTotal}</span>
-                    </p>
+                  <div className="rounded-2xl border border-[#e8dcc4] bg-white p-5 space-y-5 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-[#e8dcc4] pb-4">
+                      <span className="text-sm font-bold text-[#3b1f16] uppercase tracking-wide">Total Amount</span>
+                      <span className="text-2xl font-bold text-[#6f1d1b]">₹{cartTotal}</span>
+                    </div>
 
                     {paymentMethod === 'upi' && (
-                      <div className="space-y-2">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">UPI ID</label>
+                      <div className="space-y-3">
+                        <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1">UPI ID</label>
                         <input
                           type="text"
                           placeholder="yourname@upi"
                           value={paymentDetails.upiId}
                           onChange={(e) => {
                             setPaymentDetails({ ...paymentDetails, upiId: e.target.value })
-                            if (paymentErrors.upiId) {
-                              setPaymentErrors({ ...paymentErrors, upiId: undefined })
-                            }
+                            if (paymentErrors.upiId) setPaymentErrors({ ...paymentErrors, upiId: undefined })
                           }}
-                          required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                          className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                         />
-                        {paymentErrors.upiId && (
-                          <p className="mt-1 text-[11px] text-red-500">{paymentErrors.upiId}</p>
-                        )}
-                        <p className="text-[11px] text-gray-500">You will see a payment request in your UPI app in a real integration.</p>
+                        {paymentErrors.upiId && <p className="mt-1 text-xs text-red-500 font-bold">{paymentErrors.upiId}</p>}
+                        <p className="text-xs text-[#3b1f16]/60 font-medium pt-2">A payment request will be sent to your UPI app.</p>
                       </div>
                     )}
 
                     {paymentMethod === 'card' && (
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Name on Card</label>
+                          <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">Name on Card</label>
                           <input
                             type="text"
                             value={paymentDetails.cardHolder}
                             onChange={(e) => {
                               setPaymentDetails({ ...paymentDetails, cardHolder: e.target.value })
-                              if (paymentErrors.cardHolder) {
-                                setPaymentErrors({ ...paymentErrors, cardHolder: undefined })
-                              }
+                              if (paymentErrors.cardHolder) setPaymentErrors({ ...paymentErrors, cardHolder: undefined })
                             }}
-                            required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                            className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                           />
-                          {paymentErrors.cardHolder && (
-                            <p className="mt-1 text-[11px] text-red-500">{paymentErrors.cardHolder}</p>
-                          )}
+                          {paymentErrors.cardHolder && <p className="mt-1 text-xs text-red-500 font-bold">{paymentErrors.cardHolder}</p>}
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Card Number</label>
+                          <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">Card Number</label>
                           <input
                             type="text"
                             maxLength={19}
                             value={paymentDetails.cardNumber}
                             onChange={(e) => {
                               setPaymentDetails({ ...paymentDetails, cardNumber: e.target.value })
-                              if (paymentErrors.cardNumber) {
-                                setPaymentErrors({ ...paymentErrors, cardNumber: undefined })
-                              }
+                              if (paymentErrors.cardNumber) setPaymentErrors({ ...paymentErrors, cardNumber: undefined })
                             }}
-                            required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                            className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                           />
-                          {paymentErrors.cardNumber && (
-                            <p className="mt-1 text-[11px] text-red-500">{paymentErrors.cardNumber}</p>
-                          )}
+                          {paymentErrors.cardNumber && <p className="mt-1 text-xs text-red-500 font-bold">{paymentErrors.cardNumber}</p>}
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Expiry (MM/YY)</label>
+                            <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">Expiry (MM/YY)</label>
                             <input
                               type="text"
                               maxLength={5}
                               value={paymentDetails.cardExpiry}
                               onChange={(e) => {
                                 setPaymentDetails({ ...paymentDetails, cardExpiry: e.target.value })
-                                if (paymentErrors.cardExpiry) {
-                                  setPaymentErrors({ ...paymentErrors, cardExpiry: undefined })
-                                }
+                                if (paymentErrors.cardExpiry) setPaymentErrors({ ...paymentErrors, cardExpiry: undefined })
                               }}
-                              required
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                              className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                             />
-                            {paymentErrors.cardExpiry && (
-                              <p className="mt-1 text-[11px] text-red-500">{paymentErrors.cardExpiry}</p>
-                            )}
+                            {paymentErrors.cardExpiry && <p className="mt-1 text-xs text-red-500 font-bold">{paymentErrors.cardExpiry}</p>}
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">CVV</label>
+                            <label className="block text-xs font-bold text-[#3b1f16] uppercase tracking-wide mb-1.5">CVV</label>
                             <input
                               type="password"
                               maxLength={4}
                               value={paymentDetails.cardCvv}
                               onChange={(e) => {
                                 setPaymentDetails({ ...paymentDetails, cardCvv: e.target.value })
-                                if (paymentErrors.cardCvv) {
-                                  setPaymentErrors({ ...paymentErrors, cardCvv: undefined })
-                                }
+                                if (paymentErrors.cardCvv) setPaymentErrors({ ...paymentErrors, cardCvv: undefined })
                               }}
-                              required
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm"
+                              className="w-full px-4 py-2.5 bg-white border border-[#e8dcc4] rounded-xl text-[#3b1f16] focus:outline-none focus:ring-2 focus:ring-[#efb84a] focus:border-[#efb84a] transition-all text-sm font-medium shadow-sm"
                             />
-                            {paymentErrors.cardCvv && (
-                              <p className="mt-1 text-[11px] text-red-500">{paymentErrors.cardCvv}</p>
-                            )}
+                            {paymentErrors.cardCvv && <p className="mt-1 text-xs text-red-500 font-bold">{paymentErrors.cardCvv}</p>}
                           </div>
                         </div>
-                        <p className="text-[11px] text-gray-500">Card details are for demo only and are not processed.</p>
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
+              {/* SUCCESS STEP */}
               {checkoutStep === 'success' && (
-                <div className="space-y-3 text-sm">
-                  <div className="p-3 rounded-lg bg-green-50 text-green-700">
-                    <p className="font-medium">Payment successful! Thank you for your order.</p>
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
+                  <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center border-4 border-green-200">
+                    <span className="text-4xl text-green-600">✓</span>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold font-playfair italic text-[#6f1d1b] mb-2">Order Confirmed!</h3>
+                    <p className="text-[#3b1f16] font-medium">Thank you for supporting women entrepreneurs.</p>
+                  </div>
+                  
+                  <div className="w-full bg-white border border-[#e8dcc4] rounded-2xl p-5 text-left shadow-sm">
                     {orderNumber && (
-                      <p className="text-xs text-green-800 mt-1">Order ID: {orderNumber}</p>
+                      <div className="mb-3">
+                        <p className="text-xs font-bold text-[#3b1f16]/60 uppercase tracking-wide">Order ID</p>
+                        <p className="text-[#3b1f16] font-mono font-bold text-lg">{orderNumber}</p>
+                      </div>
+                    )}
+                    {(customerDetails.firstName || customerDetails.lastName) && (
+                      <div>
+                        <p className="text-xs font-bold text-[#3b1f16]/60 uppercase tracking-wide">Shipping To</p>
+                        <p className="text-[#3b1f16] font-medium">
+                          {`${customerDetails.firstName} ${customerDetails.lastName}`.trim()}
+                          <br/>{customerDetails.city}, {customerDetails.state} {customerDetails.postalCode}
+                        </p>
+                      </div>
                     )}
                   </div>
-                  {(customerDetails.firstName || customerDetails.lastName) && (
-                    <p className="text-xs text-gray-600">
-                      Placed by {`${customerDetails.firstName} ${customerDetails.lastName}`.trim()}
-                      {customerDetails.city ? ` from ${customerDetails.city}` : ''}.
-                    </p>
-                  )}
                 </div>
               )}
             </div>
 
+            {/* Sticky Footers for Checkout Steps */}
             {checkoutStep === 'details' && (
-              <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-3">
+              <div className="px-6 py-4 bg-white border-t border-[#e8dcc4] flex items-center justify-between gap-4">
                 <button
                   type="button"
                   onClick={() => setCheckoutStep('cart')}
-                  className="px-3 py-2 rounded-lg text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="px-6 py-3 rounded-full font-bold text-[#6f1d1b] hover:bg-[#fdf9f1] transition-colors"
                 >
-                  Back to Cart
+                  Back
                 </button>
                 <button
                   type="button"
@@ -1182,22 +1073,22 @@ const EnterpriseStorefront = () => {
                     if (!ok) return
                     setCheckoutStep('payment')
                   }}
-                  className="px-4 py-2 rounded-lg text-base font-medium text-white bg-pink-500 hover:bg-pink-600 transition-colors"
+                  className="flex-1 border-4 border-[#3b1f16] bg-gradient-to-b from-[#efb84a] to-[#d99a2b] text-[#3b1f16] px-6 py-3 rounded-full font-bold uppercase tracking-wider shadow-[0_4px_0_#3b1f16] transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_0_#3b1f16] active:translate-y-1 active:shadow-none"
                 >
-                  Continue to Payment
+                  Next Step
                 </button>
               </div>
             )}
 
             {checkoutStep === 'payment' && (
-              <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-3">
+              <div className="px-6 py-4 bg-white border-t border-[#e8dcc4] flex items-center justify-between gap-4">
                 <button
                   type="button"
                   onClick={() => {
                     setPaymentErrors({})
                     setCheckoutStep('details')
                   }}
-                  className="px-3 py-2 rounded-lg text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="px-6 py-3 rounded-full font-bold text-[#6f1d1b] hover:bg-[#fdf9f1] transition-colors"
                 >
                   Back
                 </button>
@@ -1205,47 +1096,33 @@ const EnterpriseStorefront = () => {
                   type="button"
                   disabled={checkingOut}
                   onClick={handleCheckout}
-                  className="px-4 py-2 rounded-lg text-base font-medium text-white bg-pink-500 disabled:opacity-50 hover:bg-pink-600 transition-colors"
+                  className="flex-1 border-4 border-[#3b1f16] bg-gradient-to-b from-[#efb84a] to-[#d99a2b] text-[#3b1f16] px-6 py-3 rounded-full font-bold uppercase tracking-wider shadow-[0_4px_0_#3b1f16] transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_0_#3b1f16] active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {checkingOut ? 'Processing Payment...' : 'Complete Payment'}
+                  {checkingOut ? 'Processing...' : `Pay ₹${cartTotal}`}
                 </button>
               </div>
             )}
 
             {checkoutStep === 'success' && (
-              <div className="px-4 py-3 border-t border-gray-100 flex justify-end">
+              <div className="px-6 py-4 bg-white border-t border-[#e8dcc4] flex justify-end">
                 <button
                   type="button"
                   onClick={() => {
                     setShowCheckout(false)
-                                        setCheckoutStep('cart')
+                    setCheckoutStep('cart')
                     setCustomerDetails({
-                      firstName: '',
-                      lastName: '',
-                      email: '',
-                      phone: '',
-                      addressLine1: '',
-                      addressLine2: '',
-                      city: '',
-                      state: '',
-                      postalCode: '',
+                      firstName: '', lastName: '', email: '', phone: '',
+                      addressLine1: '', addressLine2: '', city: '', state: '', postalCode: '',
                     })
-                    setPaymentDetails({
-                      upiId: '',
-                      cardHolder: '',
-                      cardNumber: '',
-                      cardExpiry: '',
-                      cardCvv: '',
-                    })
+                    setPaymentDetails({ upiId: '', cardHolder: '', cardNumber: '', cardExpiry: '', cardCvv: '' })
                   }}
-                  className="px-4 py-2 rounded-lg text-base font-medium text-white bg-pink-500 hover:bg-pink-600 transition-colors"
+                  className="w-full border-4 border-[#3b1f16] bg-[#fdf9f1] text-[#3b1f16] px-6 py-3 rounded-full font-bold uppercase tracking-wider shadow-[0_4px_0_#3b1f16] transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_0_#3b1f16] active:translate-y-1 active:shadow-none"
                 >
-                  Close
+                  Continue Shopping
                 </button>
               </div>
             )}
           </div>
-
         </div>
       )}
     </div>

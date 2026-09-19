@@ -1,5 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;1,400&display=swap');
 @import "tailwindcss";
+
+.font-playfair {
+  font-family: 'Playfair Display', serif;
+}
 
 /* Google Translate Widget Styling */
 .google-translate-container {
@@ -177,6 +181,37 @@ body.translated-ltr {
   }
   100% {
     transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 24s linear infinite;
+  will-change: transform;
+}
+
+.marquee-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-right: 1rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.hero-image-transition {
+  animation: hero-image-transition 1200ms ease-out;
+}
+
+@keyframes hero-image-transition {
+  0% {
+    opacity: 0.7;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
