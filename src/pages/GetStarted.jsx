@@ -5,7 +5,7 @@ import { FiArrowLeft } from 'react-icons/fi';
 import GoogleTranslate from '../components/GoogleTranslate';
 
 // Make sure paths match your project structure
-import heroImage from '../assets/start.png'; // Using the same image as login/signup
+import heroImage from '../assets/real_start.png'; // Using the same image as login/signup
 import logo from '../assets/bg.png';
 import wordmark from '../assets/text.png';
 

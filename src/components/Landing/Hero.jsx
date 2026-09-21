@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Navbar from './Navbar'; // Adjust the import path if needed
-import heroImage from '../../assets/hero.png';
+import heroImage from '../../assets/real_hero.png';
 
 const Hero = () => {
   return (
