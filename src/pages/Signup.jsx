@@ -11,7 +11,7 @@ import {
   CheckIcon 
 } from '@heroicons/react/24/outline';
 
-import heroImage from '../assets/sign.png';
+import heroImage from '../assets/real_sign.png';
 import logo from '../assets/bg.png';
 import wordmark from '../assets/text.png';
 
