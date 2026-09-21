@@ -5,7 +5,7 @@ import { useAuth } from '../context/authContext';
 import GoogleTranslate from '../components/GoogleTranslate';
 import { FiArrowLeft } from 'react-icons/fi';
 
-import heroImage from '../assets/log.png';
+import heroImage from '../assets/real_log.png';
 import logo from '../assets/bg.png';
 import wordmark from '../assets/text.png';
 

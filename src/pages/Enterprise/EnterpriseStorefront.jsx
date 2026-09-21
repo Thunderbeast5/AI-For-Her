@@ -4,9 +4,9 @@ import { db } from '../../firebase';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { ShoppingCartIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 
-import heroFactoryWorkers from '../../assets/storefront/store-hero-1.png'
-import heroWomenAtWork from '../../assets/storefront/store-hero-2.png'
-import heroWomenAtWork1 from '../../assets/storefront/store-hero-3.png'
+import heroFactoryWorkers from '../../assets/storefront/real-store-hero-1.png'
+import heroWomenAtWork from '../../assets/storefront/real-store-hero-2.png'
+import heroWomenAtWork1 from '../../assets/storefront/real-store-hero-3.png'
 
 // Updated Logos
 import logo from '../../assets/bg.png'
