@@ -22,7 +22,7 @@ const Features = () => {
   ];
 
   return (
-    <section className="relative w-full py-24 px-6 md:px-12 bg-transparent overflow-hidden flex justify-center">
+    <section id="features" className="relative w-full scroll-mt-20 py-24 px-6 md:px-12 bg-transparent overflow-hidden flex justify-center">
       
       {/* Background Glow: Fades and scales in gently when scrolling into view */}
       <motion.div 

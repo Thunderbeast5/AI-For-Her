@@ -17,17 +17,10 @@ const Hero = () => {
       >
       </motion.div>
 
-      {/* Navbar: Wrapped in a motion.div to smoothly slide down from the top */}
-      <motion.div
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-      >
-        <Navbar />
-      </motion.div>
+      <Navbar />
 
       {/* Hero Text: Slides up and fades in smoothly after the background and navbar */}
-      <div className="relative z-10 flex flex-col items-start justify-center h-full text-left px-2 md:px-8 lg:px-12 -translate-y-16 md:-translate-y-20">
+      <div className="relative z-10 flex flex-col items-start justify-center h-full text-left px-2 md:px-8 lg:px-12">
         <motion.h1 
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

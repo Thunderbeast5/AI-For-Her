@@ -25,7 +25,7 @@ const Testimonials = () => {
   ];
 
   return (
-    <section className="relative w-full min-h-screen py-24 px-6 md:px-12 bg-transparent overflow-hidden flex items-center justify-center">
+    <section id="stories" className="relative w-full min-h-screen scroll-mt-20 py-24 px-6 md:px-12 bg-transparent overflow-hidden flex items-center justify-center">
       
       {/* Background Glow: Fades and scales in on scroll */}
       <motion.div 
