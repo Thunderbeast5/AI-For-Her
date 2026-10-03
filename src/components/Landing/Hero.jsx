@@ -1,34 +1,52 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Navbar from './Navbar'; // Adjust the import path if needed
-import heroImage from '../../assets/real_hero.png';
+import PatternWaves from './PatternWaves';
 
 const Hero = () => {
   return (
     <div className="relative w-full h-screen overflow-hidden">
       
-      {/* Background Image: Added a subtle scale-down and fade-in effect to make it feel premium */}
-      <motion.div 
-        initial={{ scale: 1.08, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 1.8, ease: "easeOut" }}
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${heroImage})` }}
-      >
-      </motion.div>
+      {/* PatternWaves Background */}
+      <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0 }}>
+        <PatternWaves
+          preset="silk"
+          color="#804828"
+          backgroundColor="#F6EBDD"
+          fade="top"
+          interactive
+          cursorSize={50}
+          cursorStrength={0.6}
+          pattern="dot"
+          wave="silk"
+          spacing={9}
+          markSize={0.95}
+          depth={1.45}
+          light={0}
+          shine={0.8}
+          contrast={1.2}
+          speed={0.55}
+          scale={0.7}
+          direction={36}
+          opacity={1}
+          fadeSize={0.5}
+          characters=".:-=+*#%@"
+          intro
+          paused={false}
+        />
+      </div>
 
       <Navbar />
 
       {/* Hero Text: Slides up and fades in smoothly after the background and navbar */}
-      <div className="relative z-10 flex flex-col items-start justify-center h-full text-left px-2 md:px-8 lg:px-12">
+      <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-2 md:px-8 lg:px-12">
         <motion.h1 
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 1, ease: "easeOut", delay: 0.6 }}
-          className="text-4xl md:text-6xl lg:text-7xl font-normal italic font-playfair text-[#6f1d1b] drop-shadow-xl mb-6 max-w-4xl tracking-tight leading-tight"
+          className="whitespace-nowrap text-base sm:text-lg md:text-4xl lg:text-5xl xl:text-6xl font-normal italic font-playfair drop-shadow-xl mb-6 tracking-tight leading-tight"
         >
-          Turn Your Passion Into<br />
-          An Enterprise.
+          Turn Your Passion Into An Enterprise.
         </motion.h1>
       </div>
 
