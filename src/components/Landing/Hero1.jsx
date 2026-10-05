@@ -1,5 +1,5 @@
 import React from 'react';
-import Navbar from './Navbar'; // Adjust the import path if needed
+import Nav from './Nav'; // Adjust the import path if needed
 import heroImage from '../../assets/real_hero.png';
 
 const Hero = () => {
@@ -11,7 +11,7 @@ const Hero = () => {
       />
 
       <div>
-        <Navbar />
+        <Nav />
       </div>
 
       <div className="relative z-10 flex flex-col items-start justify-center h-full text-left px-2 md:px-8 lg:px-12 -translate-y-16 md:-translate-y-20">

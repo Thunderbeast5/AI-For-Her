@@ -4,10 +4,11 @@ import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import Signup from './pages/Signup'
 import Login from './pages/Login'
-import GetStarted from './pages/GetStarted'
 import RoleSelection from './pages/RoleSelection'
 import ProtectedRoute from './components/ProtectedRoute'
 import AboutUs from './pages/AboutUs'
+
+import L2 from './pages/L2'
 
 // Entrepreneur Pages
 import Chat from './pages/Entrepreneur/Chat'
@@ -48,9 +49,9 @@ function App() {
         <div className="min-h-screen bg-white font-sans">
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/l2" element={<L2 />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/get-started" element={<GetStarted />} />
             <Route path="/aboutus" element={<AboutUs />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
