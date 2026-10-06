@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import RoleSelection from './pages/RoleSelection'
 import ProtectedRoute from './components/ProtectedRoute'
 import AboutUs from './pages/AboutUs'
+import Saharohi from './pages/SaharohiAI/Saharohi'
 
 import L2 from './pages/L2'
 
@@ -53,6 +54,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
             <Route path="/aboutus" element={<AboutUs />} />
+            <Route path="/saharohi" element={<Saharohi />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />

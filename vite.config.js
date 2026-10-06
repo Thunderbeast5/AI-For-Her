@@ -14,4 +14,12 @@ export default defineConfig({
       '@utils': '/src/utils',
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      }
+    }
+  }
 })

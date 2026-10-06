@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+groq
+duckduckgo-search
+python-dotenv
+pydantic
+httpx
+beautifulsoup4
