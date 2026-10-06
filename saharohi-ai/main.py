@@ -137,6 +137,32 @@ or mentors yet. Be concise and specific."""
     return {"plan": llm(system, user, temperature=0.5), "sources": sources[:5]}
 
 
+from schemes import match_schemes, TAXONOMY
+
+@app.post("/api/schemes")
+def api_schemes(req: PlanReq):
+    # classify domain
+    system = f"Classify this business into exactly ONE category from this list: {', '.join(TAXONOMY)}. Reply with just the word."
+    try:
+        cat = llm(system, f"Domain: {req.domain}\nIdea: {req.idea.get('title', '')}", temperature=0.0).strip().lower()
+        if cat not in TAXONOMY:
+            cat = "other"
+    except Exception:
+        cat = "other"
+    
+    # extract state from location
+    try:
+        state = llm("Extract just the Indian state name from this location. If none, reply 'none'.", req.location, temperature=0.0).strip()
+        if state.lower() == "none" or len(state) > 30:
+            state = None
+    except Exception:
+        state = None
+        
+    s = match_schemes(state, req.budget, cat)
+    return {"schemes": s, "state": state}
+
+
 @app.get("/api/health")
 def health():
     return {"ok": True}
+

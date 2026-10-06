@@ -226,7 +226,9 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const endRef = useRef(null);
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, loading]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   const add = (m) => setMessages((p) => [...p, m]);
   const bot = (text) => add({ role: "bot", type: "text", text });
