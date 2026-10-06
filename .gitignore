@@ -35,8 +35,17 @@ __pycache__/
 *$py.class
 *.so
 .Python
-chatbot1/__pycache__/
-chatbot1/**/__pycache__/
+venv/
+.venv/
+env/
+__pypackages__/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
 
 # Database
 *.db
