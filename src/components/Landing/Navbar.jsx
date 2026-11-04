@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import darkLogo from '../../assets/logos/brown.png';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const updateScrollState = () => setIsScrolled(window.scrollY > 20);
@@ -13,12 +15,30 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', updateScrollState);
   }, []);
 
+  useEffect(() => {
+    if (location.pathname !== '/') return;
+
+    if (location.hash) {
+      document.getElementById(location.hash.slice(1))?.scrollIntoView({
+        behavior: 'smooth',
+      });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  }, [location.pathname, location.hash]);
+
+  const handleHomeClick = () => {
+    if (location.pathname === '/' && !location.hash) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const navLinks = [
-    { name: 'Home', href: '/l2' },
-    { name: 'About', href: '#about' },
-    { name: 'Saharohi AI', href: '#features' },
-    { name: 'Stories', href: '#stories' },
-    { name: 'Contact', href: '#contact' },
+    { name: 'Home', href: '/' },
+    { name: 'About', href: '/#about' },
+    { name: 'Saharohi AI', href: '/#features' },
+    { name: 'Stories', href: '/#stories' },
+    { name: 'Contact', href: '/#contact' },
   ];
 
   return (
@@ -31,7 +51,7 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-6 sm:px-8 h-20 flex items-center justify-between">
         {/* Left: Brand Logo & Title */}
-        <a href="/" className="flex items-center gap-2.5 group">
+        <Link to="/" onClick={handleHomeClick} className="flex items-center gap-2.5 group">
           <img
             src={darkLogo}
             alt="saharohi logo"
@@ -40,38 +60,39 @@ export default function Navbar() {
           <span className="font-manrope font-semibold text-2xl tracking-wide lowercase text-black">
             saharohi
           </span>
-        </a>
+        </Link>
 
         {/* Center: Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.name}
-              href={link.href}
+              to={link.href}
+              onClick={link.href === '/' ? handleHomeClick : undefined}
               className="text-[16px] font-medium text-neutral-700 hover:text-[#8D4624] transition-colors duration-200"
             >
               {link.name}
-            </a>
+            </Link>
           ))}
         </nav>
 
         {/* Right: Action Buttons */}
         <div className="hidden md:flex items-center gap-3">
-          {/* Log In Button */}
-          <a
-            href="#login"
-            className="px-5 py-2 text-sm font-medium text-neutral-800 bg-white border border-neutral-200/80 rounded-full shadow-sm hover:bg-neutral-50 hover:text-black transition-all duration-200"
+          {/* Log In Button - Thin brown border */}
+          <Link
+            to="/login"
+            className="px-5 py-2 text-sm font-medium text-neutral-800 bg-white border border-[#8D4624]/60 rounded-full shadow-sm hover:bg-[#8D4624]/5 hover:text-[#8D4624] transition-all duration-200"
           >
             Log In
-          </a>
+          </Link>
 
-          {/* Sign Up Button */}
-          <a
-            href="#contact"
-            className="px-5 py-2 text-sm font-medium text-white bg-[#8D4624] rounded-full shadow-sm hover:bg-[#73371b] transition-all duration-200"
+          {/* Sign Up Button - Subtle thin white border */}
+          <Link
+            to="/signup"
+            className="px-5 py-2 text-sm font-medium text-white bg-[#8D4624] border border-white/60 rounded-full shadow-sm hover:bg-[#73371b] hover:border-white/80 transition-all duration-200"
           >
             Sign Up
-          </a>
+          </Link>
         </div>
 
         {/* Mobile Hamburger Toggle */}
@@ -100,29 +121,34 @@ export default function Navbar() {
         <div className="md:hidden border-t border-neutral-200/60 bg-white/95 backdrop-blur-md px-6 py-6 shadow-xl">
           <div className="flex flex-col gap-4">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.name}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
+                to={link.href}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (link.href === '/') handleHomeClick();
+                }}
                 className="text-base font-medium text-neutral-800 hover:text-[#8D4624] py-1 transition-colors"
               >
                 {link.name}
-              </a>
+              </Link>
             ))}
 
             <div className="pt-4 border-t border-neutral-200/60 flex flex-col gap-3">
-              <a
-                href="#login"
-                className="w-full text-center py-2.5 text-sm font-medium text-neutral-800 bg-white border border-neutral-200 rounded-full shadow-sm hover:bg-neutral-50"
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-2.5 text-sm font-medium text-neutral-800 bg-white border border-[#8D4624]/60 rounded-full shadow-sm hover:bg-[#8D4624]/5 hover:text-[#8D4624] transition-all duration-200"
               >
                 Log In
-              </a>
-              <a
-                href="#contact"
-                className="w-full text-center py-2.5 text-sm font-medium text-white bg-[#8D4624] rounded-full shadow-sm hover:bg-[#73371b]"
+              </Link>
+              <Link
+                to="/signup"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-2.5 text-sm font-medium text-white bg-[#8D4624] border border-white/60 rounded-full shadow-sm hover:bg-[#73371b] hover:border-white/80 transition-all duration-200"
               >
                 Sign Up
-              </a>
+              </Link>
             </div>
           </div>
         </div>

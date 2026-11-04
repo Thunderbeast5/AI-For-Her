@@ -1,56 +1,62 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthProvider'
-import LandingPage from './pages/LandingPage'
-import Dashboard from './pages/Dashboard'
-import Signup from './pages/Signup'
-import Login from './pages/Login'
-import RoleSelection from './pages/RoleSelection'
+const LandingPage = lazy(() => import('./pages/LandingPage'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Signup = lazy(() => import('./pages/Signup'))
+const Login = lazy(() => import('./pages/Login'))
+const RoleSelection = lazy(() => import('./pages/RoleSelection'))
 import ProtectedRoute from './components/ProtectedRoute'
-import AboutUs from './pages/AboutUs'
-import Saharohi from './pages/SaharohiAI/Saharohi'
+const AboutUs = lazy(() => import('./pages/AboutUs'))
+const Saharohi = lazy(() => import('./pages/SaharohiAI/Saharohi'))
 
-import L2 from './pages/L2'
+
 
 // Entrepreneur Pages
-import Chat from './pages/Entrepreneur/Chat'
-import CreateStartup from './pages/Entrepreneur/CreateStartup'
-import Journey from './pages/Entrepreneur/Journey'
-import Mentors from './pages/Entrepreneur/Mentors'
-import Opportunities from './pages/Entrepreneur/Opportunities'
-import SelfHelpGroups from './pages/Entrepreneur/SelfHelpGroups'
-import ListProject from './pages/Entrepreneur/ListProject'
+const Chat = lazy(() => import('./pages/Entrepreneur/Chat'))
+const CreateStartup = lazy(() => import('./pages/Entrepreneur/CreateStartup'))
+const Journey = lazy(() => import('./pages/Entrepreneur/Journey'))
+const Mentors = lazy(() => import('./pages/Entrepreneur/Mentors'))
+const Opportunities = lazy(() => import('./pages/Entrepreneur/Opportunities'))
+const SelfHelpGroups = lazy(() => import('./pages/Entrepreneur/SelfHelpGroups'))
+const ListProject = lazy(() => import('./pages/Entrepreneur/ListProject'))
 
 // Investor Pages
-import BrowseProjects from './pages/Investor/BrowseProjects'
-import Portfolio from './pages/Investor/Portfolio'
-import SavedProjects from './pages/Investor/SavedProjects'
-import Investments from './pages/Investor/Investments'
+const BrowseProjects = lazy(() => import('./pages/Investor/BrowseProjects'))
+const Portfolio = lazy(() => import('./pages/Investor/Portfolio'))
+const SavedProjects = lazy(() => import('./pages/Investor/SavedProjects'))
+const Investments = lazy(() => import('./pages/Investor/Investments'))
 
 // Mentor Pages
-import MentorDashboard from './pages/Mentor/MentorDashboard'
-import Mentees from './pages/Mentor/Mentees'
-import ChatSessions from './pages/Mentor/ChatSessions'
-import GroupSessions from './pages/Mentor/GroupSessions'
-import Schedule from './pages/Mentor/Schedule'
-import MentorRequests from './pages/Mentor/MentorRequests'
-import CreateGroup from './pages/Mentor/CreateGroup'
-import MyGroups from './pages/Mentor/MyGroups'
+const MentorDashboard = lazy(() => import('./pages/Mentor/MentorDashboard'))
+const Mentees = lazy(() => import('./pages/Mentor/Mentees'))
+const ChatSessions = lazy(() => import('./pages/Mentor/ChatSessions'))
+const GroupSessions = lazy(() => import('./pages/Mentor/GroupSessions'))
+const Schedule = lazy(() => import('./pages/Mentor/Schedule'))
+const MentorRequests = lazy(() => import('./pages/Mentor/MentorRequests'))
+const CreateGroup = lazy(() => import('./pages/Mentor/CreateGroup'))
+const MyGroups = lazy(() => import('./pages/Mentor/MyGroups'))
 
 // Shared Pages
-import Analytics from './pages/Analytics'
-import Settings from './pages/Settings'
-import Profile from './pages/Profile'
-import EnterpriseProducts from './pages/Enterprise/EnterpriseProducts'
-import EnterpriseStorefront from './pages/Enterprise/EnterpriseStorefront'
+const Analytics = lazy(() => import('./pages/Analytics'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Profile = lazy(() => import('./pages/Profile'))
+const EnterpriseProducts = lazy(() => import('./pages/Enterprise/EnterpriseProducts'))
+const EnterpriseStorefront = lazy(() => import('./pages/Enterprise/EnterpriseStorefront'))
 
 function App() {
   return (
     <Router>
       <AuthProvider>
         <div className="min-h-screen bg-white font-sans">
+          <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-[#fffdf9]">
+              <p className="text-[#4A3228]">Loading page...</p>
+            </div>
+          }>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/l2" element={<L2 />} />
+         
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
             <Route path="/aboutus" element={<AboutUs />} />
@@ -184,6 +190,7 @@ function App() {
               </ProtectedRoute>
             } />
           </Routes>
+          </Suspense>
         </div>
       </AuthProvider>
     </Router>

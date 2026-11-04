@@ -3,6 +3,7 @@ import About from '../components/Landing/About'
 import Features from '../components/Landing/Features'
 import Testimonials from '../components/Landing/Testimonials'
 import Footer from '../components/Landing/Footer'
+import Contact from '../components/Landing/Contact'
 
 const LandingPage = () => {
   return (
@@ -12,6 +13,7 @@ const LandingPage = () => {
         <About />
         <Features />
         <Testimonials />
+        <Contact />
         <Footer />
 
       </div>
