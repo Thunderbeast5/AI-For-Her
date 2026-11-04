@@ -1,18 +1,23 @@
 import Navbar from './Navbar'
+import { SidebarInset, SidebarProvider } from './ui/sidebar'
+import { TooltipProvider } from './ui/tooltip'
 
 const DashboardLayout = ({ children, sidebar }) => {
   return (
-    <div className="flex h-screen bg-gray-50">
-      {sidebar}
-      
-      <div className="flex-1 flex flex-col">
-        <Navbar />
-        
-        <main className="flex-1 p-6 overflow-auto">
-          {children}
-        </main>
-      </div>
-    </div>
+    <TooltipProvider>
+      <SidebarProvider
+        className="dashboard-app"
+        style={{ '--sidebar-width': '17rem', '--sidebar-width-icon': '5rem' }}
+      >
+        {sidebar}
+        <SidebarInset className="dashboard-main">
+          <Navbar />
+          <div className="dashboard-content">
+            {children}
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   )
 }
 
