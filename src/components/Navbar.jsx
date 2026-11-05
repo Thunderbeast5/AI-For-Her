@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -6,14 +6,16 @@ import { BellIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../hooks/useAuth'
 import GoogleTranslate from './GoogleTranslate'
 import { SidebarTrigger } from './ui/sidebar'
+import { Button } from './ui/button'
+import { Popover, PopoverTrigger, PopoverContent } from './ui/popover'
+import { ScrollArea } from './ui/scroll-area'
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const notificationRef = useRef(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const location = useLocation()
 
   
@@ -42,18 +44,6 @@ const Navbar = () => {
 
     return () => unsubscribe(); // Cleanup listener on unmount
   }, [currentUser]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-        setShowNotifications(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
   const deleteNotification = async (notificationId) => {
     try {
@@ -132,29 +122,31 @@ const Navbar = () => {
           <GoogleTranslate />
 
           {/* Notifications */}
-          <div className="dashboard-notification-wrap" ref={notificationRef}>
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="dashboard-icon-button"
-              aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
-              aria-expanded={showNotifications}
-            >
-              <BellIcon className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="dashboard-notification-count">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </button>
+          <div className="dashboard-notification-wrap">
+            <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="dashboard-icon-button"
+                  aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
+                >
+                  <BellIcon className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="dashboard-notification-count">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
 
-            {/* Notifications Dropdown */}
-            {showNotifications && (
-              <div className="dashboard-popover dashboard-notification-popover">
+              {/* Notifications Dropdown */}
+              <PopoverContent className="dashboard-popover dashboard-notification-popover" align="end" sideOffset={8}>
                 <div className="dashboard-popover-heading">
                   <h3>Notifications</h3>
                   {unreadCount > 0 && <span>{unreadCount} new</span>}
                 </div>
-                <div className="dashboard-notification-list">
+                <ScrollArea className="dashboard-notification-list">
                   {notifications.length === 0 ? (
                     <div className="dashboard-empty-notifications">
                       <BellIcon className="w-8 h-8" />
@@ -172,6 +164,8 @@ const Navbar = () => {
                           } else if (notification.link) {
                             navigate(notification.link);
                           }
+
+                          setNotificationsOpen(false);
                         }}
                         className={`dashboard-notification ${
                           !notification.read ? 'is-unread' : ''
@@ -205,9 +199,9 @@ const Navbar = () => {
                       </div>
                     ))
                   )}
-                </div>
-              </div>
-            )}
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
           </div>
 
         </div>

@@ -12,6 +12,9 @@ import {
   UsersIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Analytics = () => {
   const { userRole, currentUser } = useAuth();
@@ -120,12 +123,54 @@ const Analytics = () => {
   if (loading) {
     return (
       <DashboardLayout sidebar={getSidebar()}>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading analytics...</p>
-          </div>
+        <div className="mb-8">
+          <Skeleton className="h-9 w-48 mb-2" />
+          <Skeleton className="h-5 w-72" />
         </div>
+
+        {/* Skeleton stat cards */}
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Skeleton className="h-8 w-8 rounded" />
+                  <Skeleton className="h-4 w-10" />
+                </div>
+                <Skeleton className="h-7 w-16 mb-1" />
+                <Skeleton className="h-4 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Skeleton chart cards */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-5 w-40" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-64 w-full rounded-lg" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Skeleton recent activity */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-36" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[...Array(2)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-lg" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </DashboardLayout>
     );
   }
@@ -138,76 +183,96 @@ const Analytics = () => {
 
       {/* Key Metrics */}
       <div className="grid md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <ChartBarIcon className="w-8 h-8 text-pink-400" />
-            <span className="text-xs text-green-600 font-medium">+12%</span>
-          </div>
-          <p className="text-2xl font-bold text-gray-900 mb-1">{stats.totalActivities}</p>
-          <p className="text-sm text-gray-600">Total Activities</p>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <ChartBarIcon className="w-8 h-8 text-pink-400" />
+              <Badge variant="secondary" className="text-green-600 bg-green-50">+12%</Badge>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 mb-1">{stats.totalActivities}</p>
+            <p className="text-sm text-gray-600">Total Activities</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <ArrowTrendingUpIcon className="w-8 h-8 text-green-500" />
-            <span className="text-xs text-green-600 font-medium">+8%</span>
-          </div>
-          <p className="text-2xl font-bold text-gray-900 mb-1">{stats.growthRate}%</p>
-          <p className="text-sm text-gray-600">Growth Rate</p>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <ArrowTrendingUpIcon className="w-8 h-8 text-green-500" />
+              <Badge variant="secondary" className="text-green-600 bg-green-50">+8%</Badge>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 mb-1">{stats.growthRate}%</p>
+            <p className="text-sm text-gray-600">Growth Rate</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <UsersIcon className="w-8 h-8 text-blue-500" />
-            <span className="text-xs text-green-600 font-medium">+5</span>
-          </div>
-          <p className="text-2xl font-bold text-gray-900 mb-1">{stats.connections}</p>
-          <p className="text-sm text-gray-600">Connections</p>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <UsersIcon className="w-8 h-8 text-blue-500" />
+              <Badge variant="secondary" className="text-green-600 bg-green-50">+5</Badge>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 mb-1">{stats.connections}</p>
+            <p className="text-sm text-gray-600">Connections</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <ClockIcon className="w-8 h-8 text-purple-500" />
-            <span className="text-xs text-gray-500">This Month</span>
-          </div>
-          <p className="text-2xl font-bold text-gray-900 mb-1">{stats.timeInvested}h</p>
-          <p className="text-sm text-gray-600">Time Invested</p>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <ClockIcon className="w-8 h-8 text-purple-500" />
+              <Badge variant="outline" className="text-gray-500">This Month</Badge>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 mb-1">{stats.timeInvested}h</p>
+            <p className="text-sm text-gray-600">Time Invested</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Charts Placeholder */}
       <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Activity Overview</h3>
-          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-            <p className="text-gray-400">Chart visualization coming soon</p>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Activity Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+              <p className="text-gray-400">Chart visualization coming soon</p>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Growth Trends</h3>
-          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-            <p className="text-gray-400">Chart visualization coming soon</p>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Growth Trends</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+              <p className="text-gray-400">Chart visualization coming soon</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-        <div className="space-y-3">
-          {recentActivity.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No recent activity</p>
-          ) : (
-            recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-900">{activity.action}</p>
-                <span className="text-xs text-gray-500">{activity.time}</span>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {recentActivity.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">No recent activity</p>
+            ) : (
+              recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-900">{activity.action}</p>
+                  <span className="text-xs text-gray-500">{activity.time}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </DashboardLayout>
   );
 };

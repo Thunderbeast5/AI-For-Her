@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/authContext';
 import EntrepreneurSidebar from '../components/EntrepreneurSidebar';
@@ -7,12 +7,17 @@ import MentorSidebar from '../components/MentorSidebar';
 import InvestorSidebar from '../components/InvestorSidebar';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-
-const toastVariants = {
-  initial: { opacity: 0, x: 100 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: 100 },
-};
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 const Profile = () => {
   const { userRole, currentUser } = useAuth();
@@ -20,7 +25,6 @@ const Profile = () => {
   const [originalData, setOriginalData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
   const sectors = [
@@ -35,7 +39,6 @@ const Profile = () => {
     'Malayalam', 'Bengali', 'Gujarati', 'Punjabi', 'Urdu', 'Other'
   ];
 
-  
   const experienceLevels = [
     'Beginner (0-2 years)', 
     'Intermediate (3-5 years)', 
@@ -63,17 +66,16 @@ const Profile = () => {
           const userDoc = await getDoc(userDocRef);
           const data = userDoc.data();
           
-          // Ensure nested objects exist
           const completeData = {
             ...data,
-            address: data.address || {
+            address: data?.address || {
               street: '',
               city: '',
               state: '',
               postalCode: '',
               country: ''
             },
-            socialMedia: data.socialMedia || {
+            socialMedia: data?.socialMedia || {
               linkedIn: '',
               twitter: '',
               facebook: '',
@@ -87,7 +89,6 @@ const Profile = () => {
           setOriginalData(completeData);
         } catch (error) {
           console.error('Error fetching profile:', error);
-          // Create default profile data
           const defaultData = {
             userId: currentUser.uid,
             firstName: '',
@@ -121,7 +122,6 @@ const Profile = () => {
           setLoading(false);
         }
       } else {
-        // No user or role yet, stop loading
         setLoading(false);
       }
     };
@@ -131,12 +131,9 @@ const Profile = () => {
   const handleProfileUpdate = async () => {
     if (!currentUser || !profileData) return;
     
-    setMessage('');
-    
     try {
       setSaving(true);
       
-            
       const dataToSave = {
         ...profileData,
         email: currentUser.email,
@@ -146,24 +143,20 @@ const Profile = () => {
       
       await setDoc(doc(db, 'users', currentUser.uid), dataToSave, { merge: true });
       
-      setOriginalData(profileData); // Update original data after successful save
-      setIsEditing(false); // Exit edit mode
-      setMessage('Profile updated successfully! ');
-      setTimeout(() => setMessage(''), 3000);
-      
+      setOriginalData(profileData);
+      setIsEditing(false);
+      toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
-      setMessage('Failed to update profile. Please try again. ❌');
-      setTimeout(() => setMessage(''), 5000);
+      toast.error('Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleCancelEdit = () => {
-    setProfileData(originalData); // Restore original data
+    setProfileData(originalData);
     setIsEditing(false);
-    setMessage('');
   };
 
   const handleStartEdit = () => {
@@ -171,18 +164,7 @@ const Profile = () => {
   };
 
   const handleInputChange = (field, value) => {
-    setProfileData(prev => {
-      const updated = { ...prev, [field]: value };
-      return updated;
-    });
-  };
-
-  const getInputClassName = (isEditable = true) => {
-    const baseClass = "w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400";
-    if (!isEditable || !isEditing) {
-      return `${baseClass} bg-gray-100 cursor-not-allowed text-gray-700`;
-    }
-    return `${baseClass} bg-gray-50`;
+    setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
   const getSidebar = () => {
@@ -191,290 +173,302 @@ const Profile = () => {
     return <EntrepreneurSidebar />;
   };
 
-  return (
-    <>
-      <DashboardLayout sidebar={getSidebar()}>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h1>
-          <p className="text-gray-600">Manage your personal information and preferences</p>
-        </motion.div>
+  const initials = `${profileData?.firstName?.[0] || ''}${profileData?.lastName?.[0] || ''}`.toUpperCase() || 'U';
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl p-8 shadow-sm"
-        >
+  return (
+    <DashboardLayout sidebar={getSidebar()}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h1>
+        <p className="text-gray-600">Manage your personal information, expertise, and preferences</p>
+      </motion.div>
+
+      <Card>
+        <CardContent className="p-6 md:p-8">
           {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400"></div>
-              <p className="mt-4 text-gray-500">Loading profile...</p>
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-20 w-20 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </div>
+              <Separator />
+              <div className="grid md:grid-cols-2 gap-6">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* Profile Header with Edit Button */}
-              <div className="flex items-center justify-between pb-6 border-b border-gray-200">
+            <div className="space-y-8">
+              {/* Profile Header with Avatar & Edit Action */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/70">
                 <div className="flex items-center space-x-4">
-                  <div className="w-20 h-20 rounded-full bg-linear-to-br from-pink-200 to-pink-400 flex items-center justify-center text-white text-2xl font-bold">
-                    {profileData?.firstName?.[0]}{profileData?.lastName?.[0]}
-                  </div>
+                  <Avatar className="h-20 w-20 border-2 border-[#8d4624]/20 shadow-xs">
+                    <AvatarImage src={profileData?.profilePhoto} alt={profileData?.firstName} />
+                    <AvatarFallback className="bg-[#8d4624] text-white text-xl font-bold">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                      {profileData?.firstName} {profileData?.lastName}
+                      {profileData?.firstName || 'User'} {profileData?.lastName || ''}
                     </h2>
-                    <p className="text-gray-600 capitalize">{userRole}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="secondary" className="capitalize bg-[#f5e9dd] text-[#8d4624] hover:bg-[#ebdccc]">
+                        {userRole || 'Member'}
+                      </Badge>
+                      {profileData?.primaryIndustry && (
+                        <Badge variant="outline">{profileData.primaryIndustry}</Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
+
                 {!isEditing && (
-                  <button
+                  <Button
                     onClick={handleStartEdit}
-                    className="px-6 py-2 bg-pink-400 text-white font-medium rounded-lg hover:bg-pink-500 transition-colors"
+                    className="bg-[#8d4624] hover:bg-[#72371c] text-white w-fit"
                   >
                     Edit Profile
-                  </button>
+                  </Button>
                 )}
               </div>
 
               {/* Basic Information */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={profileData?.firstName || ''}
-                    onChange={(e) => handleInputChange('firstName', e.target.value)}
-                    disabled={!isEditing}
-                    className={`w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
-                      isEditing ? 'bg-gray-50' : 'bg-gray-100 cursor-not-allowed'
-                    }`}
-                    placeholder="Enter your first name"
-                  />
-                </div>
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name *</Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      value={profileData?.firstName || ''}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="Enter your first name"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={profileData?.lastName || ''}
-                    onChange={(e) => handleInputChange('lastName', e.target.value)}
-                    disabled={!isEditing} className={getInputClassName()}
-                    placeholder="Enter your last name"
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      value={profileData?.lastName || ''}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="Enter your last name"
+                    />
+                  </div>
                 </div>
               </div>
+
+              <Separator />
 
               {/* Contact Information */}
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={currentUser?.email || ''}
-                    disabled
-                    className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 cursor-not-allowed"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
-                </div>
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={currentUser?.email || ''}
+                      disabled
+                      className="bg-gray-100 cursor-not-allowed text-gray-500"
+                    />
+                    <p className="text-xs text-muted-foreground">Email cannot be modified</p>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={profileData?.phone || ''}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    disabled={!isEditing} className={getInputClassName()}
-                    placeholder="+91-9876543210"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profileData?.phone || ''}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="+91-9876543210"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Alternate Phone / WhatsApp
-                  </label>
-                  <input
-                    type="tel"
-                    value={profileData?.alternatePhone || ''}
-                    onChange={(e) => handleInputChange('alternatePhone', e.target.value)}
-                    disabled={!isEditing} className={getInputClassName()}
-                    placeholder="+91-9876543211"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="alternatePhone">Alternate Phone / WhatsApp</Label>
+                    <Input
+                      id="alternatePhone"
+                      type="tel"
+                      value={profileData?.alternatePhone || ''}
+                      onChange={(e) => handleInputChange('alternatePhone', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="+91-9876543211"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Profile Photo URL
-                  </label>
-                  <input
-                    type="url"
-                    value={profileData?.profilePhoto || ''}
-                    onChange={(e) => handleInputChange('profilePhoto', e.target.value)}
-                    disabled={!isEditing} className={getInputClassName()}
-                    placeholder="https://example.com/photo.jpg"
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="profilePhoto">Profile Photo URL</Label>
+                    <Input
+                      id="profilePhoto"
+                      type="url"
+                      value={profileData?.profilePhoto || ''}
+                      onChange={(e) => handleInputChange('profilePhoto', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="https://example.com/photo.jpg"
+                    />
+                  </div>
                 </div>
               </div>
+
+              <Separator />
 
               {/* Address Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Address Information</h3>
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Street Address
-                    </label>
-                    <input
+                  <div className="md:col-span-2 space-y-2">
+                    <Label htmlFor="street">Street Address</Label>
+                    <Input
+                      id="street"
                       type="text"
                       value={profileData?.address?.street || ''}
                       onChange={(e) => handleInputChange('address', { ...profileData?.address, street: e.target.value })}
-                      disabled={!isEditing} className={getInputClassName()}
+                      disabled={!isEditing}
                       placeholder="123 Main Street"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      City
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
                       type="text"
                       value={profileData?.address?.city || ''}
                       onChange={(e) => handleInputChange('address', { ...profileData?.address, city: e.target.value })}
-                      disabled={!isEditing} className={getInputClassName()}
+                      disabled={!isEditing}
                       placeholder="Mumbai"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      State/Province
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State / Province</Label>
+                    <Input
+                      id="state"
                       type="text"
                       value={profileData?.address?.state || ''}
                       onChange={(e) => handleInputChange('address', { ...profileData?.address, state: e.target.value })}
-                      disabled={!isEditing} className={getInputClassName()}
+                      disabled={!isEditing}
                       placeholder="Maharashtra"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Postal Code
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="postalCode">Postal Code</Label>
+                    <Input
+                      id="postalCode"
                       type="text"
                       value={profileData?.address?.postalCode || ''}
                       onChange={(e) => handleInputChange('address', { ...profileData?.address, postalCode: e.target.value })}
-                      disabled={!isEditing} className={getInputClassName()}
+                      disabled={!isEditing}
                       placeholder="400001"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Country
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input
+                      id="country"
                       type="text"
                       value={profileData?.address?.country || ''}
                       onChange={(e) => handleInputChange('address', { ...profileData?.address, country: e.target.value })}
-                      disabled={!isEditing} className={getInputClassName()}
+                      disabled={!isEditing}
                       placeholder="India"
                     />
                   </div>
                 </div>
               </div>
 
+              <Separator />
+
               {/* Social Media Links */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Social Media & Links</h3>
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      LinkedIn
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="linkedIn">LinkedIn</Label>
+                    <Input
+                      id="linkedIn"
                       type="url"
                       value={profileData?.socialMedia?.linkedIn || ''}
                       onChange={(e) => handleInputChange('socialMedia', { ...profileData?.socialMedia, linkedIn: e.target.value })}
-                      disabled={!isEditing} className={getInputClassName()}
+                      disabled={!isEditing}
                       placeholder="https://linkedin.com/in/yourprofile"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Twitter/X
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="twitter">Twitter / X</Label>
+                    <Input
+                      id="twitter"
                       type="url"
                       value={profileData?.socialMedia?.twitter || ''}
                       onChange={(e) => handleInputChange('socialMedia', { ...profileData?.socialMedia, twitter: e.target.value })}
-                      disabled={!isEditing} className={getInputClassName()}
+                      disabled={!isEditing}
                       placeholder="https://twitter.com/yourhandle"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Facebook
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="facebook">Facebook</Label>
+                    <Input
+                      id="facebook"
                       type="url"
                       value={profileData?.socialMedia?.facebook || ''}
                       onChange={(e) => handleInputChange('socialMedia', { ...profileData?.socialMedia, facebook: e.target.value })}
-                      disabled={!isEditing} className={getInputClassName()}
+                      disabled={!isEditing}
                       placeholder="https://facebook.com/yourprofile"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Instagram
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="instagram">Instagram</Label>
+                    <Input
+                      id="instagram"
                       type="text"
                       value={profileData?.socialMedia?.instagram || ''}
                       onChange={(e) => handleInputChange('socialMedia', { ...profileData?.socialMedia, instagram: e.target.value })}
-                      disabled={!isEditing} className={getInputClassName()}
+                      disabled={!isEditing}
                       placeholder="@yourhandle"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      YouTube
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="youtube">YouTube</Label>
+                    <Input
+                      id="youtube"
                       type="url"
                       value={profileData?.socialMedia?.youtube || ''}
                       onChange={(e) => handleInputChange('socialMedia', { ...profileData?.socialMedia, youtube: e.target.value })}
-                      disabled={!isEditing} className={getInputClassName()}
+                      disabled={!isEditing}
                       placeholder="https://youtube.com/c/yourchannel"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Personal Website
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="website">Personal Website</Label>
+                    <Input
+                      id="website"
                       type="url"
                       value={profileData?.socialMedia?.website || ''}
                       onChange={(e) => handleInputChange('socialMedia', { ...profileData?.socialMedia, website: e.target.value })}
-                      disabled={!isEditing} className={getInputClassName()}
+                      disabled={!isEditing}
                       placeholder="https://yourwebsite.com"
                     />
                   </div>
@@ -483,500 +477,463 @@ const Profile = () => {
 
               {/* Role-Specific Fields */}
               {userRole === 'entrepreneur' && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Professional Information</h3>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Primary Industry
-                      </label>
-                      <select
-                        value={profileData?.primaryIndustry || ''}
-                        onChange={(e) => handleInputChange('primaryIndustry', e.target.value)}
-                        disabled={!isEditing} className={getInputClassName()}
-                      >
-                        <option value="">Select industry</option>
-                        {sectors.map(sector => (
-                          <option key={sector} value={sector}>{sector}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Business Stage
-                      </label>
-                      <select
-                        value={profileData?.businessStage || ''}
-                        onChange={(e) => handleInputChange('businessStage', e.target.value)}
-                        disabled={!isEditing} className={getInputClassName()}
-                      >
-                        <option value="">Select stage</option>
-                        <option value="idea">Idea</option>
-                        <option value="prototype">Prototype</option>
-                        <option value="mvp">MVP</option>
-                        <option value="revenue">Revenue</option>
-                        <option value="growth">Growth</option>
-                        <option value="scaling">Scaling</option>
-                      </select>
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Education
-                      </label>
-                      <input
-                        type="text"
-                        value={profileData?.education || ''}
-                        onChange={(e) => handleInputChange('education', e.target.value)}
-                        disabled={!isEditing} className={getInputClassName()}
-                        placeholder="e.g., MBA from IIM Ahmedabad, B.Tech from IIT Mumbai"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Work Experience
-                      </label>
-                      <textarea
-                        value={profileData?.experience || ''}
-                        onChange={(e) => handleInputChange('experience', e.target.value)}
-                        rows={3}
-                        disabled={!isEditing} className={getInputClassName()}
-                        placeholder="Brief summary of your work experience"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {userRole === 'mentor' && (
-                <div className="space-y-6">
-                  {/* Mentor Type & Sector */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mentor Type *
-                      </label>
-                      <select
-                        value={profileData?.mentorType || 'personal'}
-                        onChange={(e) => handleInputChange('mentorType', e.target.value)}
-                        disabled={!isEditing}
-                        className={getInputClassName()}
-                      >
-                        <option value="">Select mentor type</option>
-                        <option value="personal">Personal (1-on-1)</option>
-                        <option value="group">Group Sessions</option>
-                        <option value="both">Both Personal & Group</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Primary Sector *
-                      </label>
-                      <select
-                        value={profileData?.sector || ''}
-                        onChange={(e) => handleInputChange('sector', e.target.value)}
-                        disabled={!isEditing}
-                        className={getInputClassName()}
-                      >
-                        <option value="">Select sector</option>
-                        {sectors.map(sector => (
-                          <option key={sector} value={sector}>{sector}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Pricing */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(profileData?.mentorType === 'personal' || profileData?.mentorType === 'both') && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Personal Session Price (₹/hour) *
-                        </label>
-                        <input
-                          type="number"
-                          value={profileData?.personalSessionPrice || ''}
-                          onChange={(e) => handleInputChange('personalSessionPrice', parseFloat(e.target.value) || 0)}
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Professional Information</h3>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="primaryIndustry">Primary Industry</Label>
+                        <select
+                          id="primaryIndustry"
+                          value={profileData?.primaryIndustry || ''}
+                          onChange={(e) => handleInputChange('primaryIndustry', e.target.value)}
                           disabled={!isEditing}
-                          className={getInputClassName()}
-                          placeholder="e.g., 1500"
-                          min="0"
+                          className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                        >
+                          <option value="">Select industry</option>
+                          {sectors.map(sector => (
+                            <option key={sector} value={sector}>{sector}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="businessStage">Business Stage</Label>
+                        <select
+                          id="businessStage"
+                          value={profileData?.businessStage || ''}
+                          onChange={(e) => handleInputChange('businessStage', e.target.value)}
+                          disabled={!isEditing}
+                          className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                        >
+                          <option value="">Select stage</option>
+                          <option value="idea">Idea</option>
+                          <option value="prototype">Prototype</option>
+                          <option value="mvp">MVP</option>
+                          <option value="revenue">Revenue</option>
+                          <option value="growth">Growth</option>
+                          <option value="scaling">Scaling</option>
+                        </select>
+                      </div>
+
+                      <div className="md:col-span-2 space-y-2">
+                        <Label htmlFor="education">Education</Label>
+                        <Input
+                          id="education"
+                          type="text"
+                          value={profileData?.education || ''}
+                          onChange={(e) => handleInputChange('education', e.target.value)}
+                          disabled={!isEditing}
+                          placeholder="e.g., MBA from IIM Ahmedabad, B.Tech from IIT Mumbai"
                         />
                       </div>
-                    )}
 
-                    {(profileData?.mentorType === 'group' || profileData?.mentorType === 'both') && (
-                      <>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Group Session Price (₹/hour) *
-                          </label>
-                          <input
-                            type="number"
-                            value={profileData?.groupSessionPrice || ''}
-                            onChange={(e) => handleInputChange('groupSessionPrice', parseFloat(e.target.value) || 0)}
-                            disabled={!isEditing}
-                            className={getInputClassName()}
-                            placeholder="e.g., 500"
-                            min="0"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Group Session Capacity
-                          </label>
-                          <input
-                            type="number"
-                            value={profileData?.groupSessionCapacity || ''}
-                            onChange={(e) => handleInputChange('groupSessionCapacity', parseInt(e.target.value) || 5)}
-                            disabled={!isEditing}
-                            className={getInputClassName()}
-                            placeholder="e.g., 10"
-                            min="2"
-                            max="50"
-                          />
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Experience Level */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Experience Level *
-                    </label>
-                    <select
-                      value={profileData?.experienceLevel || ''}
-                      onChange={(e) => handleInputChange('experienceLevel', e.target.value)}
-                      disabled={!isEditing}
-                      className={getInputClassName()}
-                    >
-                      <option value="">Select experience level</option>
-                      {experienceLevels.map(level => (
-                        <option key={level} value={level}>{level}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Location */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        City *
-                      </label>
-                      <input
-                        type="text"
-                        value={profileData?.location?.city || ''}
-                        onChange={(e) => handleInputChange('location', { ...profileData?.location, city: e.target.value })}
-                        disabled={!isEditing}
-                        className={getInputClassName()}
-                        placeholder="e.g., Mumbai"
-                      />
+                      <div className="md:col-span-2 space-y-2">
+                        <Label htmlFor="experience">Work Experience</Label>
+                        <Textarea
+                          id="experience"
+                          value={profileData?.experience || ''}
+                          onChange={(e) => handleInputChange('experience', e.target.value)}
+                          rows={3}
+                          disabled={!isEditing}
+                          placeholder="Brief summary of your work experience"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        State *
-                      </label>
-                      <input
-                        type="text"
-                        value={profileData?.location?.state || ''}
-                        onChange={(e) => handleInputChange('location', { ...profileData?.location, state: e.target.value })}
-                        disabled={!isEditing}
-                        className={getInputClassName()}
-                        placeholder="e.g., Maharashtra"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Country
-                      </label>
-                      <input
-                        type="text"
-                        value={profileData?.location?.country || 'India'}
-                        onChange={(e) => handleInputChange('location', { ...profileData?.location, country: e.target.value })}
-                        disabled={!isEditing}
-                        className={getInputClassName()}
-                        placeholder="India"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Languages */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Languages Spoken *
-                    </label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {indianLanguages.map(lang => (
-                        <label key={lang} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={profileData?.languages?.includes(lang) || false}
-                            onChange={(e) => {
-                              const currentLangs = profileData?.languages || [];
-                              if (e.target.checked) {
-                                handleInputChange('languages', [...currentLangs, lang]);
-                              } else {
-                                handleInputChange('languages', currentLangs.filter(l => l !== lang));
-                              }
-                            }}
-                            disabled={!isEditing}
-                            className="rounded text-pink-500 focus:ring-pink-400"
-                          />
-                          <span className="text-sm text-gray-700">{lang}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Availability Days */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Available Days *
-                    </label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {availableDaysOptions.map(day => (
-                        <label key={day} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={profileData?.availableDays?.includes(day) || false}
-                            onChange={(e) => {
-                              const currentDays = profileData?.availableDays || [];
-                              if (e.target.checked) {
-                                handleInputChange('availableDays', [...currentDays, day]);
-                              } else {
-                                handleInputChange('availableDays', currentDays.filter(d => d !== day));
-                              }
-                            }}
-                            disabled={!isEditing}
-                            className="rounded text-pink-500 focus:ring-pink-400"
-                          />
-                          <span className="text-sm text-gray-700">{day}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Time Slots */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Time Slots *
-                    </label>
-                    <div className="flex gap-4">
-                      {timeSlotOptions.map(slot => (
-                        <label key={slot} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={profileData?.availableTimeSlots?.includes(slot) || false}
-                            onChange={(e) => {
-                              const currentSlots = profileData?.availableTimeSlots || [];
-                              if (e.target.checked) {
-                                handleInputChange('availableTimeSlots', [...currentSlots, slot]);
-                              } else {
-                                handleInputChange('availableTimeSlots', currentSlots.filter(s => s !== slot));
-                              }
-                            }}
-                            disabled={!isEditing}
-                            className="rounded text-pink-500 focus:ring-pink-400"
-                          />
-                          <span className="text-sm text-gray-700">{slot}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Response Time */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Typical Response Time *
-                    </label>
-                    <select
-                      value={profileData?.responseTime || 'Within 24 hours'}
-                      onChange={(e) => handleInputChange('responseTime', e.target.value)}
-                      disabled={!isEditing}
-                      className={getInputClassName()}
-                    >
-                      {responseTimeOptions.map(time => (
-                        <option key={time} value={time}>{time}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Expertise Areas */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Areas of Expertise *
-                    </label>
-                    <textarea
-                      value={Array.isArray(profileData?.expertiseAreas) 
-                        ? profileData.expertiseAreas.join(', ') 
-                        : profileData?.expertiseAreas || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        handleInputChange('expertiseAreas', value.split(',').map(s => s.trim()).filter(Boolean));
-                      }}
-                      rows={3}
-                      disabled={!isEditing}
-                      className={getInputClassName()}
-                      placeholder="e.g., Business Strategy, Marketing, Product Development (comma-separated)"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Separate multiple areas with commas</p>
-                  </div>
-
-                  {/* Education */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Education
-                    </label>
-                    <input
-                      type="text"
-                      value={profileData?.education || ''}
-                      onChange={(e) => handleInputChange('education', e.target.value)}
-                      disabled={!isEditing}
-                      className={getInputClassName()}
-                      placeholder="e.g., MBA from IIM Ahmedabad, B.Tech from IIT Mumbai"
-                    />
-                  </div>
-
-                  {/* Certifications */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Certifications
-                    </label>
-                    <textarea
-                      value={Array.isArray(profileData?.certifications) 
-                        ? profileData.certifications.join(', ') 
-                        : profileData?.certifications || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        handleInputChange('certifications', value.split(',').map(s => s.trim()).filter(Boolean));
-                      }}
-                      rows={2}
-                      disabled={!isEditing}
-                      className={getInputClassName()}
-                      placeholder="e.g., Certified Business Coach, PMP (comma-separated)"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Separate multiple certifications with commas</p>
-                  </div>
-
-                  {/* Company Name (optional) */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Company/Organization (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={profileData?.companyName || ''}
-                      onChange={(e) => handleInputChange('companyName', e.target.value)}
-                      disabled={!isEditing}
-                      className={getInputClassName()}
-                      placeholder="Current or previous company"
-                    />
-                  </div>
-
-                  {/* Bio/About */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      About / Bio
-                    </label>
-                    <textarea
-                      value={profileData?.bio || ''}
-                      onChange={(e) => handleInputChange('bio', e.target.value)}
-                      rows={4}
-                      disabled={!isEditing}
-                      className={getInputClassName()}
-                      placeholder="Tell entrepreneurs about your background, experience, and what makes you a great mentor..."
-                    />
-                  </div>
-                </div>
-              )}
-
-              {userRole === 'investor' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Investment Focus
-                    </label>
-                    <textarea
-                      value={profileData?.investmentFocus || ''}
-                      onChange={(e) => handleInputChange('investmentFocus', e.target.value)}
-                      rows={4}
-                      disabled={!isEditing} className={getInputClassName()}
-                      placeholder="e.g., Early-stage tech startups, Healthcare innovation"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Portfolio Size
-                    </label>
-                    <select
-                      value={profileData?.portfolioSize || ''}
-                      onChange={(e) => handleInputChange('portfolioSize', e.target.value)}
-                      disabled={!isEditing} className={getInputClassName()}
-                    >
-                      <option value="">Select portfolio size</option>
-                      <option value="0-5">0-5 investments</option>
-                      <option value="6-10">6-10 investments</option>
-                      <option value="11-20">11-20 investments</option>
-                      <option value="20+">20+ investments</option>
-                    </select>
                   </div>
                 </>
               )}
 
-              {/* Action Buttons */}
+              {userRole === 'mentor' && (
+                <>
+                  <Separator />
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold text-gray-900">Mentorship Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="mentorType">Mentor Type *</Label>
+                        <select
+                          id="mentorType"
+                          value={profileData?.mentorType || 'personal'}
+                          onChange={(e) => handleInputChange('mentorType', e.target.value)}
+                          disabled={!isEditing}
+                          className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                        >
+                          <option value="">Select mentor type</option>
+                          <option value="personal">Personal (1-on-1)</option>
+                          <option value="group">Group Sessions</option>
+                          <option value="both">Both Personal & Group</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="mentorSector">Primary Sector *</Label>
+                        <select
+                          id="mentorSector"
+                          value={profileData?.sector || ''}
+                          onChange={(e) => handleInputChange('sector', e.target.value)}
+                          disabled={!isEditing}
+                          className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                        >
+                          <option value="">Select sector</option>
+                          {sectors.map(sector => (
+                            <option key={sector} value={sector}>{sector}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Pricing */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {(profileData?.mentorType === 'personal' || profileData?.mentorType === 'both') && (
+                        <div className="space-y-2">
+                          <Label htmlFor="personalPrice">Personal Session Price (₹/hour) *</Label>
+                          <Input
+                            id="personalPrice"
+                            type="number"
+                            value={profileData?.personalSessionPrice || ''}
+                            onChange={(e) => handleInputChange('personalSessionPrice', parseFloat(e.target.value) || 0)}
+                            disabled={!isEditing}
+                            placeholder="e.g., 1500"
+                            min="0"
+                          />
+                        </div>
+                      )}
+
+                      {(profileData?.mentorType === 'group' || profileData?.mentorType === 'both') && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="groupPrice">Group Session Price (₹/hour) *</Label>
+                            <Input
+                              id="groupPrice"
+                              type="number"
+                              value={profileData?.groupSessionPrice || ''}
+                              onChange={(e) => handleInputChange('groupSessionPrice', parseFloat(e.target.value) || 0)}
+                              disabled={!isEditing}
+                              placeholder="e.g., 500"
+                              min="0"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="groupCapacity">Group Session Capacity</Label>
+                            <Input
+                              id="groupCapacity"
+                              type="number"
+                              value={profileData?.groupSessionCapacity || ''}
+                              onChange={(e) => handleInputChange('groupSessionCapacity', parseInt(e.target.value) || 5)}
+                              disabled={!isEditing}
+                              placeholder="e.g., 10"
+                              min="2"
+                              max="50"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Experience Level */}
+                    <div className="space-y-2">
+                      <Label htmlFor="expLevel">Experience Level *</Label>
+                      <select
+                        id="expLevel"
+                        value={profileData?.experienceLevel || ''}
+                        onChange={(e) => handleInputChange('experienceLevel', e.target.value)}
+                        disabled={!isEditing}
+                        className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                      >
+                        <option value="">Select experience level</option>
+                        {experienceLevels.map(level => (
+                          <option key={level} value={level}>{level}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Location */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="mCity">City *</Label>
+                        <Input
+                          id="mCity"
+                          type="text"
+                          value={profileData?.location?.city || ''}
+                          onChange={(e) => handleInputChange('location', { ...profileData?.location, city: e.target.value })}
+                          disabled={!isEditing}
+                          placeholder="e.g., Mumbai"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="mState">State *</Label>
+                        <Input
+                          id="mState"
+                          type="text"
+                          value={profileData?.location?.state || ''}
+                          onChange={(e) => handleInputChange('location', { ...profileData?.location, state: e.target.value })}
+                          disabled={!isEditing}
+                          placeholder="e.g., Maharashtra"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="mCountry">Country</Label>
+                        <Input
+                          id="mCountry"
+                          type="text"
+                          value={profileData?.location?.country || 'India'}
+                          onChange={(e) => handleInputChange('location', { ...profileData?.location, country: e.target.value })}
+                          disabled={!isEditing}
+                          placeholder="India"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Languages */}
+                    <div className="space-y-2">
+                      <Label>Languages Spoken *</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1">
+                        {indianLanguages.map(lang => {
+                          const isChecked = profileData?.languages?.includes(lang) || false;
+                          return (
+                            <div key={lang} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`lang-${lang}`}
+                                checked={isChecked}
+                                disabled={!isEditing}
+                                onCheckedChange={(checked) => {
+                                  const currentLangs = profileData?.languages || [];
+                                  if (checked) {
+                                    handleInputChange('languages', [...currentLangs, lang]);
+                                  } else {
+                                    handleInputChange('languages', currentLangs.filter(l => l !== lang));
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={`lang-${lang}`} className="text-sm font-normal cursor-pointer">
+                                {lang}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Availability Days */}
+                    <div className="space-y-2">
+                      <Label>Available Days *</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-1">
+                        {availableDaysOptions.map(day => {
+                          const isChecked = profileData?.availableDays?.includes(day) || false;
+                          return (
+                            <div key={day} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`day-${day}`}
+                                checked={isChecked}
+                                disabled={!isEditing}
+                                onCheckedChange={(checked) => {
+                                  const currentDays = profileData?.availableDays || [];
+                                  if (checked) {
+                                    handleInputChange('availableDays', [...currentDays, day]);
+                                  } else {
+                                    handleInputChange('availableDays', currentDays.filter(d => d !== day));
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={`day-${day}`} className="text-sm font-normal cursor-pointer">
+                                {day}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Time Slots */}
+                    <div className="space-y-2">
+                      <Label>Preferred Time Slots *</Label>
+                      <div className="flex flex-wrap gap-4 pt-1">
+                        {timeSlotOptions.map(slot => {
+                          const isChecked = profileData?.availableTimeSlots?.includes(slot) || false;
+                          return (
+                            <div key={slot} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`slot-${slot}`}
+                                checked={isChecked}
+                                disabled={!isEditing}
+                                onCheckedChange={(checked) => {
+                                  const currentSlots = profileData?.availableTimeSlots || [];
+                                  if (checked) {
+                                    handleInputChange('availableTimeSlots', [...currentSlots, slot]);
+                                  } else {
+                                    handleInputChange('availableTimeSlots', currentSlots.filter(s => s !== slot));
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={`slot-${slot}`} className="text-sm font-normal cursor-pointer">
+                                {slot}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Response Time */}
+                    <div className="space-y-2">
+                      <Label htmlFor="responseTime">Typical Response Time *</Label>
+                      <select
+                        id="responseTime"
+                        value={profileData?.responseTime || 'Within 24 hours'}
+                        onChange={(e) => handleInputChange('responseTime', e.target.value)}
+                        disabled={!isEditing}
+                        className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                      >
+                        {responseTimeOptions.map(time => (
+                          <option key={time} value={time}>{time}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Expertise Areas */}
+                    <div className="space-y-2">
+                      <Label htmlFor="expertiseAreas">Areas of Expertise *</Label>
+                      <Textarea
+                        id="expertiseAreas"
+                        value={Array.isArray(profileData?.expertiseAreas) 
+                          ? profileData.expertiseAreas.join(', ') 
+                          : profileData?.expertiseAreas || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleInputChange('expertiseAreas', value.split(',').map(s => s.trim()).filter(Boolean));
+                        }}
+                        rows={3}
+                        disabled={!isEditing}
+                        placeholder="e.g., Business Strategy, Marketing, Product Development (comma-separated)"
+                      />
+                      <p className="text-xs text-muted-foreground">Separate multiple areas with commas</p>
+                    </div>
+
+                    {/* Education */}
+                    <div className="space-y-2">
+                      <Label htmlFor="mEdu">Education</Label>
+                      <Input
+                        id="mEdu"
+                        type="text"
+                        value={profileData?.education || ''}
+                        onChange={(e) => handleInputChange('education', e.target.value)}
+                        disabled={!isEditing}
+                        placeholder="e.g., MBA from IIM Ahmedabad, B.Tech from IIT Mumbai"
+                      />
+                    </div>
+
+                    {/* Certifications */}
+                    <div className="space-y-2">
+                      <Label htmlFor="certifications">Certifications</Label>
+                      <Textarea
+                        id="certifications"
+                        value={Array.isArray(profileData?.certifications) 
+                          ? profileData.certifications.join(', ') 
+                          : profileData?.certifications || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleInputChange('certifications', value.split(',').map(s => s.trim()).filter(Boolean));
+                        }}
+                        rows={2}
+                        disabled={!isEditing}
+                        placeholder="e.g., Certified Business Coach, PMP (comma-separated)"
+                      />
+                      <p className="text-xs text-muted-foreground">Separate multiple certifications with commas</p>
+                    </div>
+
+                    {/* Company Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="mComp">Company / Organization (Optional)</Label>
+                      <Input
+                        id="mComp"
+                        type="text"
+                        value={profileData?.companyName || ''}
+                        onChange={(e) => handleInputChange('companyName', e.target.value)}
+                        disabled={!isEditing}
+                        placeholder="Current or previous company"
+                      />
+                    </div>
+
+                    {/* Bio/About */}
+                    <div className="space-y-2">
+                      <Label htmlFor="mBio">About / Bio</Label>
+                      <Textarea
+                        id="mBio"
+                        value={profileData?.bio || ''}
+                        onChange={(e) => handleInputChange('bio', e.target.value)}
+                        rows={4}
+                        disabled={!isEditing}
+                        placeholder="Tell entrepreneurs about your background, experience, and mentorship philosophy..."
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {userRole === 'investor' && (
+                <>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Investor Profile</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="invFocus">Investment Focus</Label>
+                        <Textarea
+                          id="invFocus"
+                          value={profileData?.investmentFocus || ''}
+                          onChange={(e) => handleInputChange('investmentFocus', e.target.value)}
+                          rows={4}
+                          disabled={!isEditing}
+                          placeholder="e.g., Early-stage tech startups, Healthcare innovation, Sustainable commerce"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="invPortfolio">Portfolio Size</Label>
+                        <select
+                          id="invPortfolio"
+                          value={profileData?.portfolioSize || ''}
+                          onChange={(e) => handleInputChange('portfolioSize', e.target.value)}
+                          disabled={!isEditing}
+                          className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                        >
+                          <option value="">Select portfolio size</option>
+                          <option value="0-5">0-5 investments</option>
+                          <option value="6-10">6-10 investments</option>
+                          <option value="11-20">11-20 investments</option>
+                          <option value="20+">20+ investments</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Action Buttons for Edit Mode */}
               {isEditing && (
-                <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
-                  <button 
+                <div className="flex items-center justify-end space-x-3 pt-6 border-t border-border/70">
+                  <Button 
+                    variant="outline"
                     onClick={handleCancelEdit}
                     disabled={saving}
-                    className="px-6 py-3 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
                   >
                     Cancel
-                  </button>
-                  <button 
+                  </Button>
+                  <Button 
                     onClick={handleProfileUpdate}
                     disabled={saving}
-                    className="px-6 py-3 bg-pink-400 text-white font-medium rounded-lg hover:bg-pink-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    className="bg-[#8d4624] hover:bg-[#72371c] text-white"
                   >
-                    {saving && (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    )}
-                    <span>{saving ? 'Saving...' : 'Save Changes'}</span>
-                  </button>
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </Button>
                 </div>
               )}
             </div>
           )}
-        </motion.div>
-      </DashboardLayout>
-
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {message && (
-          <motion.div
-            key="profile-toast"
-            variants={toastVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ duration: 0.3 }}
-            className="fixed top-6 right-6 z-60 w-full max-w-sm"
-          >
-            <div className={`p-4 rounded-lg shadow-lg text-sm font-medium ${
-              message.includes('success') 
-                ? 'bg-green-50 text-green-700 border border-green-200' 
-                : 'bg-red-50 text-red-700 border border-red-200'
-            }`}>
-              {message}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+        </CardContent>
+      </Card>
+    </DashboardLayout>
   );
 };
 

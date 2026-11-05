@@ -26,6 +26,14 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline'
 import jsPDF from 'jspdf'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { toast } from 'sonner'
 
 const EntrepreneurDashboard = () => {
   const { t } = useTranslation()
@@ -201,10 +209,10 @@ const EntrepreneurDashboard = () => {
       await deleteDoc(doc(db, 'startups', startupId));
       setMyStartups(prev => prev.filter(s => (s._id || s.id) !== startupId));
       setShowDeleteConfirm(null);
-      alert('Startup deleted successfully');
+      toast.success('Startup deleted successfully');
     } catch (error) {
       console.error('Error deleting startup:', error);
-      alert('Failed to delete startup. Please try again.');
+      toast.error('Failed to delete startup. Please try again.');
     }
   };
 
@@ -218,10 +226,10 @@ const EntrepreneurDashboard = () => {
       await deleteDoc(doc(db, 'investment-projects', projectId));
       setInvestmentProjects(prev => prev.filter(p => p._id !== projectId));
       setShowDeleteProjectConfirm(null);
-      alert('Investment project deleted successfully');
+      toast.success('Investment project deleted successfully');
     } catch (error) {
       console.error('Error deleting investment project:', error);
-      alert('Failed to delete project. Please try again.');
+      toast.error('Failed to delete project. Please try again.');
     }
   };
 
@@ -383,11 +391,7 @@ const EntrepreneurDashboard = () => {
   return (
     <DashboardLayout sidebar={sidebar}>
       {/* Welcome Section */}
-      <div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           {t('dashboard.welcome')}, {getDisplayName()} 
         </h1>
@@ -399,556 +403,546 @@ const EntrepreneurDashboard = () => {
         <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('dashboard.mentorHub')}</h2>
         <div className="grid md:grid-cols-3 gap-6">
           {quickActions.map((action, index) => (
-            <div
+            <Card
               key={index}
               onClick={action.action}
-              className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg cursor-pointer transition-all duration-200 hover:scale-105"
+              className="p-6 hover:shadow-md cursor-pointer transition-all duration-200 hover:-translate-y-0.5 border-border/60"
             >
               <div className={`w-12 h-12 bg-linear-to-r ${action.color} rounded-xl flex items-center justify-center mb-4`}>
                 <action.icon className="w-6 h-6 text-gray-700" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{action.title}</h3>
               <p className="text-gray-600 text-sm">{action.description}</p>
-            </div>
+            </Card>
           ))}
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">{stats.mentorConnections}</div>
-          <div className="text-sm text-gray-600">{t('dashboard.stats.mentorConnections')}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">{stats.aiConversations}</div>
-          <div className="text-sm text-gray-600">{t('dashboard.stats.aiConversations')}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">{stats.opportunitiesApplied}</div>
-          <div className="text-sm text-gray-600">{t('dashboard.stats.opportunitiesApplied')}</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900">{stats.journeyProgress}%</div>
-          <div className="text-sm text-gray-600">{t('dashboard.stats.journeyProgress')}</div>
-        </div>
+        <Card className="border-border/60">
+          <CardContent className="p-5">
+            <div className="text-2xl font-bold text-gray-900">{stats.mentorConnections}</div>
+            <div className="text-sm text-gray-600 mt-1">{t('dashboard.stats.mentorConnections')}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardContent className="p-5">
+            <div className="text-2xl font-bold text-gray-900">{stats.aiConversations}</div>
+            <div className="text-sm text-gray-600 mt-1">{t('dashboard.stats.aiConversations')}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardContent className="p-5">
+            <div className="text-2xl font-bold text-gray-900">{stats.opportunitiesApplied}</div>
+            <div className="text-sm text-gray-600 mt-1">{t('dashboard.stats.opportunitiesApplied')}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="text-2xl font-bold text-gray-900">{stats.journeyProgress}%</div>
+              <Badge variant="secondary" className="bg-[#f5e9dd] text-[#8d4624]">Journey</Badge>
+            </div>
+            <div className="text-sm text-gray-600 mt-1">{t('dashboard.stats.journeyProgress')}</div>
+            <Progress value={stats.journeyProgress} className="h-1.5 mt-3" />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.recentActivity')}</h3>
-        <div className="space-y-4">
-          {recentActivity.map((activity, index) => (
-            <div key={index} className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <activity.icon className="w-4 h-4 text-gray-700" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                <p className="text-xs text-gray-500 flex items-center">
-                  <ClockIcon className="w-3 h-3 mr-1" />
-                  {activity.time}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* My Startups */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">My Startups ({myStartups.length})</h3>
-          <button
-            onClick={() => navigate('/create-startup')}
-            className="text-sm text-pink-600 hover:text-pink-700 font-medium"
-          >
-            Create New +
-          </button>
-        </div>
-
-        {myStartups.length > 0 ? (
+      <Card className="mb-8 border-border/60">
+        <CardHeader className="pb-3">
+          <CardTitle>{t('dashboard.recentActivity')}</CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="space-y-4">
-            {(showAllStartups ? myStartups : myStartups.slice(0, 1)).map((startup) => (
-              <div
-                key={startup._id || startup.id}
-                className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => setSelectedStartup(startup)}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h4 className="text-xl font-semibold text-gray-900 mb-2">{startup.name}</h4>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="px-3 py-1 bg-pink-100 text-pink-700 text-sm rounded-full flex items-center gap-1">
-                        <TagIcon className="w-4 h-4" />
-                        {startup.industry || startup.category}
-                      </span>
-                      <span className="px-3 py-1 bg-purple-600 text-white text-sm font-medium rounded-full flex items-center gap-1">
-                        <TrophyIcon className="w-4 h-4" />
-                        {startup.stage || 'Not specified'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleEditStartup(startup)
-                      }}
-                      className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-all"
-                      title="Edit Startup"
-                    >
-                      <PencilIcon className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setShowDeleteConfirm(startup._id || startup.id)
-                      }}
-                      className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
-                      title="Delete Startup"
-                    >
-                      <TrashIcon className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDownloadStartupPDF(startup)
-                      }}
-                      className="p-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-all shadow-md hover:shadow-lg"
-                      title="Download PDF"
-                    >
-                      <ArrowDownTrayIcon className="w-5 h-5" />
-                    </button>
-                  </div>
+            {recentActivity.map((activity, index) => (
+              <div key={index} className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center shrink-0">
+                  <activity.icon className="w-4 h-4 text-gray-700" />
                 </div>
-
-                <p className="text-sm text-gray-700 mb-4 leading-relaxed line-clamp-2">{startup.description}</p>
-
-                {/* All Startup Fields */}
-                <div className="grid md:grid-cols-3 gap-3 mb-4">
-                  {startup.targetMarket && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-gray-600 mb-1">
-                        <UsersIcon className="w-4 h-4" />
-                        <span className="text-xs font-semibold">Target Market</span>
-                      </div>
-                      <p className="text-sm text-gray-800">{startup.targetMarket}</p>
-                    </div>
-                  )}
-
-                  {startup.fundingGoal && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-gray-600 mb-1">
-                        <CurrencyDollarIcon className="w-4 h-4" />
-                        <span className="text-xs font-semibold">Funding Goal</span>
-                      </div>
-                      <p className="text-sm text-gray-800">₹{startup.fundingGoal.toLocaleString()}</p>
-                    </div>
-                  )}
-
-                  {startup.teamSize && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-gray-600 mb-1">
-                        <UsersIcon className="w-4 h-4" />
-                        <span className="text-xs font-semibold">Team Size</span>
-                      </div>
-                      <p className="text-sm text-gray-800">{startup.teamSize} members</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Additional Fields Row */}
-                <div className="grid md:grid-cols-2 gap-3 mb-4">
-                  {startup.revenueModel && (
-                    <div className="bg-blue-50 rounded-lg p-3">
-                      <span className="text-xs font-semibold text-blue-900">Revenue Model</span>
-                      <p className="text-sm text-blue-800 mt-1">{startup.revenueModel}</p>
-                    </div>
-                  )}
-
-                  {startup.uniqueSellingPoint && (
-                    <div className="bg-purple-50 rounded-lg p-3">
-                      <span className="text-xs font-semibold text-purple-900">USP</span>
-                      <p className="text-sm text-purple-800 mt-1">{startup.uniqueSellingPoint}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Checkboxes Section */}
-                {(startup.hasWebsite || startup.hasPrototype || startup.hasMinimumViableProduct || startup.hasRevenue || startup.hasFunding) && (
-                  <div className="bg-green-50 rounded-lg p-3 mb-4">
-                    <span className="text-xs font-semibold text-green-900 block mb-2">Milestones Achieved</span>
-                    <div className="flex flex-wrap gap-2">
-                      {startup.hasWebsite && (
-                        <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">✓ Website</span>
-                      )}
-                      {startup.hasPrototype && (
-                        <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">✓ Prototype</span>
-                      )}
-                      {startup.hasMinimumViableProduct && (
-                        <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">✓ MVP</span>
-                      )}
-                      {startup.hasRevenue && (
-                        <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">✓ Revenue</span>
-                      )}
-                      {startup.hasFunding && (
-                        <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">✓ Funding</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Revenue Info */}
-                {(startup.currentRevenue || startup.projectedRevenue) && (
-                  <div className="grid md:grid-cols-2 gap-3 mb-4">
-                    {startup.currentRevenue > 0 && (
-                      <div className="bg-yellow-50 rounded-lg p-3">
-                        <span className="text-xs font-semibold text-yellow-900">Current Revenue</span>
-                        <p className="text-sm text-yellow-800 mt-1">₹{startup.currentRevenue.toLocaleString()}</p>
-                      </div>
-                    )}
-                    {startup.projectedRevenue > 0 && (
-                      <div className="bg-orange-50 rounded-lg p-3">
-                        <span className="text-xs font-semibold text-orange-900">Projected Revenue</span>
-                        <p className="text-sm text-orange-800 mt-1">₹{startup.projectedRevenue.toLocaleString()}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex items-center justify-end pt-4 mt-4 border-t border-gray-200">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedStartup(startup)
-                    }}
-                    className="text-sm text-pink-600 hover:text-pink-700 font-medium flex items-center gap-1"
-                  >
-                    <EyeIcon className="w-4 h-4" />
-                    View Details
-                  </button>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                  <p className="text-xs text-gray-500 flex items-center mt-0.5">
+                    <ClockIcon className="w-3 h-3 mr-1" />
+                    {activity.time}
+                  </p>
                 </div>
               </div>
             ))}
-
-            {myStartups.length > 1 && (
-              <div className="pt-4 flex justify-center">
-                <button
-                  onClick={() => setShowAllStartups(!showAllStartups)}
-                  className="text-sm text-pink-600 hover:text-pink-700 font-semibold"
-                >
-                  {showAllStartups ? 'Show Less' : 'Show More'}
-                </button>
-              </div>
-            )}
           </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <SparklesIcon className="w-10 h-10 text-gray-400" />
-            </div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-2">No Startups Yet</h4>
-            <p className="text-gray-600 mb-6">Create your first startup profile to get started!</p>
-            <button
-              onClick={() => navigate('/create-startup')}
-              className="px-6 py-3 bg-linear-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all font-medium"
-            >
-              Create Your First Startup
-            </button>
-          </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Investment Projects Listed for Funding */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
-        <div className="flex justify-between items-center mb-4">
+      {/* My Startups */}
+      <Card className="mb-8 border-border/60">
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Projects Listed for Investment ({investmentProjects.length})</h3>
-            <p className="text-sm text-gray-600">Track your funding progress</p>
+            <CardTitle className="text-xl">My Startups ({myStartups.length})</CardTitle>
+            <CardDescription>Manage your venture profiles and generate investment proposals</CardDescription>
           </div>
-          <button
-            onClick={() => navigate('/list-project')}
-            className="text-sm text-pink-600 hover:text-pink-700 font-medium"
+          <Button
+            onClick={() => navigate('/create-startup')}
+            size="sm"
+            className="bg-[#8d4624] hover:bg-[#72371c] text-white"
           >
-            List New Project +
-          </button>
-        </div>
-        
-        {investmentProjects.length > 0 ? (
-          <div className="space-y-4">
-            {(showAllInvestmentProjects ? investmentProjects : investmentProjects.slice(0, 1)).map((project, index) => {
-              const fundingPercentage = project.fundingPercentage || 0
-              const remainingAmount = project.fundingGoal - (project.currentFunding || 0)
-              const daysLeft = project.fundingDeadline 
-                ? Math.max(0, Math.ceil((new Date(project.fundingDeadline) - new Date()) / (1000 * 60 * 60 * 24)))
-                : 0
-              
-              return (
-                <div 
-                  key={project._id || project.id || index}
-                  className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all"
+            Create New +
+          </Button>
+        </CardHeader>
+
+        <CardContent>
+          {myStartups.length > 0 ? (
+            <div className="space-y-4">
+              {(showAllStartups ? myStartups : myStartups.slice(0, 1)).map((startup) => (
+                <div
+                  key={startup._id || startup.id}
+                  className="border border-border/70 rounded-xl p-5 hover:shadow-md transition-all cursor-pointer bg-card"
+                  onClick={() => setSelectedStartup(startup)}
                 >
-                  <div className="flex justify-between items-start mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                     <div className="flex-1">
-                      <h4 className="text-xl font-semibold text-gray-900 mb-2">{project.projectName}</h4>
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className={`px-3 py-1 text-sm rounded-full flex items-center gap-1 ${
-                          project.status === 'active' ? 'bg-green-100 text-green-700' :
-                          project.status === 'funded' ? 'bg-blue-100 text-blue-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          <CurrencyDollarIcon className="w-4 h-4" />
-                          {project.status?.charAt(0).toUpperCase() + project.status?.slice(1)}
-                        </span>
-                        {daysLeft > 0 && project.status === 'active' && (
-                          <span className="px-3 py-1 bg-orange-100 text-orange-700 text-sm rounded-full flex items-center gap-1">
-                            <ClockIcon className="w-4 h-4" />
-                            {daysLeft} days left
-                          </span>
-                        )}
+                      <h4 className="text-xl font-semibold text-gray-900 mb-2">{startup.name}</h4>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <Badge variant="secondary" className="flex items-center gap-1 bg-[#f5e9dd] text-[#8d4624]">
+                          <TagIcon className="w-3.5 h-3.5" />
+                          {startup.industry || startup.category || 'General'}
+                        </Badge>
+                        <Badge className="bg-[#8d4624] text-white flex items-center gap-1 hover:bg-[#72371c]">
+                          <TrophyIcon className="w-3.5 h-3.5" />
+                          {startup.stage || 'Not specified'}
+                        </Badge>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setSelectedInvestmentProject(project)}
-                        className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditStartup(startup)
+                        }}
+                        title="Edit Startup"
                       >
-                        <EyeIcon className="w-4 h-4" />
-                        View
-                      </button>
-                      <button
-                        onClick={() => navigate('/list-project', { state: { editProject: project } })}
-                        className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1"
+                        <PencilIcon className="w-4 h-4 text-blue-600" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowDeleteConfirm(startup._id || startup.id)
+                        }}
+                        title="Delete Startup"
                       >
-                        <PencilIcon className="w-4 h-4" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => setShowDeleteProjectConfirm(project._id)}
-                        className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
+                        <TrashIcon className="w-4 h-4 text-red-600" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDownloadStartupPDF(startup)
+                        }}
+                        className="bg-[#8d4624] hover:bg-[#72371c] text-white gap-1"
+                        title="Download PDF"
                       >
-                        <TrashIcon className="w-4 h-4" />
-                        Delete
-                      </button>
+                        <ArrowDownTrayIcon className="w-4 h-4" />
+                        PDF
+                      </Button>
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-700 mb-4 leading-relaxed line-clamp-2">
-                    {project.projectDescription}
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-2">{startup.description}</p>
 
-                  {/* Funding Progress */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-semibold text-gray-700">Funding Progress</span>
-                      <span className="text-sm font-bold text-pink-600">{fundingPercentage.toFixed(1)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div 
-                        className="bg-linear-to-r from-pink-500 to-purple-500 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(fundingPercentage, 100)}%` }}
-                      />
-                    </div>
-                  </div>
+                  {/* All Startup Fields */}
+                  <div className="grid md:grid-cols-3 gap-3 mb-4">
+                    {startup.targetMarket && (
+                      <div className="bg-muted/50 rounded-lg p-3 border border-border/40">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <UsersIcon className="w-4 h-4" />
+                          <span className="text-xs font-semibold">Target Market</span>
+                        </div>
+                        <p className="text-sm text-foreground font-medium">{startup.targetMarket}</p>
+                      </div>
+                    )}
 
-                  {/* Funding Stats */}
-                  <div className="grid md:grid-cols-3 gap-4 mb-4">
-                    <div className="bg-linear-to-br from-green-50 to-green-100 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-green-700 mb-1">
-                        <CurrencyDollarIcon className="w-4 h-4" />
-                        <span className="text-xs font-semibold">Raised</span>
+                    {startup.fundingGoal && (
+                      <div className="bg-muted/50 rounded-lg p-3 border border-border/40">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <CurrencyDollarIcon className="w-4 h-4" />
+                          <span className="text-xs font-semibold">Funding Goal</span>
+                        </div>
+                        <p className="text-sm text-foreground font-medium">₹{startup.fundingGoal.toLocaleString()}</p>
                       </div>
-                      <p className="text-sm font-bold text-green-900">₹{(project.currentFunding || 0).toLocaleString()}</p>
-                    </div>
-                    
-                    <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-blue-700 mb-1">
-                        <UsersIcon className="w-4 h-4" />
-                        <span className="text-xs font-semibold">Investors</span>
-                      </div>
-                      <p className="text-sm font-bold text-blue-900">{project.investors?.length || 0}</p>
-                    </div>
-                    
-                    <div className="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-purple-700 mb-1">
-                        <CurrencyDollarIcon className="w-4 h-4" />
-                        <span className="text-xs font-semibold">Remaining</span>
-                      </div>
-                      <p className="text-sm font-bold text-purple-900">₹{remainingAmount.toLocaleString()}</p>
-                    </div>
-                  </div>
+                    )}
 
-                  {/* Goal Info */}
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <div className="text-sm text-gray-600">
-                      Goal: <span className="font-bold text-gray-900">₹{project.fundingGoal?.toLocaleString()}</span>
-                      {' • '}
-                      Equity: <span className="font-bold text-gray-900">{project.equityOffered}%</span>
-                    </div>
-                    {project.status === 'funded' && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">
-                        ✓ Fully Funded
-                      </span>
+                    {startup.teamSize && (
+                      <div className="bg-muted/50 rounded-lg p-3 border border-border/40">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                          <UsersIcon className="w-4 h-4" />
+                          <span className="text-xs font-semibold">Team Size</span>
+                        </div>
+                        <p className="text-sm text-foreground font-medium">{startup.teamSize} members</p>
+                      </div>
                     )}
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="w-20 h-20 bg-linear-to-br from-pink-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CurrencyDollarIcon className="w-10 h-10 text-pink-500" />
-            </div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-2">No Projects Listed Yet</h4>
-            <p className="text-gray-600 mb-6">List your startup for investment to attract investors!</p>
-            <button
-              onClick={() => navigate('/list-project')}
-              className="px-6 py-3 bg-linear-to-r from-pink-300 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-900 transition-all font-medium"
-            >
-              List Your First Project
-            </button>
-          </div>
-        )}
-      </div>
 
-      {/* My Groups Section - Horizontal Layout */}
+                  {/* Checkboxes / Milestones */}
+                  {(startup.hasWebsite || startup.hasPrototype || startup.hasMinimumViableProduct || startup.hasRevenue || startup.hasFunding) && (
+                    <div className="bg-green-50/70 border border-green-200/60 rounded-lg p-3 mb-4">
+                      <span className="text-xs font-semibold text-green-900 block mb-2">Milestones Achieved</span>
+                      <div className="flex flex-wrap gap-2">
+                        {startup.hasWebsite && (
+                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">✓ Website</Badge>
+                        )}
+                        {startup.hasPrototype && (
+                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">✓ Prototype</Badge>
+                        )}
+                        {startup.hasMinimumViableProduct && (
+                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">✓ MVP</Badge>
+                        )}
+                        {startup.hasRevenue && (
+                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">✓ Revenue</Badge>
+                        )}
+                        {startup.hasFunding && (
+                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">✓ Funding</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end pt-3 border-t border-border/50">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedStartup(startup)
+                      }}
+                      className="text-[#8d4624] hover:text-[#72371c] hover:bg-[#f5e9dd]"
+                    >
+                      <EyeIcon className="w-4 h-4 mr-1" />
+                      View Full Details
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              {myStartups.length > 1 && (
+                <div className="pt-2 flex justify-center">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowAllStartups(!showAllStartups)}
+                    className="text-[#8d4624] hover:bg-[#f5e9dd]"
+                  >
+                    {showAllStartups ? 'Show Less' : 'Show More'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <SparklesIcon className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-1">No Startups Yet</h4>
+              <p className="text-muted-foreground text-sm mb-6">Create your first startup profile to get started!</p>
+              <Button
+                onClick={() => navigate('/create-startup')}
+                className="bg-[#8d4624] hover:bg-[#72371c] text-white"
+              >
+                Create Your First Startup
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Investment Projects Listed for Funding */}
+      <Card className="mb-8 border-border/60">
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
+          <div>
+            <CardTitle className="text-xl">Projects Listed for Investment ({investmentProjects.length})</CardTitle>
+            <CardDescription>Track your public fundraising progress and investor contributions</CardDescription>
+          </div>
+          <Button
+            onClick={() => navigate('/list-project')}
+            size="sm"
+            className="bg-[#8d4624] hover:bg-[#72371c] text-white"
+          >
+            List New Project +
+          </Button>
+        </CardHeader>
+        
+        <CardContent>
+          {investmentProjects.length > 0 ? (
+            <div className="space-y-4">
+              {(showAllInvestmentProjects ? investmentProjects : investmentProjects.slice(0, 1)).map((project, index) => {
+                const fundingPercentage = project.fundingPercentage || 0
+                const remainingAmount = project.fundingGoal - (project.currentFunding || 0)
+                const daysLeft = project.fundingDeadline 
+                  ? Math.max(0, Math.ceil((new Date(project.fundingDeadline) - new Date()) / (1000 * 60 * 60 * 24)))
+                  : 0
+                
+                return (
+                  <div 
+                    key={project._id || project.id || index}
+                    className="border border-border/70 rounded-xl p-5 hover:shadow-md transition-all bg-card"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                      <div className="flex-1">
+                        <h4 className="text-xl font-semibold text-gray-900 mb-2">{project.projectName}</h4>
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <Badge variant={project.status === 'funded' ? 'default' : 'secondary'} className={
+                            project.status === 'active' ? 'bg-green-100 text-green-800' :
+                            project.status === 'funded' ? 'bg-[#8d4624] text-white' :
+                            'bg-gray-100 text-gray-700'
+                          }>
+                            <CurrencyDollarIcon className="w-3.5 h-3.5 mr-1" />
+                            {project.status?.charAt(0).toUpperCase() + project.status?.slice(1)}
+                          </Badge>
+                          {daysLeft > 0 && project.status === 'active' && (
+                            <Badge variant="outline" className="border-orange-300 text-orange-700 bg-orange-50">
+                              <ClockIcon className="w-3.5 h-3.5 mr-1" />
+                              {daysLeft} days left
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedInvestmentProject(project)}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <EyeIcon className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate('/list-project', { state: { editProject: project } })}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          <PencilIcon className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowDeleteProjectConfirm(project._id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <TrashIcon className="w-4 h-4 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-2">
+                      {project.projectDescription}
+                    </p>
+
+                    {/* Funding Progress */}
+                    <div className="mb-4 space-y-1.5">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="font-medium text-gray-700">Funding Progress</span>
+                        <span className="font-bold text-[#8d4624]">{fundingPercentage.toFixed(1)}%</span>
+                      </div>
+                      <Progress value={Math.min(fundingPercentage, 100)} className="h-2.5" />
+                    </div>
+
+                    {/* Funding Stats */}
+                    <div className="grid md:grid-cols-3 gap-3 mb-4">
+                      <div className="bg-green-50/70 border border-green-200/50 rounded-lg p-3">
+                        <div className="flex items-center gap-1.5 text-green-700 mb-1">
+                          <CurrencyDollarIcon className="w-4 h-4" />
+                          <span className="text-xs font-semibold">Raised</span>
+                        </div>
+                        <p className="text-base font-bold text-green-900">₹{(project.currentFunding || 0).toLocaleString()}</p>
+                      </div>
+                      
+                      <div className="bg-blue-50/70 border border-blue-200/50 rounded-lg p-3">
+                        <div className="flex items-center gap-1.5 text-blue-700 mb-1">
+                          <UsersIcon className="w-4 h-4" />
+                          <span className="text-xs font-semibold">Investors</span>
+                        </div>
+                        <p className="text-base font-bold text-blue-900">{project.investors?.length || 0}</p>
+                      </div>
+                      
+                      <div className="bg-[#f7efe5] border border-[#e8dcc4] rounded-lg p-3">
+                        <div className="flex items-center gap-1.5 text-[#8d4624] mb-1">
+                          <CurrencyDollarIcon className="w-4 h-4" />
+                          <span className="text-xs font-semibold">Remaining</span>
+                        </div>
+                        <p className="text-base font-bold text-[#4a3228]">₹{remainingAmount.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    {/* Goal Info */}
+                    <div className="flex items-center justify-between pt-3 border-t border-border/50 text-sm text-muted-foreground">
+                      <div>
+                        Goal: <span className="font-semibold text-foreground">₹{project.fundingGoal?.toLocaleString()}</span>
+                        {' • '}
+                        Equity: <span className="font-semibold text-foreground">{project.equityOffered}%</span>
+                      </div>
+                      {project.status === 'funded' && (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                          ✓ Fully Funded
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <CurrencyDollarIcon className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-1">No Projects Listed Yet</h4>
+              <p className="text-muted-foreground text-sm mb-6">List your startup for investment to attract investors!</p>
+              <Button
+                onClick={() => navigate('/list-project')}
+                className="bg-[#8d4624] hover:bg-[#72371c] text-white"
+              >
+                List Your First Project
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* My Groups Section */}
       {(myFreeGroups.length > 0 || myGroupSessions.length > 0) && (
         <div className="grid md:grid-cols-2 gap-6 mt-8">
           {/* My Free Groups */}
           {myFreeGroups.length > 0 && (
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <div className="flex justify-between items-center mb-4">
+            <Card className="border-border/60">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">My Free Groups</h3>
-                  <p className="text-sm text-gray-600">Community groups you've joined</p>
+                  <CardTitle className="text-lg">My Free Groups</CardTitle>
+                  <CardDescription>Community groups you have joined</CardDescription>
                 </div>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => navigate('/mentors')}
-                  className="text-sm text-pink-600 hover:text-pink-700 font-medium"
                 >
                   Browse +
-                </button>
-              </div>
-              <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {myFreeGroups.map((group, index) => (
-                  <div 
-                    key={group._id || group.id || index}
-                    className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-1">{group.groupName}</h4>
-                        <p className="text-xs text-gray-600 mb-2">by {group.mentorName}</p>
-                      </div>
-                      <span className="px-2 py-1  text-pink-700 text-xs rounded-full font-medium">
-                        FREE
-                      </span>
-                    </div>
-
-                    <p className="text-sm text-gray-700 mb-3 line-clamp-2">{group.description}</p>
-
-                    <div className="flex items-center text-xs text-gray-600 mb-3">
-                      <UsersIcon className="w-4 h-4 mr-1" />
-                      <span>{group.currentParticipants?.length || 0}/{group.maxParticipants} Members</span>
-                    </div>
-
-                    <div className="flex gap-2">
-                      {/* <button
-                        onClick={() => setSelectedGroupChat({
-                          groupId: group._id,
-                          groupName: group.groupName
-                        })}
-                        className="flex-1 bg-linear-to-r from-green-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-blue-700 transition-all font-medium text-sm flex items-center justify-center gap-2"
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[420px] pr-3">
+                  <div className="space-y-3">
+                    {myFreeGroups.map((group, index) => (
+                      <div 
+                        key={group._id || group.id || index}
+                        className="border border-border/70 rounded-xl p-4 hover:shadow-xs transition-all bg-card"
                       >
-                        
-                        Open Chat
-                      </button> */}
-                    </div>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h4 className="text-base font-semibold text-gray-900">{group.groupName}</h4>
+                            <p className="text-xs text-muted-foreground">by {group.mentorName}</p>
+                          </div>
+                          <Badge variant="secondary" className="bg-[#f5e9dd] text-[#8d4624]">
+                            FREE
+                          </Badge>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{group.description}</p>
+
+                        <div className="flex items-center text-xs text-muted-foreground">
+                          <UsersIcon className="w-4 h-4 mr-1" />
+                          <span>{group.currentParticipants?.length || 0}/{group.maxParticipants} Members</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
           )}
 
           {/* My Group Mentoring Sessions (Paid) */}
           {myGroupSessions.length > 0 && (
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <div className="flex justify-between items-center mb-4">
+            <Card className="border-border/60">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">My Group Mentoring Sessions</h3>
-                  <p className="text-sm text-gray-600">Paid group sessions enrolled</p>
+                  <CardTitle className="text-lg">Group Mentoring Sessions</CardTitle>
+                  <CardDescription>Paid sessions you are enrolled in</CardDescription>
                 </div>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => navigate('/mentors')}
-                  className="text-sm text-pink-600 hover:text-pink-700 font-medium"
                 >
                   Browse +
-                </button>
-              </div>
-              <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {myGroupSessions.map((session, index) => (
-                  <div 
-                    key={session._id || session.id || index}
-                    className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all "
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-1">{session.groupName}</h4>
-                        <p className="text-xs text-pink-600 font-semibold mb-2">by {session.mentorName}</p>
-                      </div>
-                      <span className="px-2 py-1 bg-blue-100 text-pink-700 text-xs rounded-full font-medium">
-                        PAID
-                      </span>
-                    </div>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[420px] pr-3">
+                  <div className="space-y-3">
+                    {myGroupSessions.map((session, index) => (
+                      <div 
+                        key={session._id || session.id || index}
+                        className="border border-border/70 rounded-xl p-4 hover:shadow-xs transition-all bg-card"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h4 className="text-base font-semibold text-gray-900">{session.groupName}</h4>
+                            <p className="text-xs font-medium text-[#8d4624]">by {session.mentorName}</p>
+                          </div>
+                          <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50">
+                            PAID
+                          </Badge>
+                        </div>
 
-                    <div className="space-y-2 text-xs text-gray-700 mb-3">
-                      <div className="flex items-center">
-                        <CalendarIcon className="w-4 h-4 mr-2 text-gray-500" />
-                        <span><strong>{session.schedule?.day}</strong> at {session.schedule?.time}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>{session.schedule?.duration} minutes/session</span>
-                      </div>
-                      <div className="flex items-center">
-                        <UsersIcon className="w-4 h-4 mr-2 text-gray-500" />
-                        <span>{session.currentParticipants?.length || 0}/{session.maxParticipants} Enrolled</span>
-                      </div>
-                      <div className="flex items-center">
-                        <CurrencyDollarIcon className="w-4 h-4 mr-2 text-gray-500" />
-                        <span className="font-semibold text-pink-700">₹{session.price}</span>
-                      </div>
-                    </div>
+                        <div className="space-y-1.5 text-xs text-muted-foreground mb-3">
+                          <div className="flex items-center">
+                            <CalendarIcon className="w-4 h-4 mr-2 text-muted-foreground" />
+                            <span><strong>{session.schedule?.day}</strong> at {session.schedule?.time}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <UsersIcon className="w-4 h-4 mr-2 text-muted-foreground" />
+                            <span>{session.currentParticipants?.length || 0}/{session.maxParticipants} Enrolled</span>
+                          </div>
+                          <div className="flex items-center">
+                            <CurrencyDollarIcon className="w-4 h-4 mr-2 text-muted-foreground" />
+                            <span className="font-semibold text-[#8d4624]">₹{session.price}</span>
+                          </div>
+                        </div>
 
-                    <div className="flex gap-2">
-                      {session.meetingLink && (
-                        <a
-                          href={session.meetingLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 bg-linear-to-r from-pink-500 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-pink-600 hover:to-pink-700 transition-all font-medium text-sm flex items-center justify-center gap-2"
-                        >
-                          <VideoCameraIcon className="w-4 h-4" />
-                          Join Session
-                        </a>
-                      )}
-                    </div>
+                        {session.meetingLink && (
+                          <Button asChild size="sm" className="w-full bg-[#8d4624] hover:bg-[#72371c] text-white">
+                            <a
+                              href={session.meetingLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2"
+                            >
+                              <VideoCameraIcon className="w-4 h-4" />
+                              Join Session
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
 
       {/* Group Chat Modal */}
-      {selectedGroupChat && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden">
+      <Dialog open={!!selectedGroupChat} onOpenChange={(open) => !open && setSelectedGroupChat(null)}>
+        <DialogContent className="max-w-4xl h-[80vh] p-0 overflow-hidden flex flex-col">
+          <DialogTitle className="sr-only">Group Chat</DialogTitle>
+          {selectedGroupChat && (
             <GroupChatInterface
               groupId={selectedGroupChat.groupId}
               groupName={selectedGroupChat.groupName}
@@ -958,55 +952,54 @@ const EntrepreneurDashboard = () => {
               }}
               onClose={() => setSelectedGroupChat(null)}
             />
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Startup Details Modal */}
-      {selectedStartup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-linear-to-r from-pink-500 to-purple-500 text-white p-6 rounded-t-2xl flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold mb-1">{selectedStartup.name}</h2>
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 bg-white bg-opacity-20 text-white text-sm rounded-full">
-                    {selectedStartup.industry || selectedStartup.category}
-                  </span>
-                  <span className="px-3 py-1 bg-white bg-opacity-20 text-white text-sm rounded-full">
-                    {selectedStartup.stage}
-                  </span>
+      <Dialog open={!!selectedStartup} onOpenChange={(open) => !open && setSelectedStartup(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
+          {selectedStartup && (
+            <>
+              <div className="bg-[#8d4624] text-white p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <DialogTitle className="text-2xl font-bold text-white mb-1.5">{selectedStartup.name}</DialogTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 border-none">
+                      {selectedStartup.industry || selectedStartup.category}
+                    </Badge>
+                    <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 border-none">
+                      {selectedStartup.stage}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      handleEditStartup(selectedStartup)
+                      setSelectedStartup(null)
+                    }}
+                    className="gap-1.5 text-blue-700 bg-white hover:bg-white/90"
+                  >
+                    <PencilIcon className="w-4 h-4" />
+                    Edit Startup
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleDownloadStartupPDF(selectedStartup)}
+                    className="gap-1.5 text-[#8d4624] bg-white hover:bg-white/90"
+                  >
+                    <ArrowDownTrayIcon className="w-4 h-4" />
+                    Download PDF
+                  </Button>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedStartup(null)}
-                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
 
-            <div className="p-6 space-y-6">
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    handleEditStartup(selectedStartup)
-                    setSelectedStartup(null)
-                  }}
-                  className="flex-1 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-all flex items-center justify-center gap-2 font-medium"
-                >
-                  <PencilIcon className="w-5 h-5" />
-                  Edit Startup
-                </button>
-                <button
-                  onClick={() => handleDownloadStartupPDF(selectedStartup)}
-                  className="flex-1 bg-linear-to-r from-pink-500 to-purple-500 text-white px-4 py-3 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all flex items-center justify-center gap-2 font-medium"
-                >
-                  <ArrowDownTrayIcon className="w-5 h-5" />
-                  Download PDF
-                </button>
-              </div>
+              <ScrollArea className="flex-1 p-6">
+                <div className="space-y-6">
 
               {/* Basic Information */}
               <div>
@@ -1322,91 +1315,79 @@ const EntrepreneurDashboard = () => {
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </ScrollArea>
+        </>
       )}
+    </DialogContent>
+  </Dialog>
 
       {/* Delete Investment Project Confirmation Modal */}
-      {showDeleteProjectConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrashIcon className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Investment Project?</h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete this investment project? All associated data will be permanently removed.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteProjectConfirm(null)}
-                  className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-all font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleDeleteInvestmentProject(showDeleteProjectConfirm)}
-                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={!!showDeleteProjectConfirm} onOpenChange={(open) => !open && setShowDeleteProjectConfirm(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Investment Project?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this investment project? All associated data will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowDeleteProjectConfirm(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleDeleteInvestmentProject(showDeleteProjectConfirm)}
+            >
+              Delete Project
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Investment Project Detail Modal */}
-      {selectedInvestmentProject && (
-        <div className="fixed inset-0 backdrop-blur-md bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto my-8">
-            {/* Header */}
-            <div className="sticky top-0 bg-pink-400 text-white p-6 rounded-t-2xl flex justify-between items-center z-10">
-              <div>
-                <h2 className="text-2xl font-bold mb-1">{selectedInvestmentProject.projectName}</h2>
-                <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                    selectedInvestmentProject.status === 'active' ? 'bg-green-500 text-white' :
-                    selectedInvestmentProject.status === 'funded' ? 'bg-blue-500 text-white' :
-                    'bg-gray-500 text-white'
-                  }`}>
-                    {selectedInvestmentProject.status?.charAt(0).toUpperCase() + selectedInvestmentProject.status?.slice(1)}
-                  </span>
+      <Dialog open={!!selectedInvestmentProject} onOpenChange={(open) => !open && setSelectedInvestmentProject(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
+          {selectedInvestmentProject && (
+            <>
+              <div className="bg-[#8d4624] text-white p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <DialogTitle className="text-2xl font-bold text-white mb-1.5">{selectedInvestmentProject.projectName}</DialogTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-white/20 text-white hover:bg-white/30 border-none capitalize">
+                      {selectedInvestmentProject.status || 'Active'}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      navigate('/list-project', { state: { editProject: selectedInvestmentProject } })
+                      setSelectedInvestmentProject(null)
+                    }}
+                    className="gap-1.5 text-blue-700 bg-white hover:bg-white/90"
+                  >
+                    <PencilIcon className="w-4 h-4" />
+                    Edit Project
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setShowDeleteProjectConfirm(selectedInvestmentProject._id)
+                      setSelectedInvestmentProject(null)
+                    }}
+                    className="gap-1.5 text-red-600 bg-white hover:bg-white/90"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                    Delete Project
+                  </Button>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedInvestmentProject(null)}
-                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
 
-            <div className="p-6 space-y-6">
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    navigate('/list-project', { state: { editProject: selectedInvestmentProject } })
-                    setSelectedInvestmentProject(null)
-                  }}
-                  className="flex-1 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-all flex items-center justify-center gap-2 font-medium"
-                >
-                  <PencilIcon className="w-5 h-5" />
-                  Edit Project
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDeleteProjectConfirm(selectedInvestmentProject._id)
-                    setSelectedInvestmentProject(null)
-                  }}
-                  className="flex-1 bg-red-500 text-white px-4 py-3 rounded-lg hover:bg-red-600 transition-all flex items-center justify-center gap-2 font-medium"
-                >
-                  <TrashIcon className="w-5 h-5" />
-                  Delete Project
-                </button>
-              </div>
+              <ScrollArea className="flex-1 p-6">
+                <div className="space-y-6">
 
               {/* Funding Overview */}
               <div>
@@ -1663,41 +1644,35 @@ const EntrepreneurDashboard = () => {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
+                </div>
+              </ScrollArea>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrashIcon className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Startup?</h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete this startup? This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-all font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleDeleteStartup(showDeleteConfirm)}
-                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={!!showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Startup?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this startup? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleDeleteStartup(showDeleteConfirm)}
+            >
+              Delete Startup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }
