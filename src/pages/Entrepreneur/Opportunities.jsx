@@ -185,9 +185,6 @@ const Opportunities = () => {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-6xl mx-auto"
           >
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Growth & Funding Opportunities</h1>
-            <p className="text-gray-600 mb-8">Discover grants, competitions, and funding opportunities tailored for women entrepreneurs</p>
-
             {/* Search and Filters */}
             <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
               <div className="flex flex-col md:flex-row gap-4">

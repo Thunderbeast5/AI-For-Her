@@ -123,11 +123,6 @@ const Analytics = () => {
   if (loading) {
     return (
       <DashboardLayout sidebar={getSidebar()}>
-        <div className="mb-8">
-          <Skeleton className="h-9 w-48 mb-2" />
-          <Skeleton className="h-5 w-72" />
-        </div>
-
         {/* Skeleton stat cards */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           {[...Array(4)].map((_, i) => (
@@ -176,11 +171,6 @@ const Analytics = () => {
   }
   return (
     <DashboardLayout sidebar={getSidebar()}>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics</h1>
-        <p className="text-gray-600">Track your performance and growth</p>
-      </div>
-
       {/* Key Metrics */}
       <div className="grid md:grid-cols-4 gap-6 mb-8">
         <Card>

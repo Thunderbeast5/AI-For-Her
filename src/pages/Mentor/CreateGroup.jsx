@@ -110,12 +110,6 @@ const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font
     <>
       <DashboardLayout sidebar={<MentorSidebar />}>
       <div className=" max-w-4xl ">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Create New Group</h1>
-          <p className="text-gray-600">Create a free Telegram-style group for entrepreneurs to join</p>
-        </div>
-
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white mx-auto rounded-lg shadow-md p-8 space-y-6">
           {/* Group Name */}

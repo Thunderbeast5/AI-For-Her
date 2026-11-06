@@ -10,6 +10,7 @@ import {
   MagnifyingGlassIcon,
   UserCircleIcon 
 } from '@heroicons/react/24/outline'
+import WarliLoader from '../../components/WarliLoader'
 
 const ChatSessions = () => {
   const { currentUser, userRole } = useAuth()
@@ -192,7 +193,7 @@ const ChatSessions = () => {
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-400"></div>
+                <WarliLoader size={72} />
               </div>
             ) : filteredContacts.length === 0 ? (
               <div className="p-6 text-center text-gray-500">

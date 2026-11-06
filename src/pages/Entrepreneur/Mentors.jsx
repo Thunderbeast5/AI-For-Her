@@ -8,6 +8,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar';
 import ConnectionRequestModal from '../../components/ConnectionRequestModal';
 import UnifiedChat from '../../components/UnifiedChat';
+import WarliLoader from '../../components/WarliLoader';
 
 export default function Mentors() {
   const [activeTab, setActiveTab] = useState('find'); // find, freeGroups, groupSessions, myMentors, chat
@@ -545,7 +546,7 @@ export default function Mentors() {
     return (
       <DashboardLayout sidebar={<EntrepreneurSidebar />}>
         <div className="flex justify-center items-center h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+          <WarliLoader size={88} />
         </div>
       </DashboardLayout>
     );
@@ -606,8 +607,6 @@ export default function Mentors() {
       </AnimatePresence>
       <div className="p-6 bg-gray-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6 text-gray-800">Connect with Mentors</h1>
-        
         {/* Tabs */}
         <div className="flex space-x-4 mb-6 border-b border-gray-200">
           <button

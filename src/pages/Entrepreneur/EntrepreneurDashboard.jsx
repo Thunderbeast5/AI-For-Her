@@ -7,6 +7,7 @@ import GroupChatInterface from '../../components/GroupChatInterface'
 import { useAuth } from '../../hooks/useAuth'
 import DashboardLayout from '../../components/DashboardLayout'
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
+import WarliLoader from '../../components/WarliLoader'
 import { 
   AcademicCapIcon, 
   ChatBubbleLeftRightIcon, 
@@ -381,7 +382,7 @@ const EntrepreneurDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
+          <WarliLoader size={88} />
           <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>

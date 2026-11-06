@@ -106,11 +106,6 @@ const Schedule = () => {
 
   return (
     <DashboardLayout sidebar={sidebar}>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Schedule</h1>
-        <p className="text-gray-600">Manage your mentoring sessions</p>
-      </div>
-
       {/* Quick Stats */}
       <div className="grid md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm">

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '../../components/DashboardLayout';
+import WarliLoader from '../../components/WarliLoader';
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar';
 import UnifiedChat from '../../components/UnifiedChat';
 import { useAuth } from '../../hooks/useAuth';
@@ -403,23 +404,17 @@ const SelfHelpGroups = () => {
   return (
     <>
     <DashboardLayout sidebar={<EntrepreneurSidebar />}>
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-2">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Self Help Groups</h1>
-            <p className="text-gray-600">Connect, collaborate, and grow together</p>
-          </div>
-          <button
-            onClick={() => {
-              setFormData({ name: '', description: '', sector: '', maxMembers: 10, goals: '' });
-              setShowCreateModal(true);
-            }}
-            className={`flex items-center space-x-2 px-6 py-3 ${primaryButtonClass}`}
-          >
-            <PlusIcon className="w-5 h-5" />
-            <span>Create Group</span>
-          </button>
-        </div>
+      <div className="mb-6 flex justify-end">
+        <button
+          onClick={() => {
+            setFormData({ name: '', description: '', sector: '', maxMembers: 10, goals: '' });
+            setShowCreateModal(true);
+          }}
+          className={`flex items-center space-x-2 px-6 py-3 ${primaryButtonClass}`}
+        >
+          <PlusIcon className="w-5 h-5" />
+          <span>Create Group</span>
+        </button>
       </div>
 
       {/* Stats */}
@@ -516,7 +511,7 @@ const SelfHelpGroups = () => {
           {/* Groups List */}
           {loading ? (
             <div className="text-center py-12 text-gray-500">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+              <WarliLoader size={88} />
               <p className="mt-4">Loading groups...</p>
             </div>
           ) : filteredGroups.length === 0 ? (

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/authContext';
 import EntrepreneurSidebar from '../components/EntrepreneurSidebar';
@@ -177,15 +176,6 @@ const Profile = () => {
 
   return (
     <DashboardLayout sidebar={getSidebar()}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h1>
-        <p className="text-gray-600">Manage your personal information, expertise, and preferences</p>
-      </motion.div>
-
       <Card>
         <CardContent className="p-6 md:p-8">
           {loading ? (

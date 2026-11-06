@@ -11,6 +11,7 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../hooks/useAuth';
+import WarliLoader from '../../components/WarliLoader';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -49,7 +50,7 @@ const Mentees = () => {
       <DashboardLayout sidebar={sidebar}>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
+            <WarliLoader size={88} />
             <p className="mt-4 text-gray-600">Loading mentees...</p>
           </div>
         </div>
@@ -84,11 +85,6 @@ const Mentees = () => {
 
   return (
     <DashboardLayout sidebar={sidebar}>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Mentees</h1>
-        <p className="text-gray-600">Manage and track your mentee relationships</p>
-      </div>
-
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <div className="flex items-center space-x-3 mb-2">

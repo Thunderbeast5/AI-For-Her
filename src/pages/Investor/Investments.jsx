@@ -4,6 +4,7 @@ import { db } from '../../firebase';
 import { collection, query, getDocs } from 'firebase/firestore';
 import DashboardLayout from '../../components/DashboardLayout';
 import InvestorSidebar from '../../components/InvestorSidebar';
+import WarliLoader from '../../components/WarliLoader';
 import { 
   BanknotesIcon,
   CalendarIcon,
@@ -92,7 +93,7 @@ const Investments = () => {
       <DashboardLayout sidebar={<InvestorSidebar />}>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
+            <WarliLoader size={88} />
             <p className="mt-4 text-gray-600">Loading investments...</p>
           </div>
         </div>
@@ -102,11 +103,6 @@ const Investments = () => {
 
   return (
     <DashboardLayout sidebar={<InvestorSidebar />}>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Investment History</h1>
-        <p className="text-gray-600">Track all your investment transactions</p>
-      </div>
-
       {/* Investment Stats */}
       <div className="grid md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm">

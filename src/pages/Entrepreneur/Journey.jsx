@@ -305,9 +305,6 @@ const Journey = () => {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-4xl mx-auto"
           >
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Growth Journey</h1>
-            <p className="text-gray-600 mb-8">Track your progress and get personalized recommendations for your entrepreneurial journey</p>
-
             {/* Overall Progress */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}

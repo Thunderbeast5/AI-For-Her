@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '../../components/DashboardLayout';
 import MentorSidebar from '../../components/MentorSidebar';
 import { useAuth } from '../../context/authContext';
+import WarliLoader from '../../components/WarliLoader';
 import groupSessionsApi from '../../api/groupSessions';
 import { 
   VideoCameraIcon,
@@ -193,21 +194,15 @@ const GroupSessions = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="flex justify-end mb-6"
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Group Mentoring</h1>
-            <p className="text-gray-600">Create and manage group mentoring sessions</p>
-          </div>
-          <button 
-            onClick={handleCreateGroup}
-            className="px-6 py-3 bg-pink-400 text-white font-medium rounded-lg hover:bg-pink-500 transition-colors flex items-center space-x-2"
-          >
-            <PlusIcon className="w-5 h-5" />
-            <span>Create New Group</span>
-          </button>
-        </div>
+        <button 
+          onClick={handleCreateGroup}
+          className="px-6 py-3 bg-pink-400 text-white font-medium rounded-lg hover:bg-pink-500 transition-colors flex items-center space-x-2"
+        >
+          <PlusIcon className="w-5 h-5" />
+          <span>Create New Group</span>
+        </button>
       </motion.div>
 
       {/* Stats */}
@@ -252,7 +247,7 @@ const GroupSessions = () => {
       >
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
+            <WarliLoader size={88} />
             <p className="mt-4 text-gray-600">Loading groups...</p>
           </div>
         ) : groups.length === 0 ? (

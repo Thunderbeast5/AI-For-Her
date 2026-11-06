@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import WarliLoader from '../../components/WarliLoader';
 import DashboardLayout from '../../components/DashboardLayout';
 import InvestorSidebar from '../../components/InvestorSidebar';
 import { db } from '../../firebase';
@@ -139,7 +140,7 @@ const Portfolio = () => {
       <DashboardLayout sidebar={sidebar}>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
+            <WarliLoader size={88} />
             <p className="mt-4 text-gray-600">Loading portfolio...</p>
           </div>
         </div>
@@ -149,12 +150,6 @@ const Portfolio = () => {
 
   return (
     <DashboardLayout sidebar={sidebar}>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Portfolio</h1>
-        <p className="text-gray-600">Track your investments and returns across all projects</p>
-      </div>
-
       {/* Stats Overview - Only key metrics */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 mb-8">
         <div className="bg-linear-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg">

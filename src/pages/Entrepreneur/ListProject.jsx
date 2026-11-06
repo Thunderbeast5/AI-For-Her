@@ -332,17 +332,6 @@ const ListProject = () => {
     <>
       <DashboardLayout sidebar={sidebar}>
       <div>
-        <div className="flex items-center space-x-3 mb-2">
-          {/* <RocketLaunchIcon className="w-8 h-8 text-pink-400" /> */}
-          <h1 className="text-3xl font-bold text-gray-900">
-            {isEditMode ? 'Edit Investment Project' : 'List Your Project for Investment'}
-          </h1>
-        </div>
-        <p className="text-gray-600 mb-8">
-          {isEditMode ? 'Update your project details and investment information' : 'Connect with investors and raise funds for your startup'}
-        </p>
-        
-
         {/* Progress Steps */}
         <div className="mb-10">
           <div className="flex justify-between items-center w-full max-w-lg mx-auto">

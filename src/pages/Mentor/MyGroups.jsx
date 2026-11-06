@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
+import WarliLoader from '../../components/WarliLoader';
 import { db } from '../../firebase';
 import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
@@ -110,17 +111,12 @@ export default function MyGroups() {
   return (
     <DashboardLayout sidebar={<MentorSidebar />}>
       <div className="p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">My Groups</h1>
-            <p className="text-gray-600">Manage your Telegram-style groups</p>
-          </div>
+        {/* Header Action */}
+        <div className="flex justify-end mb-6">
           <button
             onClick={() => navigate('/mentor/create-group')}
             className={` text-white px-6 py-3 rounded-lg transition font-medium flex items-center space-x-2 ${primaryButtonClass}`}
           >
-            
             <span>Create New Group</span>
           </button>
         </div>
@@ -128,7 +124,7 @@ export default function MyGroups() {
         {/* Loading State */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+            <WarliLoader size={88} />
           </div>
         ) : myGroups.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">

@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthProvider'
 import { Toaster } from './components/ui/sonner'
+import WarliLoader from './components/WarliLoader'
 const LandingPage = lazy(() => import('./pages/LandingPage'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Signup = lazy(() => import('./pages/Signup'))
@@ -53,7 +54,7 @@ function App() {
           <Toaster position="top-right" richColors />
           <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center bg-[#fffdf9]">
-              <p className="text-[#4A3228]">Loading page...</p>
+              <WarliLoader size={180} />
             </div>
           }>
           <Routes>

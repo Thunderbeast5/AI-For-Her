@@ -204,9 +204,6 @@ const EnterpriseProducts = () => {
     <>
       <DashboardLayout sidebar={<EntrepreneurSidebar />}>
         <div className="max-w-5xl mx-auto py-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Manage Store</h1>
-          <p className="text-gray-600 mb-4">Add products and view storefront orders.</p>
-
         <div className="mb-6 flex gap-3">
           <button
             type="button"

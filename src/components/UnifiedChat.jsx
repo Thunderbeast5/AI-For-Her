@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../firebase';
+import WarliLoader from './WarliLoader';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, arrayUnion, getDoc, setDoc } from 'firebase/firestore';
 
 const UnifiedChat = ({ chatInfo, currentUser, onBack }) => {
@@ -157,7 +158,7 @@ const UnifiedChat = ({ chatInfo, currentUser, onBack }) => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+        <WarliLoader size={88} />
       </div>
     );
   }

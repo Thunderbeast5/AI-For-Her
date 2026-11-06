@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
+import WarliLoader from './WarliLoader';
 import { doc, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy, setDoc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 
 const GroupChatInterface = ({ groupId, groupName, currentUser, onClose, groupType = 'mentor' }) => {
@@ -127,7 +128,7 @@ const GroupChatInterface = ({ groupId, groupName, currentUser, onClose, groupTyp
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+          <WarliLoader size={88} />
           <p className="mt-4 text-gray-600">Loading group chat...</p>
         </div>
       </div>

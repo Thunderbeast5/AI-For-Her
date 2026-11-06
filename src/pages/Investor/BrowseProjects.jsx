@@ -17,6 +17,7 @@ import {
   EyeIcon
 } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
+import WarliLoader from '../../components/WarliLoader';
 
 const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
 const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
@@ -285,7 +286,7 @@ const BrowseProjects = () => {
       <DashboardLayout sidebar={sidebar}>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400 mx-auto"></div>
+            <WarliLoader size={88} />
             <p className="mt-4 text-gray-600">Loading investment opportunities...</p>
           </div>
         </div>
@@ -295,11 +296,6 @@ const BrowseProjects = () => {
 
   return (
     <DashboardLayout sidebar={sidebar}>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Investment Opportunities</h1>
-        <p className="text-gray-600">Discover and invest in innovative women-led startups</p>
-      </div>
-
       {/* Search and Filter */}
       <div className="bg-white rounded-2xl p-6 shadow-sm mb-8">
         <div className="relative mb-4">

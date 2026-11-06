@@ -413,18 +413,6 @@ const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
   return (
     <>
       <DashboardLayout sidebar={<EntrepreneurSidebar />}>
-      <div className="mb-8">
-        <div className="flex items-center space-x-3 mb-2">
-          {/* <RocketLaunchIcon className="w-8 h-8 text-pink-400" /> */}
-          <h1 className="text-3xl font-bold text-gray-900">
-            {isEditMode ? 'Edit Your Startup' : 'Create Your Startup'}
-          </h1>
-        </div>
-        <p className="text-gray-600">
-          {isEditMode ? 'Update your startup information' : 'Share your vision with potential investors and mentors'}
-        </p>
-      </div>
-
       {success && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-6 mb-6">
           <div className="flex items-center space-x-3 mb-4">

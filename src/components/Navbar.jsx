@@ -82,28 +82,28 @@ const Navbar = () => {
   const pageTitles = {
     '/dashboard': 'Overview',
     '/mentor/dashboard': 'Overview',
-    '/profile': 'Your profile',
+    '/profile': 'Profile',
     '/settings': 'Settings',
     '/analytics': 'Analytics',
-    '/mentor/requests': 'Connection requests',
-    '/mentees': 'My mentees',
-    '/mentor/create-group': 'Create a group',
-    '/mentor/my-groups': 'My groups',
-    '/group-sessions': 'Group mentoring',
+    '/mentor/requests': 'Connection Requests',
+    '/mentees': 'My Mentees',
+    '/mentor/create-group': 'Create a Group',
+    '/mentor/my-groups': 'My Groups',
+    '/group-sessions': 'Group Mentoring',
     '/schedule': 'Schedule',
-    '/chat-sessions': 'Chat sessions',
-    '/browse-projects': 'Browse projects',
-    '/portfolio': 'My portfolio',
-    '/saved': 'Saved projects',
+    '/chat-sessions': 'Chat Sessions',
+    '/browse-projects': 'Browse Projects',
+    '/portfolio': 'Portfolio',
+    '/saved': 'Saved Projects',
     '/investments': 'Investments',
-    '/create-startup': 'Create a startup',
-    '/list-project': 'List for investment',
-    '/enterprise/products': 'Manage products',
-    '/mentors': 'Find mentors',
-    '/shg': 'Self help groups',
+    '/create-startup': 'Create Startup',
+    '/list-project': 'List for Investment',
+    '/enterprise/products': 'Manage Products',
+    '/mentors': 'Find Mentors',
+    '/shg': 'Self Help Groups',
     '/opportunities': 'Opportunities',
-    '/chat': 'AI coach',
-    '/journey': 'Growth journey',
+    '/chat': 'AI Coach',
+    '/journey': 'Growth Journey',
   }
 
   return (
@@ -111,10 +111,7 @@ const Navbar = () => {
       <div className="dashboard-topbar-inner">
         <div className="dashboard-topbar-heading">
           <SidebarTrigger className="dashboard-sidebar-trigger" />
-          <div>
-            <p className="dashboard-topbar-eyebrow">SAHAROHI · YOUR WORKSPACE</p>
-            <h1 className="dashboard-topbar-title">{pageTitles[location.pathname] || 'Dashboard'}</h1>
-          </div>
+          <h1 className="dashboard-topbar-title">{pageTitles[location.pathname] || 'Dashboard'}</h1>
         </div>
         
         <div className="dashboard-topbar-actions">
