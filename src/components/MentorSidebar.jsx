@@ -12,18 +12,30 @@ import {
   UsersIcon,
   EnvelopeIcon
 } from '@heroicons/react/24/outline'
+import {
+  CalendarIcon as CalendarSolidIcon,
+  ChartBarIcon as ChartBarSolidIcon,
+  ChatBubbleLeftRightIcon as ChatBubbleLeftRightSolidIcon,
+  EnvelopeIcon as EnvelopeSolidIcon,
+  HomeIcon as HomeSolidIcon,
+  PlusCircleIcon as PlusCircleSolidIcon,
+  UserGroupIcon as UserGroupSolidIcon,
+  UserIcon as UserSolidIcon,
+  UsersIcon as UsersSolidIcon,
+  VideoCameraIcon as VideoCameraSolidIcon,
+} from '@heroicons/react/24/solid'
 
 const MentorSidebar = () => {
   const menuItems = [
-    { icon: HomeIcon, label: 'Home', path: '/mentor/dashboard' },
-    { icon: UserIcon, label: 'Profile', path: '/profile' },
-    { icon: EnvelopeIcon, label: 'Connection Requests', path: '/mentor/requests' },
-    { icon: UserGroupIcon, label: 'My Mentees', path: '/mentees' },
-    { icon: PlusCircleIcon, label: 'Create Group', path: '/mentor/create-group' },
-    { icon: UsersIcon, label: 'My Groups', path: '/mentor/my-groups' },
-    { icon: VideoCameraIcon, label: 'Group Mentoring', path: '/group-sessions' },
-    { icon: CalendarIcon, label: 'Schedule', path: '/schedule' },
-    { icon: ChartBarIcon, label: 'Analytics', path: '/analytics' },
+    { icon: HomeIcon, activeIcon: HomeSolidIcon, label: 'Home', path: '/mentor/dashboard' },
+    { icon: UserIcon, activeIcon: UserSolidIcon, label: 'Profile', path: '/profile' },
+    { icon: EnvelopeIcon, activeIcon: EnvelopeSolidIcon, label: 'Connection Requests', path: '/mentor/requests' },
+    { icon: UserGroupIcon, activeIcon: UserGroupSolidIcon, label: 'My Mentees', path: '/mentees' },
+    { icon: PlusCircleIcon, activeIcon: PlusCircleSolidIcon, label: 'Create Group', path: '/mentor/create-group' },
+    { icon: UsersIcon, activeIcon: UsersSolidIcon, label: 'My Groups', path: '/mentor/my-groups' },
+    { icon: VideoCameraIcon, activeIcon: VideoCameraSolidIcon, label: 'Group Mentoring', path: '/group-sessions' },
+    { icon: CalendarIcon, activeIcon: CalendarSolidIcon, label: 'Schedule', path: '/schedule' },
+    { icon: ChartBarIcon, activeIcon: ChartBarSolidIcon, label: 'Analytics', path: '/analytics' },
     // { icon: Cog6ToothIcon, label: 'Settings', path: '/settings' },
   ]
 

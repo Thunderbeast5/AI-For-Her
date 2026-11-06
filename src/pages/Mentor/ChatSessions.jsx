@@ -193,7 +193,7 @@ const ChatSessions = () => {
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center h-32">
-                <WarliLoader size={72} />
+                <WarliLoader size={88} />
               </div>
             ) : filteredContacts.length === 0 ? (
               <div className="p-6 text-center text-gray-500">

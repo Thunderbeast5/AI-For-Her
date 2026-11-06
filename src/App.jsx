@@ -54,7 +54,7 @@ function App() {
           <Toaster position="top-right" richColors />
           <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center bg-[#fffdf9]">
-              <WarliLoader size={180} />
+              <WarliLoader size={88} />
             </div>
           }>
           <Routes>

@@ -3,9 +3,11 @@ import { db } from '../firebase';
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useLocation, useNavigate } from 'react-router-dom'
 import { BellIcon } from '@heroicons/react/24/outline'
+import { BellIcon as BellSolidIcon } from '@heroicons/react/24/solid'
 import { useAuth } from '../hooks/useAuth'
 import GoogleTranslate from './GoogleTranslate'
 import { SidebarTrigger } from './ui/sidebar'
+import { Separator } from './ui/separator'
 import { Button } from './ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from './ui/popover'
 import { ScrollArea } from './ui/scroll-area'
@@ -110,7 +112,7 @@ const Navbar = () => {
     <header className="dashboard-topbar">
       <div className="dashboard-topbar-inner">
         <div className="dashboard-topbar-heading">
-          <SidebarTrigger className="dashboard-sidebar-trigger" />
+          <SidebarTrigger className="dashboard-sidebar-trigger" aria-label="Toggle sidebar" />
           <h1 className="dashboard-topbar-title">{pageTitles[location.pathname] || 'Dashboard'}</h1>
         </div>
         
@@ -128,7 +130,9 @@ const Navbar = () => {
                   className="dashboard-icon-button"
                   aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
                 >
-                  <BellIcon className="w-5 h-5" />
+                  {notificationsOpen
+                    ? <BellSolidIcon className="w-5 h-5" />
+                    : <BellIcon className="w-5 h-5" />}
                   {unreadCount > 0 && (
                     <span className="dashboard-notification-count">
                       {unreadCount > 9 ? '9+' : unreadCount}
@@ -203,6 +207,7 @@ const Navbar = () => {
 
         </div>
       </div>
+      <Separator className="dashboard-topbar-separator" />
     </header>
   )
 }

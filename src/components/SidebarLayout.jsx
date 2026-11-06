@@ -23,6 +23,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  SidebarTrigger,
 } from './ui/sidebar'
 
 const SidebarLayout = ({ menuItems }) => {
@@ -54,7 +55,7 @@ const SidebarLayout = ({ menuItems }) => {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="dashboard-sidebar-header p-2">
+      <SidebarHeader className="dashboard-sidebar-header">
         <Link
           to="/"
           className="dashboard-brand flex items-center gap-3 w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
@@ -68,29 +69,38 @@ const SidebarLayout = ({ menuItems }) => {
             saharohi
           </span>
         </Link>
+        <SidebarTrigger
+          className="dashboard-sidebar-edge-trigger"
+          aria-label="Toggle sidebar"
+        />
       </SidebarHeader>
 
-      <SidebarSeparator className="dashboard-sidebar-separator" />
+      <SidebarSeparator className="dashboard-sidebar-separator dashboard-sidebar-brand-separator" />
 
       <SidebarContent className="dashboard-sidebar-content">
         <SidebarGroup className="dashboard-sidebar-group">
           <SidebarGroupLabel className="dashboard-sidebar-group-label">Workspace</SidebarGroupLabel>
           <SidebarMenu className="dashboard-sidebar-menu">
-            {menuItems.map((item) => (
-              <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive(item.path)}
-                  tooltip={item.label}
-                  className="dashboard-sidebar-link"
-                >
-                  <Link to={item.path}>
-                    <item.icon aria-hidden="true" className="dashboard-sidebar-icon" />
-                    <span className="dashboard-sidebar-link-label">{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            {menuItems.map((item) => {
+              const active = isActive(item.path)
+              const Icon = active && item.activeIcon ? item.activeIcon : item.icon
+
+              return (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={active}
+                    tooltip={item.label}
+                    className="dashboard-sidebar-link"
+                  >
+                    <Link to={item.path}>
+                      <Icon aria-hidden="true" className="dashboard-sidebar-icon" />
+                      <span className="dashboard-sidebar-link-label">{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            })}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

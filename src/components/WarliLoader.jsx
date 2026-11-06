@@ -33,8 +33,8 @@ function rot(x, y, deg) {
 const KEYFRAMES = `
 @keyframes warli-spin { to { transform: rotate(360deg); } }
 @keyframes warli-sway {
-  0%, 100% { transform: scale(.82) rotate(-5deg); opacity: .55; }
-  50%      { transform: scale(1.08) rotate(5deg); opacity: 1; }
+  0%, 100% { transform: rotate(-5deg); opacity: .75; }
+  50%      { transform: rotate(5deg); opacity: 1; }
 }
 @keyframes warli-arm {
   0%       { stroke-dashoffset: 1; }
@@ -52,7 +52,7 @@ const KEYFRAMES = `
 }
 `;
 
-export default function WarliLoader({ size = 220, className = "text-[#8b3a14]" }) {
+export default function WarliLoader({ size = 88, className = "text-[#8b3a14]" }) {
   const dancers = useMemo(
     () =>
       Array.from({ length: N }, (_, i) => {
