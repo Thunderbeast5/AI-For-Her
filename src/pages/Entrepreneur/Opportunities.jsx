@@ -7,13 +7,12 @@ import {
   CalendarDaysIcon, 
   CurrencyRupeeIcon,
   BuildingOfficeIcon,
-  TagIcon
+  TagIcon,
+  ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline'
-
-// Shared pink button styles
-const pinkGradient = 'bg-gradient-to-r from-pink-400 to-pink-500';
-const pinkGradientHover = 'hover:from-pink-500 hover:to-pink-600';
-const primaryButtonClass = `text-white ${pinkGradient} ${pinkGradientHover} font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`;
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 const Opportunities = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -166,132 +165,138 @@ const Opportunities = () => {
     return matchesSearch && matchesFilter
   })
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Open': return 'bg-green-100 text-green-800'
-      case 'Ongoing': return 'bg-blue-100 text-blue-800'
-      case 'Closing Soon': return 'bg-yellow-100 text-yellow-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  // Memoize sidebar to prevent re-rendering
   const sidebar = useMemo(() => <EntrepreneurSidebar />, [])
+
+  const sectionClass = "p-6 rounded-2xl bg-transparent border border-[#8d4624]/20 transition-all hover:border-[#8d4624]/40 flex flex-col justify-between";
+  const inputClass = "h-11 rounded-xl bg-transparent border-[#8d4624]/25 focus-visible:ring-[#8d4624] focus-visible:border-[#8d4624] text-stone-900 placeholder:text-stone-400";
 
   return (
     <DashboardLayout sidebar={sidebar}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-6xl mx-auto"
-          >
-            {/* Search and Filters */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search opportunities..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-6 pb-20"
+      >
+        {/* Search and Filters */}
+        <div className="space-y-4">
+          <div className="relative">
+            <MagnifyingGlassIcon className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+            <Input
+              type="text"
+              placeholder="Search by scheme name, focus sector, tags..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`${inputClass} pl-10`}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-transparent border border-[#8d4624]/20">
+            {filters.map(filter => {
+              const isActive = selectedFilter === filter
+              return (
+                <button
+                  key={filter}
+                  onClick={() => setSelectedFilter(filter)}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-[#8d4624] text-white shadow-xs'
+                      : 'text-stone-600 hover:text-[#8d4624] hover:bg-[#8d4624]/10'
+                  }`}
+                >
+                  {filter}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Opportunities Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredOpportunities.map((opportunity, index) => (
+            <motion.div
+              key={opportunity.id}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04 }}
+              className={sectionClass}
+            >
+              <div>
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center space-x-1.5 text-stone-500">
+                    <BuildingOfficeIcon className="w-4 h-4 text-[#8d4624]" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">{opportunity.type}</span>
+                  </div>
+                  <Badge variant="outline" className="border-[#8d4624]/30 text-[#8d4624] text-[10px] font-semibold">
+                    {opportunity.status}
+                  </Badge>
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  {filters.map(filter => (
-                    <button
-                      key={filter}
-                      onClick={() => setSelectedFilter(filter)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        selectedFilter === filter
-                          ? 'bg-primary text-gray-800'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+
+                <h3 className="text-base font-bold text-stone-900 mb-2 leading-snug">{opportunity.title}</h3>
+                
+                <div className="flex items-center space-x-4 text-xs font-medium text-stone-600 mb-3">
+                  <div className="flex items-center space-x-1">
+                    <CurrencyRupeeIcon className="w-3.5 h-3.5 text-[#8d4624]" />
+                    <span>{opportunity.amount}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <CalendarDaysIcon className="w-3.5 h-3.5 text-stone-400" />
+                    <span>{opportunity.deadline}</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-stone-600 mb-3 line-clamp-3 leading-relaxed">{opportunity.description}</p>
+
+                <div className="mb-3 pt-2 border-t border-[#8d4624]/10">
+                  <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider block mb-0.5">Eligibility</span>
+                  <p className="text-xs text-stone-700 leading-normal">{opportunity.eligibility}</p>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {opportunity.tags.map((tag, tagIndex) => (
+                    <span
+                      key={tagIndex}
+                      className="inline-flex items-center px-2 py-0.5 bg-[#f5e9dd] text-[#8d4624] rounded-md text-[10px] font-medium"
                     >
-                      {filter}
-                    </button>
+                      <TagIcon className="w-2.5 h-2.5 mr-1" />
+                      {tag}
+                    </span>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Opportunities Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredOpportunities.map((opportunity, index) => (
-                <motion.div
-                  key={opportunity.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-105"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center space-x-2">
-                      <BuildingOfficeIcon className="w-5 h-5 text-gray-400" />
-                      <span className="text-sm text-gray-500">{opportunity.type}</span>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(opportunity.status)}`}>
-                      {opportunity.status}
-                    </span>
-                  </div>
-
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{opportunity.title}</h3>
-                  
-                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
-                    <div className="flex items-center space-x-1">
-                      <CurrencyRupeeIcon className="w-4 h-4" />
-                      <span>{opportunity.amount}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <CalendarDaysIcon className="w-4 h-4" />
-                      <span>{opportunity.deadline}</span>
-                    </div>
-                  </div>
-
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">{opportunity.description}</p>
-
-                  <div className="mb-4">
-                    <p className="text-xs font-medium text-gray-700 mb-2">Eligibility:</p>
-                    <p className="text-xs text-gray-600">{opportunity.eligibility}</p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {opportunity.tags.map((tag, tagIndex) => (
-                      <span
-                        key={tagIndex}
-                        className="inline-flex items-center px-2 py-1 bg-primary/20 text-gray-700 rounded-full text-xs"
-                      >
-                        <TagIcon className="w-3 h-3 mr-1" />
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  {opportunity.link ? (
+              <div className="pt-2 border-t border-[#8d4624]/10">
+                {opportunity.link ? (
+                  <Button asChild className="w-full bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs font-semibold h-10 gap-1.5 shadow-xs">
                     <a
                       href={opportunity.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`block w-full py-3 text-center ${primaryButtonClass}`}
                     >
-                      Visit Website
+                      <span>Visit Portal</span>
+                      <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
                     </a>
-                  ) : (
-                    <button className={`w-full py-3 ${primaryButtonClass}`}>
-                      Learn More
-                    </button>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-
-            {filteredOpportunities.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500">No opportunities found matching your criteria.</p>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl border-[#8d4624]/30 text-[#8d4624] hover:bg-[#8d4624]/10 text-xs font-semibold h-10"
+                  >
+                    Details Pending
+                  </Button>
+                )}
               </div>
-            )}
-          </motion.div>
+            </motion.div>
+          ))}
+        </div>
+
+        {filteredOpportunities.length === 0 && (
+          <div className="text-center py-16 p-8 rounded-3xl border border-[#8d4624]/20">
+            <MagnifyingGlassIcon className="w-10 h-10 text-[#8d4624] mx-auto mb-3 opacity-60" />
+            <h3 className="text-base font-bold text-stone-900">No opportunities match your filter</h3>
+            <p className="text-xs text-stone-500 mt-1">Try searching with broader terms or clear your active category filters.</p>
+          </div>
+        )}
+      </motion.div>
     </DashboardLayout>
   )
 }

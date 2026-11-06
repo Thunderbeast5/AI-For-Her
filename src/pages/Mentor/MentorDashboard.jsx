@@ -141,12 +141,14 @@ const MentorDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <WarliLoader size={88} />
-          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+      <DashboardLayout sidebar={sidebar}>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <WarliLoader size={88} />
+            <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
