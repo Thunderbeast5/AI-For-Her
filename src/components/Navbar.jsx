@@ -99,6 +99,8 @@ const Navbar = () => {
     '/saved': 'Saved Projects',
     '/investments': 'Investments',
     '/create-startup': 'Create Startup',
+    '/my-startups': 'My Startups',
+    '/startups': 'My Startups',
     '/list-project': 'List for Investment',
     '/enterprise/products': 'Manage Products',
     '/mentors': 'Find Mentors',
@@ -108,12 +110,26 @@ const Navbar = () => {
     '/journey': 'Growth Journey',
   }
 
+  const getPageTitle = () => {
+    if (location.pathname === '/mentors') {
+      const searchParams = new URLSearchParams(location.search);
+      if (searchParams.get('tab') === 'myMentors') return 'My Connections';
+      return 'Find Mentors';
+    }
+    if (location.pathname === '/shg') {
+      const searchParams = new URLSearchParams(location.search);
+      if (searchParams.get('tab') === 'myGroups') return 'My Groups';
+      return 'Self Help Groups';
+    }
+    return pageTitles[location.pathname] || 'Dashboard';
+  };
+
   return (
     <header className="dashboard-topbar">
       <div className="dashboard-topbar-inner">
         <div className="dashboard-topbar-heading">
           <SidebarTrigger className="dashboard-sidebar-trigger" aria-label="Toggle sidebar" />
-          <h1 className="dashboard-topbar-title">{pageTitles[location.pathname] || 'Dashboard'}</h1>
+          <h1 className="dashboard-topbar-title">{getPageTitle()}</h1>
         </div>
         
         <div className="dashboard-topbar-actions">

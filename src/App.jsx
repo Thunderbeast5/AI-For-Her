@@ -22,6 +22,7 @@ const Saharohi = lazy(() => import('./pages/SaharohiAI/Saharohi'))
 // Entrepreneur Pages
 const Chat = lazy(() => import('./pages/Entrepreneur/Chat'))
 const CreateStartup = lazy(() => import('./pages/Entrepreneur/CreateStartup'))
+const MyStartups = lazy(() => import('./pages/Entrepreneur/MyStartups'))
 const Journey = lazy(() => import('./pages/Entrepreneur/Journey'))
 const Mentors = lazy(() => import('./pages/Entrepreneur/Mentors'))
 const Opportunities = lazy(() => import('./pages/Entrepreneur/Opportunities'))
@@ -128,6 +129,16 @@ function App() {
             <Route path="/create-startup" element={
               <ProtectedRoute>
                 <CreateStartup />
+              </ProtectedRoute>
+            } />
+            <Route path="/my-startups" element={
+              <ProtectedRoute>
+                <MyStartups />
+              </ProtectedRoute>
+            } />
+            <Route path="/startups" element={
+              <ProtectedRoute>
+                <MyStartups />
               </ProtectedRoute>
             } />
             <Route path="/list-project" element={

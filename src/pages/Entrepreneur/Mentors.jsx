@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { db } from '../../firebase';
 import { 
@@ -23,18 +23,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   UserIcon, 
   UserGroupIcon, 
   VideoCameraIcon, 
   CheckCircleIcon, 
-  SparklesIcon,
   MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
   StarIcon,
   MapPinIcon,
   LanguageIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  EyeIcon,
+  AcademicCapIcon,
+  BriefcaseIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 
 const toastVariants = {
@@ -60,6 +65,7 @@ export default function Mentors() {
   const [languageFilter, setLanguageFilter] = useState('all');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [selectedMentor, setSelectedMentor] = useState(null);
+  const [viewDetailsMentor, setViewDetailsMentor] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [pendingPaymentConnection, setPendingPaymentConnection] = useState(null);
@@ -75,8 +81,17 @@ export default function Mentors() {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const { currentUser } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const sectionClass = "p-6 rounded-2xl bg-transparent border border-[#8d4624]/20 transition-all hover:border-[#8d4624]/35 space-y-4";
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['find', 'freeGroups', 'groupSessions', 'myMentors'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
+
+  const sectionClass = "p-5 rounded-2xl bg-transparent border border-[#8d4624]/20 transition-all hover:border-[#8d4624]/35 flex flex-col justify-between h-[390px]";
   const inputClass = "h-11 rounded-xl bg-transparent border-[#8d4624]/25 focus-visible:ring-[#8d4624] focus-visible:border-[#8d4624] text-stone-900 placeholder:text-stone-400";
   const selectClass = "h-11 rounded-xl border border-[#8d4624]/25 bg-transparent px-3 text-sm text-stone-900 shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#8d4624]";
 
@@ -522,23 +537,8 @@ export default function Mentors() {
 
   return (
     <DashboardLayout sidebar={<EntrepreneurSidebar />}>
-      <div className="space-y-8 pb-20">
+      <div className="space-y-6 pb-20">
         
-        {/* Header */}
-        {/* <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-transparent border border-[#8d4624]/25">
-          <div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase bg-[#f5e9dd] text-[#8d4624] mb-2.5">
-              <SparklesIcon className="w-3.5 h-3.5" /> Mentorship Network
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-900 tracking-tight">
-              Connect with Industry Advisors
-            </h1>
-            <p className="mt-1 text-xs sm:text-sm text-stone-500">
-              One-on-one strategy sessions, interactive group cohorts, and free founder communities
-            </p>
-          </div>
-        </div> */}
-
         {/* Tab Switcher */}
         <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-transparent border border-[#8d4624]/20">
           {tabs.map((tab) => {
@@ -547,7 +547,10 @@ export default function Mentors() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  navigate(`/mentors?tab=${tab.id}`, { replace: true });
+                }}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                   isActive
                     ? 'bg-[#8d4624] text-white shadow-xs'
@@ -674,20 +677,30 @@ export default function Mentors() {
               )}
             </div>
 
-            {/* Mentor Cards Grid */}
+            {/* Mentor Cards Grid (Uniform Fixed Height Layout) */}
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3, 4, 5, 6].map(i => (
-                  <div key={i} className="p-6 rounded-2xl border border-[#8d4624]/20 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="w-12 h-12 rounded-full" />
-                      <div className="space-y-1.5 flex-1">
-                        <Skeleton className="h-4 w-32" />
+                  <div key={i} className="p-5 rounded-2xl border border-[#8d4624]/20 space-y-4 h-[390px] flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1.5 flex-1">
+                          <Skeleton className="h-5 w-36" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                      <Skeleton className="h-10 w-full rounded-xl" />
+                      <div className="space-y-2 pt-2 border-t border-[#8d4624]/10">
+                        <Skeleton className="h-3 w-28" />
+                        <Skeleton className="h-3 w-32" />
                         <Skeleton className="h-3 w-20" />
                       </div>
                     </div>
-                    <Skeleton className="h-14 w-full rounded-xl" />
-                    <Skeleton className="h-10 w-full rounded-xl" />
+                    <div className="pt-2 border-t border-[#8d4624]/10 flex justify-between items-center">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-8 w-28 rounded-xl" />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -704,69 +717,103 @@ export default function Mentors() {
 
                   return (
                     <div key={mentor.id} className={sectionClass}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="text-base font-bold text-stone-900">{mentorDisplayName}</h3>
-                          <p className="text-xs text-[#8d4624] font-medium mt-0.5">{mentor.sector || 'Industry Expert'}</p>
+                      {/* Top Content */}
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-base font-bold text-stone-900 truncate" title={mentorDisplayName}>
+                              {mentorDisplayName}
+                            </h3>
+                            <p className="text-xs text-[#8d4624] font-medium truncate mt-0.5">
+                              {mentor.sector || 'Industry Expert'}
+                            </p>
+                          </div>
+                          {mentor._matchScore !== undefined ? (
+                            <Badge className="bg-[#f5e9dd] text-[#8d4624] border border-[#8d4624]/25 text-[10px] font-semibold shrink-0">
+                              {mentor._matchScore}% Match
+                            </Badge>
+                          ) : mentor.mentorType ? (
+                            <Badge variant="outline" className="border-[#8d4624]/25 text-[#8d4624] text-[10px] font-medium shrink-0 capitalize">
+                              {mentor.mentorType === 'both' ? '1:1 & Cohort' : mentor.mentorType}
+                            </Badge>
+                          ) : null}
                         </div>
-                        {mentor._matchScore !== undefined && (
-                          <Badge className="bg-[#f5e9dd] text-[#8d4624] border border-[#8d4624]/25 text-[11px] font-semibold">
-                            {mentor._matchScore}% Match
-                          </Badge>
-                        )}
+
+                        {/* Clamped description with view more modal trigger */}
+                        <div>
+                          <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed h-[36px]">
+                            {mentor.bio || mentor.expertise || 'Experienced advisor ready to support entrepreneurial growth.'}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setViewDetailsMentor(mentor)}
+                            className="text-[11px] font-semibold text-[#8d4624] hover:underline inline-flex items-center gap-1 mt-1"
+                          >
+                            <EyeIcon className="w-3.5 h-3.5" />
+                            View Profile Details
+                          </button>
+                        </div>
+
+                        {/* Metadata Rows (Consistent Fixed Spacing) */}
+                        <div className="space-y-1.5 pt-2 border-t border-[#8d4624]/10 text-xs text-stone-500">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <MapPinIcon className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                            <span className="truncate">
+                              {[mentor.location?.city, mentor.location?.state].filter(Boolean).join(', ') || 'Remote Advisor'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 truncate">
+                            <LanguageIcon className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                            <span className="truncate">
+                              {mentor.languages?.length ? mentor.languages.slice(0, 3).join(', ') : 'English / Hindi'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs pt-0.5">
+                            <div className="flex items-center gap-1 text-[#8d4624] font-medium">
+                              <StarIcon className="w-3.5 h-3.5 fill-[#8d4624]" />
+                              <span>{mentor.rating ? Number(mentor.rating).toFixed(1) : 'New'} ({mentor.totalReviews || 0})</span>
+                            </div>
+                            <span className="text-stone-400 text-[11px]">
+                              {mentor.yearsOfExperience ? `${mentor.yearsOfExperience} yrs exp` : ''}
+                            </span>
+                          </div>
+                        </div>
                       </div>
 
-                      <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">
-                        {mentor.bio || mentor.expertise || 'Experienced advisor ready to support entrepreneurial growth.'}
-                      </p>
-
-                      <div className="space-y-1.5 pt-2 border-t border-[#8d4624]/10 text-xs text-stone-500">
-                        {mentor.location && (mentor.location.city || mentor.location.state) && (
-                          <div className="flex items-center gap-1.5">
-                            <MapPinIcon className="w-3.5 h-3.5 text-stone-400" />
-                            <span>{[mentor.location.city, mentor.location.state].filter(Boolean).join(', ')}</span>
-                          </div>
-                        )}
-                        {mentor.languages?.length > 0 && (
-                          <div className="flex items-center gap-1.5">
-                            <LanguageIcon className="w-3.5 h-3.5 text-stone-400" />
-                            <span>{mentor.languages.slice(0, 3).join(', ')}</span>
-                          </div>
-                        )}
-                        {mentor.rating > 0 && (
-                          <div className="flex items-center gap-1 text-[#8d4624] font-medium">
-                            <StarIcon className="w-3.5 h-3.5 fill-[#8d4624]" />
-                            <span>{mentor.rating} ({mentor.totalReviews || 0} reviews)</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="pt-2 border-t border-[#8d4624]/10 flex items-center justify-between">
-                        <span className="text-xs font-bold text-stone-800">
-                          {mentor.personalSessionPrice ? `₹${mentor.personalSessionPrice.toLocaleString('en-IN')}/hr` : 'Free advisory'}
-                        </span>
+                      {/* Fixed Bottom Action Row */}
+                      <div className="pt-3 border-t border-[#8d4624]/10 flex items-center justify-between gap-2 mt-auto">
+                        <div className="min-w-0">
+                          <span className="text-[10px] text-stone-400 font-medium block uppercase tracking-wider">Session Fee</span>
+                          <span className="text-xs font-bold text-stone-900 truncate block">
+                            {mentor.personalSessionPrice ? `₹${mentor.personalSessionPrice.toLocaleString('en-IN')}/hr` : 'Free Advisory'}
+                          </span>
+                        </div>
                         
-                        {isConnected ? (
-                          <Button
-                            size="sm"
-                            onClick={() => openChat(connection)}
-                            className="bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs px-4"
-                          >
-                            Open Chat
-                          </Button>
-                        ) : connection?.status === 'pending' ? (
-                          <Badge variant="outline" className="border-[#8d4624]/30 text-[#8d4624] text-xs">
-                            Request Pending
-                          </Badge>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => handleConnect(mentor, 'personal')}
-                            className="bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs px-4 font-semibold"
-                          >
-                            Request Session
-                          </Button>
-                        )}
+                        <div className="shrink-0">
+                          {isConnected ? (
+                            <Button
+                              size="sm"
+                              onClick={() => openChat(connection)}
+                              className="bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs px-4 h-9 shadow-xs"
+                            >
+                              Open Chat
+                            </Button>
+                          ) : connection?.status === 'pending' ? (
+                            <Badge variant="outline" className="border-[#8d4624]/30 text-[#8d4624] text-[11px] h-9 px-3 flex items-center justify-center font-semibold">
+                              Pending
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => handleConnect(mentor, 'personal')}
+                              className="bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs px-4 h-9 font-semibold shadow-xs"
+                            >
+                              Request Session
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -788,29 +835,31 @@ export default function Mentors() {
 
                 return (
                   <div key={group.id} className={sectionClass}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h3 className="text-base font-bold text-stone-900">{group.groupName}</h3>
-                        <p className="text-xs text-[#8d4624] font-medium">Mentor: {group.mentorName}</p>
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h3 className="text-base font-bold text-stone-900 truncate">{group.groupName}</h3>
+                          <p className="text-xs text-[#8d4624] font-medium truncate">Mentor: {group.mentorName}</p>
+                        </div>
+                        <Badge className="bg-[#f5e9dd] text-[#8d4624] border-none text-[10px] shrink-0">FREE</Badge>
                       </div>
-                      <Badge className="bg-[#f5e9dd] text-[#8d4624] border-none text-[10px]">FREE</Badge>
+
+                      <p className="text-xs text-stone-600 line-clamp-3 leading-relaxed h-[54px]">{group.description}</p>
+
+                      <div className="text-xs text-stone-500 pt-2 border-t border-[#8d4624]/10 space-y-1">
+                        <p className="truncate">Sector: {group.sector || 'General'}</p>
+                        <p className="truncate">Language: {group.language || 'English'}</p>
+                        <p>Enrolled: {memberCount}{maxMembers ? `/${maxMembers}` : ''} members</p>
+                      </div>
                     </div>
 
-                    <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">{group.description}</p>
-
-                    <div className="text-xs text-stone-500 pt-2 border-t border-[#8d4624]/10 space-y-1">
-                      <p>Sector: {group.sector || 'General'}</p>
-                      <p>Language: {group.language || 'English'}</p>
-                      <p>Enrolled: {memberCount}{maxMembers ? `/${maxMembers}` : ''} members</p>
-                    </div>
-
-                    <div className="pt-2 border-t border-[#8d4624]/10">
+                    <div className="pt-3 border-t border-[#8d4624]/10 mt-auto">
                       {isJoined ? (
                         <div className="flex gap-2">
                           <Button
                             size="sm"
                             onClick={() => handleOpenGroupChat(group)}
-                            className="bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs flex-1"
+                            className="bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs flex-1 h-9"
                           >
                             Open Chat
                           </Button>
@@ -818,7 +867,7 @@ export default function Mentors() {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleLeaveGroup(group.id)}
-                            className="text-stone-500 hover:text-red-600 rounded-xl text-xs"
+                            className="text-stone-500 hover:text-red-600 rounded-xl text-xs h-9"
                           >
                             Leave
                           </Button>
@@ -828,7 +877,7 @@ export default function Mentors() {
                           size="sm"
                           disabled={isFull}
                           onClick={() => handleJoinGroup(group)}
-                          className="bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs w-full font-semibold"
+                          className="bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs w-full font-semibold h-9"
                         >
                           {isFull ? 'Group Full' : 'Join Free Community'}
                         </Button>
@@ -853,34 +902,36 @@ export default function Mentors() {
 
                 return (
                   <div key={session.id} className={sectionClass}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h3 className="text-base font-bold text-stone-900">{session.groupName}</h3>
-                        <p className="text-xs text-[#8d4624] font-medium">Lead: {session.mentorName}</p>
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h3 className="text-base font-bold text-stone-900 truncate">{session.groupName}</h3>
+                          <p className="text-xs text-[#8d4624] font-medium truncate">Lead: {session.mentorName}</p>
+                        </div>
+                        <span className="text-xs font-bold text-[#8d4624] shrink-0">₹{session.price}</span>
                       </div>
-                      <span className="text-xs font-bold text-[#8d4624]">₹{session.price}</span>
+
+                      <p className="text-xs text-stone-600 line-clamp-3 leading-relaxed h-[54px]">{session.description}</p>
+
+                      <div className="space-y-1 text-xs text-stone-500 pt-2 border-t border-[#8d4624]/10">
+                        <p className="truncate">Schedule: {session.schedule?.day} at {session.schedule?.time}</p>
+                        <p>Capacity: {enrolledCount}/{maxParticipants} seats filled</p>
+                      </div>
                     </div>
 
-                    <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">{session.description}</p>
-
-                    <div className="space-y-1 text-xs text-stone-500 pt-2 border-t border-[#8d4624]/10">
-                      <p>Schedule: {session.schedule?.day} at {session.schedule?.time}</p>
-                      <p>Capacity: {enrolledCount}/{maxParticipants} seats filled</p>
-                    </div>
-
-                    <div className="pt-2 border-t border-[#8d4624]/10">
+                    <div className="pt-3 border-t border-[#8d4624]/10 mt-auto">
                       {isEnrolled ? (
                         session.meetingLink ? (
                           <a
                             href={session.meetingLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex w-full items-center justify-center bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs py-2 font-semibold"
+                            className="inline-flex w-full items-center justify-center bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs h-9 font-semibold"
                           >
                             Enter Session
                           </a>
                         ) : (
-                          <Badge variant="outline" className="w-full text-center py-1.5 border-[#8d4624]/30 text-[#8d4624] block text-xs">
+                          <Badge variant="outline" className="w-full text-center py-2 border-[#8d4624]/30 text-[#8d4624] block text-xs">
                             Enrolled
                           </Badge>
                         )
@@ -889,7 +940,7 @@ export default function Mentors() {
                           size="sm"
                           disabled={isFull}
                           onClick={() => handleEnrollGroupSession(session)}
-                          className="w-full bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs font-semibold"
+                          className="w-full bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs font-semibold h-9"
                         >
                           {isFull ? 'Seats Filled' : `Enroll (₹${session.price})`}
                         </Button>
@@ -922,7 +973,7 @@ export default function Mentors() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {connections.map((connection) => (
-                  <div key={connection.id} className={sectionClass}>
+                  <div key={connection.id} className="p-5 rounded-2xl bg-transparent border border-[#8d4624]/20 space-y-4">
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="text-base font-bold text-stone-900">{connection.mentorName}</h3>
@@ -939,7 +990,7 @@ export default function Mentors() {
                           <Button
                             size="sm"
                             onClick={() => openChat(connection)}
-                            className="w-full bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs"
+                            className="w-full bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs h-9"
                           >
                             Open Conversation
                           </Button>
@@ -966,6 +1017,128 @@ export default function Mentors() {
         )}
 
       </div>
+
+{/* Mentor Profile Details Modal */}
+<Dialog open={!!viewDetailsMentor} onOpenChange={(open) => !open && setViewDetailsMentor(null)}>
+  <DialogContent className="max-w-2xl max-h-[90vh] p-0 flex flex-col rounded-3xl border border-[#8d4624]/20 bg-[#f5e9dd]/95 backdrop-blur-md shadow-2xl overflow-hidden">
+    {viewDetailsMentor && (
+      <>
+        {/* Fixed Header */}
+        <div className="bg-[#8d4624] text-white p-6 shrink-0 flex items-center justify-between gap-4">
+          <div>
+            <DialogTitle className="text-xl font-bold text-white">
+              {viewDetailsMentor.name || `${viewDetailsMentor.firstName || ''} ${viewDetailsMentor.lastName || ''}`.trim() || 'Advisor Dossier'}
+            </DialogTitle>
+            <div className="flex flex-wrap items-center gap-2 mt-1.5">
+              <Badge className="bg-white/20 text-white hover:bg-white/30 border-none text-[11px]">
+                {viewDetailsMentor.sector || 'General Industry'}
+              </Badge>
+              {viewDetailsMentor.yearsOfExperience && (
+                <Badge className="bg-white/20 text-white hover:bg-white/30 border-none text-[11px]">
+                  {viewDetailsMentor.yearsOfExperience} Years Experience
+                </Badge>
+              )}
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] text-white/70 uppercase block">Fee</span>
+            <span className="text-lg font-bold text-white">
+              {viewDetailsMentor.personalSessionPrice ? `₹${viewDetailsMentor.personalSessionPrice.toLocaleString('en-IN')}/hr` : 'Free'}
+            </span>
+          </div>
+        </div>
+
+        {/* Scrollable Content Body */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-5">
+          {/* Bio */}
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#8d4624] mb-2 flex items-center gap-1.5">
+              <BriefcaseIcon className="w-4 h-4" /> About Advisor
+            </h4>
+            <p className="text-xs sm:text-sm text-stone-700 leading-relaxed bg-white/60 p-4 rounded-2xl border border-[#8d4624]/15">
+              {viewDetailsMentor.bio || viewDetailsMentor.description || 'No extended bio provided.'}
+            </p>
+          </div>
+
+          {/* Areas of Expertise */}
+          {(viewDetailsMentor.expertise || viewDetailsMentor.expertiseAreas) && (
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#8d4624] mb-2 flex items-center gap-1.5">
+                <AcademicCapIcon className="w-4 h-4" /> Focus & Specialization
+              </h4>
+              <div className="bg-white/60 p-4 rounded-2xl border border-[#8d4624]/15 text-xs sm:text-sm text-stone-700 leading-relaxed">
+                {Array.isArray(viewDetailsMentor.expertiseAreas)
+                  ? viewDetailsMentor.expertiseAreas.join(', ')
+                  : viewDetailsMentor.expertise || 'Not specified'}
+              </div>
+            </div>
+          )}
+
+          {/* Details Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="p-3 rounded-xl bg-white/60 border border-[#8d4624]/15">
+              <span className="text-[10px] text-stone-400 font-semibold uppercase block">Location</span>
+              <p className="text-xs font-semibold text-stone-800 mt-0.5">
+                {[viewDetailsMentor.location?.city, viewDetailsMentor.location?.state].filter(Boolean).join(', ') || 'Remote'}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-white/60 border border-[#8d4624]/15">
+              <span className="text-[10px] text-stone-400 font-semibold uppercase block">Languages</span>
+              <p className="text-xs font-semibold text-stone-800 mt-0.5">
+                {viewDetailsMentor.languages?.join(', ') || 'English, Hindi'}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-white/60 border border-[#8d4624]/15">
+              <span className="text-[10px] text-stone-400 font-semibold uppercase block">Response Time</span>
+              <p className="text-xs font-semibold text-stone-800 mt-0.5">
+                {viewDetailsMentor.responseTime || 'Within 24 hours'}
+              </p>
+            </div>
+          </div>
+
+          {/* Availability */}
+          {viewDetailsMentor.availableDays?.length > 0 && (
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#8d4624] mb-2 flex items-center gap-1.5">
+                <ClockIcon className="w-4 h-4" /> Available Days
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {viewDetailsMentor.availableDays.map((day) => (
+                  <Badge key={day} variant="outline" className="border-[#8d4624]/30 text-[#8d4624] text-[11px] bg-white/50">
+                    {day}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Fixed Footer Actions */}
+        <div className="p-4 bg-white/70 border-t border-[#8d4624]/15 shrink-0 flex items-center justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setViewDetailsMentor(null)}
+            className="rounded-xl border-[#8d4624]/30 text-[#8d4624] hover:bg-[#8d4624]/10 text-xs px-4"
+          >
+            Close
+          </Button>
+          <Button
+            onClick={() => {
+              const mentorToConnect = viewDetailsMentor;
+              setViewDetailsMentor(null);
+              handleConnect(mentorToConnect, 'personal');
+            }}
+            className="bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs font-semibold px-5"
+          >
+            Request Mentorship
+          </Button>
+        </div>
+      </>
+    )}
+  </DialogContent>
+</Dialog>
 
       {/* Floating Status Notification */}
       <AnimatePresence>

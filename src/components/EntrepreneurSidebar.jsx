@@ -28,11 +28,38 @@ const EntrepreneurSidebar = () => {
   const menuItems = [
     { icon: HomeIcon, activeIcon: HomeSolidIcon, label: 'Home', path: '/dashboard' },
     { icon: UserIcon, activeIcon: UserSolidIcon, label: 'Profile', path: '/profile' },
-    { icon: RocketLaunchIcon, activeIcon: RocketLaunchSolidIcon, label: 'Create Startup', path: '/create-startup' },
+    { 
+      icon: RocketLaunchIcon, 
+      activeIcon: RocketLaunchSolidIcon, 
+      label: 'Startups', 
+      path: '/my-startups',
+      children: [
+        { label: 'Create Startup', path: '/create-startup' },
+        { label: 'My Startups', path: '/my-startups' },
+      ]
+    },
     { icon: CurrencyRupeeIcon, activeIcon: CurrencyRupeeSolidIcon, label: 'List for Investment', path: '/list-project' },
     { icon: CurrencyRupeeIcon, activeIcon: CurrencyRupeeSolidIcon, label: 'Manage Products', path: '/enterprise/products' },
-    { icon: AcademicCapIcon, activeIcon: AcademicCapSolidIcon, label: 'Find Mentors', path: '/mentors' },
-    { icon: UserGroupIcon, activeIcon: UserGroupSolidIcon, label: 'Self Help Groups', path: '/shg' },
+    { 
+      icon: AcademicCapIcon, 
+      activeIcon: AcademicCapSolidIcon, 
+      label: 'Mentors', 
+      path: '/mentors',
+      children: [
+        { label: 'Find Mentors', path: '/mentors?tab=find' },
+        { label: 'My Connections', path: '/mentors?tab=myMentors' },
+      ]
+    },
+    { 
+      icon: UserGroupIcon, 
+      activeIcon: UserGroupSolidIcon, 
+      label: 'Self Help Groups', 
+      path: '/shg',
+      children: [
+        { label: 'Explore Groups', path: '/shg?tab=browse' },
+        { label: 'My Groups', path: '/shg?tab=myGroups' },
+      ]
+    },
     { icon: LightBulbIcon, activeIcon: LightBulbSolidIcon, label: 'Opportunities', path: '/opportunities' },
     { icon: ChatBubbleLeftRightIcon, activeIcon: ChatBubbleLeftRightSolidIcon, label: 'AI Coach', path: '/chat' },
     { icon: ChartBarIcon, activeIcon: ChartBarSolidIcon, label: 'Growth Journey', path: '/journey' },

@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowRightOnRectangleIcon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../hooks/useAuth'
 import logo from '../assets/logos/brown.png'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +23,74 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarSeparator,
   SidebarTrigger,
 } from './ui/sidebar'
+
+const CollapsibleMenuItem = ({ item, isActive }) => {
+  const isChildActive = item.children?.some((child) => isActive(child.path))
+  const active = isChildActive || isActive(item.path)
+  const [isOpen, setIsOpen] = useState(active)
+
+  useEffect(() => {
+    if (active) {
+      setIsOpen(true)
+    }
+  }, [active])
+
+  const Icon = active && item.activeIcon ? item.activeIcon : item.icon
+
+  return (
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="group/collapsible"
+    >
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton
+            tooltip={item.label}
+            isActive={active}
+            className="dashboard-sidebar-link cursor-pointer justify-between w-full"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <Icon aria-hidden="true" className="dashboard-sidebar-icon shrink-0" />
+              <span className="dashboard-sidebar-link-label truncate">{item.label}</span>
+            </div>
+            <ChevronDownIcon
+              className={`w-3.5 h-3.5 text-stone-400 transition-transform duration-200 group-data-[collapsible=icon]:hidden shrink-0 ${
+                isOpen ? 'rotate-180 text-stone-700' : ''
+              }`}
+            />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub className="dashboard-sidebar-sub">
+            {item.children.map((child) => {
+              const childActive = isActive(child.path)
+              return (
+                <SidebarMenuSubItem key={child.path}>
+                  <SidebarMenuSubButton
+                    asChild
+                    isActive={childActive}
+                    className="dashboard-sidebar-sub-link"
+                  >
+                    <Link to={child.path}>
+                      <span className="truncate">{child.label}</span>
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              )
+            })}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  )
+}
 
 const SidebarLayout = ({ menuItems }) => {
   const location = useLocation()
@@ -48,10 +114,42 @@ const SidebarLayout = ({ menuItems }) => {
     }
   }
 
-  const isActive = (path) => (
-    location.pathname === path ||
-    (path !== '/dashboard' && location.pathname.startsWith(`${path}/`))
-  )
+  const isActive = (path) => {
+    if (!path) return false
+    const [itemPath, itemQuery] = path.split('?')
+    if (location.pathname !== itemPath) {
+      if (itemPath !== '/dashboard' && location.pathname.startsWith(`${itemPath}/`)) {
+        return true
+      }
+      return false
+    }
+
+    if (itemQuery) {
+      const searchParams = new URLSearchParams(itemQuery)
+      const currentParams = new URLSearchParams(location.search)
+      for (const [key, value] of searchParams.entries()) {
+        const currentVal = currentParams.get(key)
+        if (currentVal !== value) {
+          if ((value === 'find' || value === 'browse') && !currentVal) {
+            return true
+          }
+          return false
+        }
+      }
+      return true
+    }
+
+    if (location.search && location.search.includes('tab=')) {
+      const currentParams = new URLSearchParams(location.search)
+      const tab = currentParams.get('tab')
+      if ((tab === 'find' && itemPath === '/mentors') || (tab === 'browse' && itemPath === '/shg')) {
+        return true
+      }
+      return false
+    }
+
+    return true
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -63,7 +161,7 @@ const SidebarLayout = ({ menuItems }) => {
           <img
             src={logo}
             alt="saharohi logo"
-            className="h-12 w-auto object-contain shrink-0"
+            className="h-10 w-auto object-contain shrink-0"
           />
           <span className="font-manrope font-semibold text-xl tracking-wide lowercase text-black group-data-[collapsible=icon]:hidden leading-none select-none">
             saharohi
@@ -82,6 +180,16 @@ const SidebarLayout = ({ menuItems }) => {
           <SidebarGroupLabel className="dashboard-sidebar-group-label">Workspace</SidebarGroupLabel>
           <SidebarMenu className="dashboard-sidebar-menu">
             {menuItems.map((item) => {
+              if (item.children && item.children.length > 0) {
+                return (
+                  <CollapsibleMenuItem
+                    key={item.label}
+                    item={item}
+                    isActive={isActive}
+                  />
+                )
+              }
+
               const active = isActive(item.path)
               const Icon = active && item.activeIcon ? item.activeIcon : item.icon
 

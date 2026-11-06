@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -48,6 +49,8 @@ const toastVariants = {
 
 const SelfHelpGroups = () => {
   const { currentUser } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
@@ -57,6 +60,14 @@ const SelfHelpGroups = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('browse'); // browse, myGroups, requests
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['browse', 'myGroups', 'requests'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [showChat, setShowChat] = useState(false);
   const [message, setMessage] = useState('');
@@ -463,7 +474,10 @@ const SelfHelpGroups = () => {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      navigate(`/shg?tab=${tab.id}`, { replace: true });
+                    }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
                       isActive
                         ? 'bg-[#8d4624] text-white shadow-xs'
