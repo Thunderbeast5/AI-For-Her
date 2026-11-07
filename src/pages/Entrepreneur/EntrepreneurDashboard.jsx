@@ -7,7 +7,6 @@ import GroupChatInterface from '../../components/GroupChatInterface';
 import { useAuth } from '../../hooks/useAuth';
 import DashboardLayout from '../../components/DashboardLayout';
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar';
-import WarliLoader from '../../components/WarliLoader';
 import { 
   AcademicCapIcon, 
   ChatBubbleLeftRightIcon, 
@@ -30,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
@@ -92,7 +92,6 @@ const EntrepreneurDashboard = () => {
     doc.setFontSize(22);
     doc.setFont(undefined, 'bold');
     doc.text('Startup Proposal', doc.internal.pageSize.width / 2, 25, { align: 'center' });
-    
     yPosition = 50;
 
     const addText = (label, value, isBold = false) => {
@@ -100,7 +99,6 @@ const EntrepreneurDashboard = () => {
         doc.addPage();
         yPosition = 20;
       }
-      
       doc.setFontSize(11);
       doc.setTextColor(50, 45, 40);
       if (isBold) {
@@ -109,7 +107,6 @@ const EntrepreneurDashboard = () => {
         doc.setFont(undefined, 'normal');
       }
       doc.text(label, 20, yPosition);
-      
       if (value) {
         doc.setFont(undefined, 'normal');
         const textLines = doc.splitTextToSize(String(value), 170);
@@ -299,7 +296,6 @@ const EntrepreneurDashboard = () => {
       'Expansion / Funding': 87.5,
       'Scaling / Maturity': 100
     };
-    
     let maxProgress = 0;
     startups.forEach(startup => {
       const progress = stageToProgress[startup.stage] || 0;
@@ -321,10 +317,89 @@ const EntrepreneurDashboard = () => {
   if (loading) {
     return (
       <DashboardLayout sidebar={sidebar}>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <WarliLoader size={88} />
-            <p className="mt-4 text-[#8d4624] font-medium tracking-wide">{t('common.loading')}</p>
+        <div className="space-y-10 pb-16">
+          {/* Welcome Header Skeleton */}
+          <div className="pt-2 space-y-2">
+            <Skeleton className="h-10 w-64 sm:w-96 rounded-xl bg-stone-200/60" />
+            <Skeleton className="h-4 w-72 sm:w-80 rounded-lg bg-stone-200/60" />
+          </div>
+
+          {/* Quick Actions Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="p-6 rounded-2xl bg-white/70 border border-stone-200/70 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <Skeleton className="w-12 h-12 rounded-xl bg-stone-200/70" />
+                  <Skeleton className="w-8 h-8 rounded-full bg-stone-200/60" />
+                </div>
+                <Skeleton className="h-5 w-32 rounded-md bg-stone-200/70" />
+                <Skeleton className="h-3 w-48 rounded-md bg-stone-200/60" />
+              </div>
+            ))}
+          </div>
+
+          {/* Metrics Strip Skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="p-5 rounded-2xl bg-white/60 border border-stone-200/60 space-y-2"
+              >
+                <Skeleton className="h-3 w-28 rounded-md bg-stone-200/60" />
+                <Skeleton className="h-8 w-14 rounded-lg bg-stone-200/70" />
+              </div>
+            ))}
+          </div>
+
+          {/* Recent Activity Skeleton */}
+          <div className="p-4 px-6 rounded-2xl bg-white/40 border border-stone-200/40 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-8 h-8 rounded-full bg-stone-200/70" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-3 w-24 rounded-md bg-stone-200/60" />
+                <Skeleton className="h-4 w-48 rounded-md bg-stone-200/70" />
+              </div>
+            </div>
+            <Skeleton className="h-3 w-16 rounded-md bg-stone-200/60" />
+          </div>
+
+          {/* Startups Section Skeleton */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1.5">
+                <Skeleton className="h-6 w-36 rounded-lg bg-stone-200/70" />
+                <Skeleton className="h-3 w-56 rounded-md bg-stone-200/60" />
+              </div>
+              <Skeleton className="h-9 w-28 rounded-xl bg-stone-200/70" />
+            </div>
+
+            <div className="p-6 rounded-2xl bg-white/70 border border-stone-200/80 space-y-4">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-44 rounded-lg bg-stone-200/70" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-5 w-20 rounded-md bg-stone-200/60" />
+                    <Skeleton className="h-5 w-24 rounded-md bg-stone-200/60" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-9 w-9 rounded-xl bg-stone-200/60" />
+                  <Skeleton className="h-9 w-9 rounded-xl bg-stone-200/60" />
+                  <Skeleton className="h-9 w-16 rounded-xl bg-stone-200/70" />
+                </div>
+              </div>
+
+              <Skeleton className="h-10 w-full rounded-md bg-stone-200/60" />
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <Skeleton className="h-16 rounded-xl bg-stone-200/50" />
+                <Skeleton className="h-16 rounded-xl bg-stone-200/50" />
+                <Skeleton className="h-16 rounded-xl bg-stone-200/50" />
+              </div>
+            </div>
           </div>
         </div>
       </DashboardLayout>
@@ -334,7 +409,6 @@ const EntrepreneurDashboard = () => {
   return (
     <DashboardLayout sidebar={sidebar}>
       <div className="space-y-10 pb-16">
-        
         {/* Simple Clean Welcome Header without Background Box */}
         <div className="pt-2">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-stone-900 tracking-tight">
@@ -373,17 +447,14 @@ const EntrepreneurDashboard = () => {
             <span className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('dashboard.stats.mentorConnections')}</span>
             <div className="text-3xl font-black text-stone-900 mt-2">{stats.mentorConnections}</div>
           </div>
-          
           <div className="p-5 rounded-2xl bg-white/60 dark:bg-stone-900/40 backdrop-blur-lg border border-stone-200/60 shadow-xs">
             <span className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('dashboard.stats.aiConversations')}</span>
             <div className="text-3xl font-black text-stone-900 mt-2">{stats.aiConversations}</div>
           </div>
-          
           <div className="p-5 rounded-2xl bg-white/60 dark:bg-stone-900/40 backdrop-blur-lg border border-stone-200/60 shadow-xs">
             <span className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('dashboard.stats.opportunitiesApplied')}</span>
             <div className="text-3xl font-black text-stone-900 mt-2">{stats.opportunitiesApplied}</div>
           </div>
-          
           <div className="p-5 rounded-2xl bg-white/60 dark:bg-stone-900/40 backdrop-blur-lg border border-stone-200/60 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('dashboard.stats.journeyProgress')}</span>

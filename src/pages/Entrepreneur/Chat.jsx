@@ -4,9 +4,8 @@ import remarkGfm from 'remark-gfm';
 import jsPDF from 'jspdf';
 import DashboardLayout from '../../components/DashboardLayout';
 import EntrepreneurSidebar from '../../components/EntrepreneurSidebar';
-import { useAuth } from '../../hooks/useAuth';
+import WarliIcon from '../../components/WarliIcon';
 import {
-  SparklesIcon,
   ArrowUpIcon,
   ArrowTopRightOnSquareIcon,
   ArrowDownTrayIcon,
@@ -94,8 +93,76 @@ async function postAI(endpoint, body) {
   throw lastError || new Error('Could not connect to the Saharohi AI backend');
 }
 
+async function streamAI(endpoint, body, onToken) {
+  const urls = SAHAROHI_API_BASE_URL
+    ? [`${SAHAROHI_API_BASE_URL}/api${endpoint}`]
+    : [`/api${endpoint}`, 'http://localhost:8000/api' + endpoint];
+  let response;
+  let lastError = null;
+
+  for (const url of urls) {
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      break;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!response) {
+    throw lastError || new Error('Could not connect to the Saharohi AI backend');
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.detail || data.message || `Request failed with status ${response.status}`);
+  }
+  if (!response.body) {
+    throw new Error('The Saharohi AI backend did not provide a response stream');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let sources = [];
+  let receivedDone = false;
+
+  const processEvent = (eventText) => {
+    const payload = eventText
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).trim())
+      .join('\n');
+    if (!payload) return;
+
+    const event = JSON.parse(payload);
+    if (event.error) throw new Error(event.error);
+    if (event.token) onToken(event.token);
+    if (event.done) {
+      receivedDone = true;
+      sources = event.sources || [];
+    }
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const events = buffer.split(/\r?\n\r?\n/);
+    buffer = events.pop() || '';
+    events.forEach(processEvent);
+    if (done) break;
+  }
+  if (buffer.trim()) processEvent(buffer);
+  if (!receivedDone) {
+    throw new Error('The Saharohi AI response ended before it was complete');
+  }
+  return sources;
+}
+
 const Chat = () => {
-  const { currentUser } = useAuth();
   const sidebar = useMemo(() => <EntrepreneurSidebar />, []);
 
   const [messages, setMessages] = useState([
@@ -104,6 +171,8 @@ const Chat = () => {
       role: 'bot', 
       type: 'text', 
       text: QUESTIONS[0].text,
+      displayText: '',
+      typewriter: true,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -115,18 +184,39 @@ const Chat = () => {
   const [activeContext, setActiveContext] = useState(null);
   const [selectedIdeaForConfirm, setSelectedIdeaForConfirm] = useState(null);
   const [copiedPlanIndex, setCopiedPlanIndex] = useState(null);
+  const [typingMessageId, setTypingMessageId] = useState('welcome');
 
   const scrollBottomRef = useRef(null);
   const textareaRef = useRef(null);
-  const isInitialMount = useRef(true);
+  const typingTextRef = useRef({ welcome: QUESTIONS[0].text });
 
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    scrollBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, loading]);
+    if (!typingMessageId) return undefined;
+    const characters = Array.from(typingTextRef.current[typingMessageId] || '');
+    if (characters.length === 0) return undefined;
+    let visibleLength = 0;
+    const intervalId = window.setInterval(() => {
+      visibleLength = Math.min(visibleLength + 2, characters.length);
+      const isComplete = visibleLength === characters.length;
+      setMessages((previous) => previous.map((item) => (
+        item.id === typingMessageId
+          ? {
+              ...item,
+              displayText: characters.slice(0, visibleLength).join(''),
+              typewriter: !isComplete,
+            }
+          : item
+      )));
+
+      if (isComplete) {
+        window.clearInterval(intervalId);
+        delete typingTextRef.current[typingMessageId];
+        setTypingMessageId(null);
+      }
+    }, 22);
+
+    return () => window.clearInterval(intervalId);
+  }, [typingMessageId]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -136,21 +226,36 @@ const Chat = () => {
   }, [input]);
 
   const addMessage = (msg) => {
+    const id = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     setMessages((prev) => [
       ...prev,
       {
-        id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        id,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        ...(msg.typewriter ? { displayText: '' } : {}),
         ...msg,
       },
     ]);
+    if (msg.typewriter) {
+      typingTextRef.current[id] = msg.text;
+      setTypingMessageId(id);
+    }
+    if (msg.role === 'user') {
+      requestAnimationFrame(() => scrollBottomRef.current?.scrollIntoView({ behavior: 'smooth' }));
+    }
+    return id;
   };
 
-  const addBotText = (text) => addMessage({ role: 'bot', type: 'text', text });
+  const addBotText = (text, typewriter = false) => addMessage({
+    role: 'bot',
+    type: 'text',
+    text,
+    ...(typewriter ? { typewriter: true } : {}),
+  });
 
   const handleSendMessage = async (customValue = null) => {
     const rawVal = customValue !== null ? customValue : input.trim();
-    if (!rawVal || loading || (step > 2 && step !== 5)) return;
+    if (!rawVal || loading || typingMessageId || (step > 2 && step !== 5)) return;
 
     if (customValue === null) {
       setInput('');
@@ -184,7 +289,7 @@ const Chat = () => {
 
     if (step < 2) {
       setStep(step + 1);
-      return addBotText(QUESTIONS[step + 1].text);
+      return addBotText(QUESTIONS[step + 1].text, true);
     }
 
     setStep(3);
@@ -227,21 +332,41 @@ const Chat = () => {
     addMessage({ role: 'user', type: 'text', text: `Selected Opportunity: ${idea.title}` });
     addBotText(`Formulating a comprehensive, verified 90-day business roadmap for **${idea.title}** in ${f.location}…`);
 
+    const planMessageId = addMessage({
+      role: 'bot',
+      type: 'plan',
+      plan: '',
+      sources: [],
+      idea,
+      filters: f,
+      streaming: true,
+    });
+
+    let streamedPlan = '';
     try {
-      const data = await postAI('/plan', { ...f, idea });
-      addMessage({
-        role: 'bot',
-        type: 'plan',
-        plan: data.plan,
-        sources: data.sources || [],
-        idea,
-        filters: f,
+      const sources = await streamAI('/plan/stream', { ...f, idea }, (token) => {
+        streamedPlan += token;
+        setMessages((prev) => prev.map((message) => (
+          message.id === planMessageId
+            ? { ...message, plan: message.plan + token }
+            : message
+        )));
       });
-      setActiveContext({ f, idea, plan: data.plan });
+      setMessages((prev) => prev.map((message) => (
+        message.id === planMessageId
+          ? { ...message, sources, streaming: false }
+          : message
+      )));
+      setActiveContext({ f, idea, plan: streamedPlan });
       setStep(5);
       addMessage({ role: 'bot', type: 'offer', idea });
     } catch (err) {
       console.error('Plan error:', err);
+      setMessages((prev) => prev.map((message) => (
+        message.id === planMessageId
+          ? { ...message, streaming: false }
+          : message
+      )));
       addBotText(`⚠️ Business plan error: ${err.message}`);
       setStep(3);
     } finally {
@@ -362,15 +487,15 @@ const Chat = () => {
               ) : (
                 /* Assistant Message Canvas */
                 <div className="w-full flex items-start gap-3.5">
-                  <div className="w-7 h-7 rounded-lg bg-[#f5e9dd] border border-[#8d4624]/20 flex items-center justify-center text-[#8d4624] shrink-0 mt-0.5">
-                    <SparklesIcon className="w-4 h-4" />
-                  </div>
+                  <WarliIcon className="w-7 h-7 text-[#8d4624] shrink-0 mt-0.5" />
 
                   <div className="flex-1 space-y-4 text-stone-900 text-sm leading-relaxed min-w-0">
                     {/* Direct Text Output */}
                     {m.type === 'text' && (
                       <div className="prose prose-stone text-sm max-w-none leading-relaxed">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {m.typewriter ? m.displayText : m.text}
+                        </ReactMarkdown>
                       </div>
                     )}
 
@@ -481,8 +606,10 @@ const Chat = () => {
                           </div>
                         </div>
 
-                        <div className="prose prose-stone text-sm max-w-none leading-relaxed space-y-3">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.plan}</ReactMarkdown>
+                        <div className="prose-chat text-sm max-w-none leading-relaxed">
+                          <div className="max-w-full overflow-x-auto">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.plan}</ReactMarkdown>
+                          </div>
                         </div>
 
                         <div className="flex items-center justify-between text-[11px] text-stone-400 pt-3 border-t border-[#8d4624]/10">
@@ -601,9 +728,7 @@ const Chat = () => {
           {/* Thinking / Streaming Indicator */}
           {loading && (
             <div className="flex items-center gap-3 text-xs text-stone-500">
-              <div className="w-7 h-7 rounded-lg bg-[#f5e9dd] border border-[#8d4624]/20 flex items-center justify-center text-[#8d4624] shrink-0">
-                <SparklesIcon className="w-4 h-4 animate-spin" />
-              </div>
+              <WarliIcon className="w-7 h-7 text-[#8d4624] shrink-0" animate />
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[#8d4624] animate-pulse" />
                 <span>{loadingStatus || 'Thinking…'}</span>
@@ -625,8 +750,9 @@ const Chat = () => {
                   <button
                     key={idx}
                     type="button"
+                    disabled={Boolean(typingMessageId)}
                     onClick={() => handleSendMessage(chip)}
-                    className="px-3 py-1 rounded-full text-xs bg-[#f5e9dd]/70 hover:bg-[#8d4624] hover:text-white text-[#8d4624] border border-[#8d4624]/25 transition-all font-medium whitespace-nowrap shadow-xs shrink-0"
+                    className="px-3 py-1 rounded-full text-xs bg-[#f5e9dd]/70 hover:bg-[#8d4624] hover:text-white text-[#8d4624] border border-[#8d4624]/25 transition-all font-medium whitespace-nowrap shadow-xs shrink-0 disabled:opacity-50 disabled:pointer-events-none"
                   >
                     {chip}
                   </button>
@@ -647,7 +773,7 @@ const Chat = () => {
                   ref={textareaRef}
                   rows={1}
                   value={input}
-                  disabled={loading}
+                  disabled={loading || Boolean(typingMessageId)}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -666,7 +792,7 @@ const Chat = () => {
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={loading || !input.trim()}
+                  disabled={loading || Boolean(typingMessageId) || !input.trim()}
                   className="w-9 h-9 rounded-full bg-[#8d4624] hover:bg-[#72371c] text-white shrink-0 disabled:opacity-30 transition-all shadow-xs mr-0.5"
                 >
                   <ArrowUpIcon className="w-4 h-4 stroke-[2.5]" />
@@ -686,9 +812,7 @@ const Chat = () => {
       <Dialog open={!!selectedIdeaForConfirm} onOpenChange={(open) => !open && setSelectedIdeaForConfirm(null)}>
         <DialogContent className="max-w-md rounded-2xl bg-[#f5e9dd]/95 backdrop-blur-md border border-[#8d4624]/20 p-6">
           <DialogHeader>
-            <div className="w-9 h-9 rounded-xl bg-[#8d4624] text-white flex items-center justify-center mb-2">
-              <SparklesIcon className="w-4 h-4" />
-            </div>
+            <WarliIcon className="w-8 h-8 text-[#8d4624] mb-2" />
             <DialogTitle className="text-base font-bold text-stone-900">
               Generate 90-Day Execution Roadmap?
             </DialogTitle>

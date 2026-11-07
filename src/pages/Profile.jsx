@@ -191,17 +191,99 @@ const Profile = () => {
     <DashboardLayout sidebar={getSidebar()}>
       <div className="space-y-8 pb-24">
         {loading ? (
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-20 w-20 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-4 w-24" />
+          <div className="space-y-8">
+            {/* Header / Avatar Banner Skeleton */}
+            <div className="p-6 sm:p-8 rounded-3xl border border-[#8d4624]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-5">
+                <Skeleton className="h-20 w-20 rounded-full bg-stone-200/70" />
+                <div className="space-y-2.5">
+                  <Skeleton className="h-7 w-48 sm:w-64 rounded-lg bg-stone-200/70" />
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-5 w-20 rounded-md bg-stone-200/60" />
+                    <Skeleton className="h-5 w-28 rounded-md bg-stone-200/60" />
+                    <Skeleton className="h-4 w-36 rounded-md bg-stone-200/50" />
+                  </div>
+                </div>
+              </div>
+              <Skeleton className="h-10 w-28 rounded-xl bg-stone-200/70" />
+            </div>
+
+            {/* Basic Information Section Skeleton */}
+            <div className="p-6 sm:p-7 rounded-2xl border border-[#8d4624]/20 space-y-5">
+              <div className="flex items-center gap-2.5 border-b border-[#8d4624]/15 pb-3">
+                <Skeleton className="w-8 h-8 rounded-lg bg-stone-200/70" />
+                <Skeleton className="h-5 w-36 rounded-md bg-stone-200/70" />
+              </div>
+              <div className="grid md:grid-cols-2 gap-5">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-3 w-24 rounded-md bg-stone-200/60" />
+                    <Skeleton className="h-10 w-full rounded-xl bg-stone-200/50" />
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
-              <Skeleton className="h-32 w-full rounded-2xl" />
-              <Skeleton className="h-32 w-full rounded-2xl" />
+
+            {/* Address Information Section Skeleton */}
+            <div className="p-6 sm:p-7 rounded-2xl border border-[#8d4624]/20 space-y-5">
+              <div className="flex items-center gap-2.5 border-b border-[#8d4624]/15 pb-3">
+                <Skeleton className="w-8 h-8 rounded-lg bg-stone-200/70" />
+                <Skeleton className="h-5 w-40 rounded-md bg-stone-200/70" />
+              </div>
+              <div className="grid md:grid-cols-2 gap-5">
+                <div className="md:col-span-2 space-y-2">
+                  <Skeleton className="h-3 w-28 rounded-md bg-stone-200/60" />
+                  <Skeleton className="h-10 w-full rounded-xl bg-stone-200/50" />
+                </div>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-3 w-20 rounded-md bg-stone-200/60" />
+                    <Skeleton className="h-10 w-full rounded-xl bg-stone-200/50" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Social Media Links Skeleton */}
+            <div className="p-6 sm:p-7 rounded-2xl border border-[#8d4624]/20 space-y-5">
+              <div className="flex items-center gap-2.5 border-b border-[#8d4624]/15 pb-3">
+                <Skeleton className="w-8 h-8 rounded-lg bg-stone-200/70" />
+                <Skeleton className="h-5 w-44 rounded-md bg-stone-200/70" />
+              </div>
+              <div className="grid md:grid-cols-2 gap-5">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-3 w-20 rounded-md bg-stone-200/60" />
+                    <Skeleton className="h-10 w-full rounded-xl bg-stone-200/50" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Role Specific Section Skeleton */}
+            <div className="p-6 sm:p-7 rounded-2xl border border-[#8d4624]/20 space-y-5">
+              <div className="flex items-center gap-2.5 border-b border-[#8d4624]/15 pb-3">
+                <Skeleton className="w-8 h-8 rounded-lg bg-stone-200/70" />
+                <Skeleton className="h-5 w-48 rounded-md bg-stone-200/70" />
+              </div>
+              <div className="grid md:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-28 rounded-md bg-stone-200/60" />
+                  <Skeleton className="h-10 w-full rounded-xl bg-stone-200/50" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-28 rounded-md bg-stone-200/60" />
+                  <Skeleton className="h-10 w-full rounded-xl bg-stone-200/50" />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Skeleton className="h-3 w-24 rounded-md bg-stone-200/60" />
+                  <Skeleton className="h-10 w-full rounded-xl bg-stone-200/50" />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Skeleton className="h-3 w-36 rounded-md bg-stone-200/60" />
+                  <Skeleton className="h-20 w-full rounded-xl bg-stone-200/50" />
+                </div>
+              </div>
             </div>
           </div>
         ) : (

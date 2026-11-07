@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from duckduckgo_search import DDGS
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from groq import Groq
 from pydantic import BaseModel, Field
 
@@ -88,6 +89,30 @@ JSON schema:
     return data.get("ideas", [])
 
 
+def build_plan_prompt(req: PlanReq, sources: list[dict]) -> tuple[str, str]:
+    system = "You are Saharohi AI, a practical business-plan writer for Indian small businesses. Output Markdown."
+    user = f"""Write a business plan for: {json.dumps(req.idea, ensure_ascii=False)}
+
+Constraints: Location = {req.location}; Total budget = ₹{req.budget}; Domain = {req.domain}.
+
+WEB CONTEXT (ground in this where possible):
+{to_context(sources)}
+
+Sections: 1. Overview 2. Target customers & local market in {req.location}
+3. Budget breakdown (table in ₹; MUST total <= ₹{req.budget}) 4. Setup steps (first 90 days)
+5. Operations 6. Marketing (low-cost, local) 7. Revenue & break-even (clearly labelled estimates)
+8. Risks & mitigation 9. Licenses/registrations typically needed (say "verify locally" when unsure).
+
+Rules: label all numbers as estimates, never invent statistics, do NOT mention government schemes
+or mentors yet. Be concise and specific."""
+    return system, user
+
+
+def plan_sources(req: PlanReq) -> list[dict]:
+    title = req.idea.get("title", req.domain)
+    return web_search(f"{title} business requirements cost {req.location} India {YEAR}")
+
+
 # ---------- routes ----------
 @app.post("/api/ideas")
 def ideas(f: Filters):
@@ -117,24 +142,37 @@ def ideas(f: Filters):
 
 @app.post("/api/plan")
 def plan(req: PlanReq):
-    title = req.idea.get("title", req.domain)
-    sources = web_search(f"{title} business requirements cost {req.location} India {YEAR}")
-    system = "You are Saharohi AI, a practical business-plan writer for Indian small businesses. Output Markdown."
-    user = f"""Write a business plan for: {json.dumps(req.idea, ensure_ascii=False)}
-
-Constraints: Location = {req.location}; Total budget = ₹{req.budget}; Domain = {req.domain}.
-
-WEB CONTEXT (ground in this where possible):
-{to_context(sources)}
-
-Sections: 1. Overview 2. Target customers & local market in {req.location}
-3. Budget breakdown (table in ₹; MUST total <= ₹{req.budget}) 4. Setup steps (first 90 days)
-5. Operations 6. Marketing (low-cost, local) 7. Revenue & break-even (clearly labelled estimates)
-8. Risks & mitigation 9. Licenses/registrations typically needed (say "verify locally" when unsure).
-
-Rules: label all numbers as estimates, never invent statistics, do NOT mention government schemes
-or mentors yet. Be concise and specific."""
+    sources = plan_sources(req)
+    system, user = build_plan_prompt(req, sources)
     return {"plan": llm(system, user, temperature=0.5), "sources": sources[:5]}
+
+
+@app.post("/api/plan/stream")
+def stream_plan(req: PlanReq):
+    def generate():
+        try:
+            sources = plan_sources(req)
+            system, user = build_plan_prompt(req, sources)
+            stream = client.chat.completions.create(
+                model=MODEL,
+                temperature=0.5,
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+                stream=True,
+            )
+            for chunk in stream:
+                token = chunk.choices[0].delta.content
+                if token:
+                    yield f"data: {json.dumps({'token': token}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'done': True, 'sources': sources[:5]}, ensure_ascii=False)}\n\n"
+        except Exception as e:
+            print("streaming plan generation failed:", e)
+            yield f"data: {json.dumps({'error': 'Could not generate the business plan. Please try again.'})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 from schemes import match_schemes, TAXONOMY
@@ -165,4 +203,3 @@ def api_schemes(req: PlanReq):
 @app.get("/api/health")
 def health():
     return {"ok": True}
-

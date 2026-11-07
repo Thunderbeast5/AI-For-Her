@@ -912,6 +912,7 @@ body.translated-ltr {
 }
 .prose-chat table {
   width: 100%;
+  min-width: max-content;
   border-collapse: separate;
   border-spacing: 0;
   margin: 1rem 0;
