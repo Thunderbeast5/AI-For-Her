@@ -64,27 +64,34 @@ function parseBudget(s) {
 
 const formatINR = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
 
+const SAHAROHI_API_BASE_URL = import.meta.env.VITE_SAHAROHI_AI_API_URL?.replace(/\/+$/, '');
+
 async function postAI(endpoint, body) {
-  const urls = [`/api${endpoint}`, `http://localhost:8000/api${endpoint}`];
+  const urls = SAHAROHI_API_BASE_URL
+    ? [`${SAHAROHI_API_BASE_URL}/api${endpoint}`]
+    : [`/api${endpoint}`, `http://localhost:8000/api${endpoint}`];
   let lastError = null;
 
   for (const url of urls) {
+    let response;
     try {
-      const res = await fetch(url, {
+      response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.detail || data.message || `Request failed with status ${res.status}`);
-      }
-      return data;
     } catch (err) {
       lastError = err;
+      continue;
     }
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.detail || data.message || `Request failed with status ${response.status}`);
+    }
+    return data;
   }
-  throw lastError || new Error('Could not connect to Saharohi AI server on port 8000');
+  throw lastError || new Error('Could not connect to the Saharohi AI backend');
 }
 
 const Chat = () => {
