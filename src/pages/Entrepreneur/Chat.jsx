@@ -1,603 +1,742 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
-import DashboardLayout from '../../components/DashboardLayout'
-import EntrepreneurSidebar from '../../components/EntrepreneurSidebar'
-import { PaperAirplaneIcon, MicrophoneIcon } from '@heroicons/react/24/outline'
-import { SparklesIcon } from '@heroicons/react/24/solid'
-import ReactMarkdown from 'react-markdown'
-import { useAuth } from '../../hooks/useAuth'
-import Message from '../../components/Message'
-import * as api from '../../services/api'
+import { useState, useRef, useEffect, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import jsPDF from 'jspdf';
+import DashboardLayout from '../../components/DashboardLayout';
+import EntrepreneurSidebar from '../../components/EntrepreneurSidebar';
+import { useAuth } from '../../hooks/useAuth';
+import {
+  SparklesIcon,
+  ArrowUpIcon,
+  ArrowTopRightOnSquareIcon,
+  ArrowDownTrayIcon,
+  DocumentDuplicateIcon,
+  BuildingLibraryIcon,
+  CheckIcon,
+  ShieldCheckIcon,
+  CheckCircleIcon,
+  LightBulbIcon,
+  GlobeAltIcon
+} from '@heroicons/react/24/outline';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
-// --- CHANGED ---
-// Define your API endpoints. This is the main fix.
-const API_BASE_URL = 'https://pratibhara-chatbot.onrender.com' 
-// // Use your deployed URL
-// const API_BASE_URL = "https://localhost:5001"; // or your actual port
+const QUESTIONS = [
+  { 
+    key: 'location', 
+    title: 'Location & Target Market',
+    text: "Namaste! I'm Saharohi AI, your venture coach 👋 Which Indian city or town do you want to start your business in?",
+    chips: ['Pune, Maharashtra', 'Mumbai, Maharashtra', 'Jaipur, Rajasthan', 'Bengaluru, Karnataka', 'Indore, MP', 'Lucknow, UP']
+  },
+  { 
+    key: 'budget', 
+    title: 'Investment Budget',
+    text: "What is your total investment budget? (e.g. ₹50,000, 2 Lakh, 5L, or 100000)",
+    chips: ['₹50,000', '₹1 Lakh', '₹2.5 Lakh', '₹5 Lakh', '₹10 Lakh']
+  },
+  { 
+    key: 'domain', 
+    title: 'Sector & Interest',
+    text: "Which industry or domain interests you? (e.g. Food, Agriculture, Handicrafts, Beauty, Tech, Retail)",
+    chips: ['Food & Catering', 'Handicrafts & Decor', 'Beauty & Wellness', 'Agriculture & Farming', 'Retail & E-commerce', 'Education & Daycare']
+  },
+];
 
-const Chat = () => {
-  const { currentUser } = useAuth()
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Hello! I'm your AI Startup Advisor for Women Entrepreneurs! I can help you discover personalized startup ideas based on your background, skills, and interests. I provide guidance on business planning, market analysis, funding options, and work-life balance considerations. What type of business opportunity would you like to explore today?",
-      sender: 'ai',
-      timestamp: new Date()
-    }
-  ])
-  const [inputText, setInputText] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [language] = useState('en')
-  const [isTTSEnabled, setIsTTSEnabled] = useState(true)
-  const [isRecording, setIsRecording] = useState(false)
-  const [sessionId] = useState(() => currentUser?.uid || `session_${Date.now()}`)
-  
-  // State for all possible backend responses
-  const [buttons, setButtons] = useState([])
-  const [ideas, setIdeas] = useState([])
-  const [resources, setResources] = useState([])
-  const [schemes, setSchemes] = useState([])
-  const [plan, setPlan] = useState(null) // --- CHANGED --- Added state for the business plan
-
-  // States from new chatbot
-  const [userContext, setUserContext] = useState({});
-  const [userLocation, setUserLocation] = useState(null);
-  const [showLocationHint, setShowLocationHint] = useState(false);
-  const [isQuestionMode, setIsQuestionMode] = useState(false);
-  const [uploadedPDF, setUploadedPDF] = useState(null);
-  const [showMap, setShowMap] = useState(false);
-  const [mapData, setMapData] = useState({ userLocation: null, businesses: [], businessType: '' });
-  const [infoPanelContent, setInfoPanelContent] = useState(null);
-  const [infoPanelType, setInfoPanelType] = useState('');
-  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
-
-  const messagesEndRef = useRef(null)
-  const recognitionRef = useRef(null)
-  const synthesisRef = useRef(window.speechSynthesis)
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  // --- CHANGED ---
-  // Created a central function to handle API responses, just like 'displayResponse' in your app.js
-  // This function will update the UI based on what the backend sends.
-  const handleApiResponse = (data) => {
-    if (data.reply) {
-      const aiMessage = {
-        id: Date.now(),
-        text: data.reply,
-        sender: 'ai',
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, aiMessage])
-      
-      if (isTTSEnabled) {
-        speakText(data.reply)
-      }
-    }
-
-    // Clear old components and set new ones
-    setButtons(data.buttons && data.buttons.length > 0 ? data.buttons : [])
-    setIdeas(data.ideas && data.ideas.length > 0 ? data.ideas : [])
-    setResources(data.resources && data.resources.length > 0 ? data.resources : [])
-    setSchemes(data.schemes && data.schemes.length > 0 ? data.schemes : [])
-    setPlan(data.plan ? data.plan : null) // Set the plan
-  }
-
-  // --- CHANGED ---
-  // This function now handles all API fetches to reduce code duplication
-
-  // This function is for user-typed text messages
-  const handleSendMessage = async (e) => {
-    if (e && e.preventDefault) {
-      e.preventDefault()
-    }
-
-    const textToSend = inputText
-    if (!textToSend.trim()) return
-
-    const userMessage = {
-      id: Date.now(),
-      text: textToSend,
-      sender: 'user',
-      timestamp: new Date()
-    }
-
-    setMessages(prev => [...prev, userMessage])
-    setInputText('')
-
-    setIsTyping(true);
-    try {
-      const data = await api.sendChatMessage(textToSend, sessionId, language);
-      handleApiResponse(data);
-    } catch (error) {
-      console.error('Error in API call:', error);
-      const errorMessage = {
-        id: Date.now(),
-        text: "I apologize, but I'm having trouble connecting to the chatbot service. Please try again.",
-        sender: 'ai',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsTyping(false);
-    }
-  }
-
-  // --- CHANGED ---
-  // This function is for backend-provided buttons
-  const handleButtonClick = async (buttonValue, buttonText) => {
-    // Add the user's "click" to the chat history
-    const userMessage = {
-      id: Date.now(),
-      text: buttonText || buttonValue, // Use the button's text for display
-      sender: 'user',
-      timestamp: new Date()
-    }
-    setMessages(prev => [...prev, userMessage])
-
-    setIsTyping(true);
-    try {
-      const data = await api.handleButtonClick(buttonValue, sessionId, language);
-      handleApiResponse(data);
-    } catch (error) {
-      console.error('Error in API call:', error);
-      const errorMessage = {
-        id: Date.now(),
-        text: "I apologize, but I'm having trouble connecting to the chatbot service. Please try again.",
-        sender: 'ai',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsTyping(false);
-    }
-  }
-
-  // --- CHANGED ---
-  // This is the new function for selecting a business idea
-  const handleSelectIdea = async (ideaId, ideaTitle) => {
-    // Add the user's "selection" to the chat history
-    const userMessage = {
-      id: Date.now(),
-      text: `I want to create a business plan for ${ideaTitle}`,
-      sender: 'user',
-      timestamp: new Date()
-    }
-    setMessages(prev => [...prev, userMessage])
-
-    setIsTyping(true);
-    try {
-      const data = await api.selectIdea(ideaId, sessionId, language);
-      handleApiResponse(data);
-    } catch (error) {
-      console.error('Error selecting idea:', error);
-      const errorMessage = {
-        id: Date.now(),
-        text: "I apologize, but I'm having trouble with that request. Please try again.",
-        sender: 'ai',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsTyping(false);
-    }
-  }
-
-  // (Speech recognition, formatTime, speakText, toggleVoiceRecording, toggleTTS functions remain the same)
-  // ... (keep all your existing functions for speech, time, etc.)
-
-  const formatTime = (date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    })
-  }
-
-  const speakText = (text) => {
-    if (!synthesisRef.current || !isTTSEnabled) return
-    synthesisRef.current.cancel()
-    const cleanText = text
-      .replace(/\*\*(.*?)\*\*/g, '$1')
-      .replace(/\*(.*?)\*/g, '$1')
-      .replace(/#{1,6}\s/g, '')
-    const utterance = new SpeechSynthesisUtterance(cleanText)
-    const languageCodes = {
-      'en': 'en-US', 'hi': 'hi-IN', 'mr': 'mr-IN', 'ta': 'ta-IN',
-      'te': 'te-IN', 'bn': 'bn-IN', 'gu': 'gu-IN', 'pa': 'pa-IN'
-    }
-    utterance.lang = languageCodes[language] || 'en-US'
-    utterance.rate = 0.9
-    utterance.pitch = 1
-    synthesisRef.current.speak(utterance)
-  }
-
-  const toggleVoiceRecording = () => {
-    if (!recognitionRef.current) {
-      alert('Speech recognition is not supported in your browser')
-      return
-    }
-    if (isRecording) {
-      recognitionRef.current.stop()
-    } else {
-      recognitionRef.current.start()
-      setIsRecording(true)
-    }
-  }
-
-  const toggleTTS = () => {
-    setIsTTSEnabled(prev => !prev)
-    if (isTTSEnabled && synthesisRef.current) {
-      synthesisRef.current.cancel()
-    }
-  }
-  
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-      recognitionRef.current = new SpeechRecognition()
-      recognitionRef.current.continuous = false
-      recognitionRef.current.interimResults = false
-      recognitionRef.current.onresult = (event) => setInputText(event.results[0][0].transcript)
-      recognitionRef.current.onend = () => setIsRecording(false)
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error)
-        setIsRecording(false)
-      }
-    }
-    const synthesis = synthesisRef.current
-    return () => {
-      if (recognitionRef.current) recognitionRef.current.stop()
-      if (synthesis) synthesis.cancel()
-    }
-  }, [])
-  
-  useEffect(() => {
-    if (recognitionRef.current) {
-      const languageCodes = {
-        'en': 'en-US', 'hi': 'hi-IN', 'mr': 'mr-IN', 'ta': 'ta-IN',
-        'te': 'te-IN', 'bn': 'bn-IN', 'gu': 'gu-IN', 'pa': 'pa-IN'
-      }
-      recognitionRef.current.lang = languageCodes[language] || 'en-US'
-    }
-  }, [language])
-
-
-  const suggestedQuestions = [
-    "What startup ideas are good for women with a marketing background?",
-    "I want to start a business from home with ₹50,000",
-    "Suggest part-time business ideas for working mothers",
-    "What are some creative online business ideas?"
-  ]
-
-  const sidebar = useMemo(() => <EntrepreneurSidebar />, [])
-
-  // --- CHANGED ---
-  // Helper component to render the business plan.
-  // You can style this to match your pink/white theme.
-  // --- REVISED ---
-  // This is a more robust PlanDisplay component.
-  // It can handle plan data that is sent as a stringified JSON.
-  const PlanDisplay = ({ plan }) => {
-    // Helper function to try and parse content if it's a string
-    const parseContent = (content) => {
-      if (typeof content !== 'string') return content;
-      try {
-        // Check if it's a JSON string
-        if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
-          return JSON.parse(content);
-        }
-      } catch {
-        // Not valid JSON, return as plain text
-      }
-      return content;
-    };
-
-    // Smartly render any piece of data (string, array, or object)
-    const renderSmart = (data) => {
-      const content = parseContent(data);
-
-      if (typeof content === 'string') {
-        return <p className="text-sm text-gray-600 mt-1">{content}</p>;
-      }
-
-      if (Array.isArray(content)) {
-        return (
-          <ul className="list-disc list-inside space-y-1 mt-1">
-            {content.map((item, i) => (
-              <li key={i} className="text-sm text-gray-600">
-                {renderSmart(item)}
-              </li>
-            ))}
-          </ul>
-        );
-      }
-
-      if (typeof content === 'object' && content !== null) {
-        return (
-          <ul className="list-disc list-inside space-y-1 mt-1 pl-2">
-            {Object.entries(content).map(([key, value]) => (
-              <li key={key} className="text-sm text-gray-600">
-                <span className="capitalize font-medium text-gray-800">{key.replace(/_/g, ' ')}:</span>
-                {/* Check if value is another object/array or just text */}
-                {(typeof value === 'object' && value !== null) || Array.isArray(value)
-                  ? renderSmart(value)
-                  : <span className="ml-1">{value}</span>
-                }
-              </li>
-            ))}
-          </ul>
-        );
-      }
-      
-      return null;
-    };
-    
-    // Parse the main plan object, just in case
-    const parsedPlan = parseContent(plan);
-
-    // Get the title from the nested overview object, or use a fallback
-    const title = parsedPlan.overview?.title || parsedPlan.overview?.name || 'Business Plan';
-
-    return (
-      <div className="bg-linear-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-5 shadow-md space-y-3">
-        <h3 className="font-bold text-gray-900 text-lg">📋 Your Business Plan: {title}</h3>
-        
-        {/* Render each section smartly */}
-        <div>
-          <span className="font-semibold text-gray-700">Overview:</span>
-          {renderSmart(parsedPlan.overview?.description || parsedPlan.overview)}
-        </div>
-        <div>
-          <span className="font-semibold text-gray-700">Investment Breakdown:</span>
-          {renderSmart(parsedPlan.investment_breakdown)}
-        </div>
-        <div>
-          <span className="font-semibold text-gray-700">Timeline:</span>
-          {renderSmart(parsedPlan.timeline)}
-        </div>
-        <div>
-          <span className="font-semibold text-gray-700">Revenue Estimate:</span>
-          {renderSmart(parsedPlan.revenue_estimate)}
-        </div>
-        <div>
-          <span className="font-semibold text-gray-700">Risks & Mitigation:</span>
-          {renderSmart(parsedPlan.risks)}
-        </div>
-         <div>
-          <span className="font-semibold text-gray-700">Next Steps:</span>
-          {renderSmart(parsedPlan.next_steps)}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <DashboardLayout sidebar={sidebar}>
-      <div className="flex flex-col h-[calc(89vh-0px)] -m-4">
-        <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden min-h-0 shrink-0">
-          {/* Chat Header (fixed at top of chat area) */}
-          <div className="bg-white border-b border-gray-100 px-4 py-3 shrink-0 sticky top-0 z-20">
-            {/* ... (Your existing header JSX) ... */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-linear-to-r from-primary to-accent rounded-full flex items-center justify-center">
-                  <SparklesIcon className="w-5 h-5 text-gray-700" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">AI Startup Advisor</h2>
-                  <p className="text-sm text-gray-500">Empowering women entrepreneurs</p>
-                </div>
-              </div>
-              <button
-                onClick={toggleTTS}
-                className={`p-2 rounded-lg transition-colors ${
-                  isTTSEnabled 
-                    ? 'bg-primary text-gray-800 hover:bg-opacity-80' 
-                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                }`}
-                title={isTTSEnabled ? 'Text-to-Speech ON' : 'Text-to-Speech OFF'}
-              >
-                {/* ... (Your existing TTS icon SVG) ... */}
-                 {isTTSEnabled ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                  </svg>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Scrollable chat content (messages, ideas, buttons, suggestions) */}
-          <div className="flex-1 overflow-y-auto bg-gray-50 min-h-0">
-            <div className="p-4 space-y-3">
-              {messages.map((message, index) => (
-                <Message
-                  key={index}
-                  message={message}
-                  onButtonClick={handleButtonClick}
-                  onIdeaSelect={handleSelectIdea}
-                  language={language}
-                />
-              ))}
-
-              {isTyping && (
-                // ... (Your existing isTyping JSX) ...
-                <div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-start"
-                >
-                  <div className="bg-white text-gray-900 shadow-sm border border-gray-100 px-4 py-3 rounded-2xl max-w-xs">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Interactive Buttons from Chatbot */}
-              {buttons.length > 0 && (
-                <div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-start"
-                >
-                  <div className="flex flex-wrap gap-2 max-w-2xl">
-                    {buttons.map((button, index) => (
-                      <button
-                        key={index}
-                        // --- CHANGED --- Call handleButtonClick with both value and text
-                        onClick={() => handleButtonClick(button.value, button.text)}
-                        className="px-4 py-2 bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 rounded-lg text-sm font-medium hover:shadow-md transition-all duration-200"
-                      >
-                        {button.text}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Business Ideas Display */}
-              {ideas.length > 0 && (
-                <div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-3"
-                >
-                  <div className="text-sm font-semibold text-gray-700 mb-2">💡 Business Ideas for You:</div>
-                  {ideas.map((idea, index) => (
-                    <div key={index} className="bg-linear-to-r from-pink-50 to-purple-50 border-2 border-pink-200 rounded-xl p-5 shadow-md hover:shadow-lg transition-all">
-                      {/* ... (Your existing idea rendering JSX) ... */}
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-bold text-gray-900 text-lg">{idea.title}</h3>
-                        {idea.home_based && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">🏠 Home-based</span>}
-                      </div>
-                      <p className="text-sm text-gray-700 mb-3 leading-relaxed">{idea.description}</p>
-                      {/* ... */}
-
-                      {/* --- CHANGED --- Call handleSelectIdea with the idea.id */}
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleSelectIdea(index, idea.title); }}
-                        className="mt-3 w-full bg-linear-to-r from-pink-200 to-pink-300 text-gray-900 py-2 rounded-lg font-semibold hover:shadow-md transition-all"
-                      >
-                        📋 Create Business Plan
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* --- CHANGED --- Added rendering for the business plan */}
-              {plan && <PlanDisplay plan={plan} />}
-
-              {/* Resources Display */}
-              {resources.length > 0 && (
-                // ... (Your existing resources mapping JSX) ...
-                <div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-3"
-                >
-                  <div className="text-sm font-semibold text-gray-700 mb-2">📍 Local Resources Near You:</div>
-                  {resources.map((resource, index) => (
-                    <div key={index} className="bg-white border-l-4 border-pink-300 rounded-lg p-4 shadow-sm">
-                      {/* ... */}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Government Schemes Display */}
-              {schemes.length > 0 && (
-                // ... (Your existing schemes mapping JSX) ...
-                <div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-3"
-                >
-                  <div className="text-sm font-semibold text-gray-700 mb-2">💰 Government Schemes for You:</div>
-                  {schemes.map((scheme, index) => (
-                    <div key={index} className="bg-linear-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-5 shadow-md">
-                      {/* ... */}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Suggested Questions (now inside scrollable area) */}
-              {messages.length === 1 && (
-                // ... (Your existing suggested questions JSX) ...
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-600 mb-3">Try asking:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {suggestedQuestions.map((question, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setInputText(question)}
-                        className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        {question}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-
-          {/* Input Area */}
-          <div className="bg-white border-t border-gray-100 px-4 py-3 shrink-0">
-            {/* --- CHANGED --- This form now only calls handleSendMessage */}
-            <form onSubmit={handleSendMessage} className="flex space-x-4">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Ask me anything about your business..."
-                  className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <button
-                  type="button"
-                  onClick={toggleVoiceRecording}
-                  // ... (Your existing microphone button JSX) ...
-                  className={`absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors ${
-                    isRecording 
-                      ? 'text-red-500 animate-pulse' 
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  <MicrophoneIcon className="w-5 h-5" />
-                </button>
-              </div>
-              <button
-                type="submit"
-                disabled={!inputText.trim()}
-                className="px-6 py-3 bg-linear-to-r from-primary to-accent text-gray-800 rounded-xl font-medium hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <PaperAirplaneIcon className="w-5 h-5" />
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </DashboardLayout>
-  )
+function parseBudget(s) {
+  if (typeof s === 'number') return s;
+  const m = String(s)
+    .toLowerCase()
+    .replace(/[₹,\s]/g, '')
+    .match(/^(\d+(?:\.\d+)?)(l|lakh|lakhs|k|cr|crore)?$/);
+  if (!m) return null;
+  const mult = { l: 1e5, lakh: 1e5, lakhs: 1e5, k: 1e3, cr: 1e7, crore: 1e7 }[m[2]] || 1;
+  return Math.round(parseFloat(m[1]) * mult);
 }
 
-export default Chat
+const formatINR = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
+
+async function postAI(endpoint, body) {
+  const urls = [`/api${endpoint}`, `http://localhost:8000/api${endpoint}`];
+  let lastError = null;
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || data.message || `Request failed with status ${res.status}`);
+      }
+      return data;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError || new Error('Could not connect to Saharohi AI server on port 8000');
+}
+
+const Chat = () => {
+  const { currentUser } = useAuth();
+  const sidebar = useMemo(() => <EntrepreneurSidebar />, []);
+
+  const [messages, setMessages] = useState([
+    { 
+      id: 'welcome',
+      role: 'bot', 
+      type: 'text', 
+      text: QUESTIONS[0].text,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+  ]);
+  const [filters, setFilters] = useState({});
+  const [step, setStep] = useState(0);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState('');
+  const [activeContext, setActiveContext] = useState(null);
+  const [selectedIdeaForConfirm, setSelectedIdeaForConfirm] = useState(null);
+  const [copiedPlanIndex, setCopiedPlanIndex] = useState(null);
+
+  const scrollBottomRef = useRef(null);
+  const textareaRef = useRef(null);
+  const isInitialMount = useRef(true);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    scrollBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length, loading]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
+    }
+  }, [input]);
+
+  const addMessage = (msg) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        ...msg,
+      },
+    ]);
+  };
+
+  const addBotText = (text) => addMessage({ role: 'bot', type: 'text', text });
+
+  const handleSendMessage = async (customValue = null) => {
+    const rawVal = customValue !== null ? customValue : input.trim();
+    if (!rawVal || loading || (step > 2 && step !== 5)) return;
+
+    if (customValue === null) {
+      setInput('');
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    }
+
+    addMessage({ role: 'user', type: 'text', text: rawVal });
+
+    if (step === 5) {
+      if (/\b(no|nope|nah|skip|later|not|don'?t)\b/i.test(rawVal)) {
+        return declineSchemes();
+      }
+      if (/\b(yes|yeah|yep|sure|ok|okay|haan|scheme|schemes|subsid\w*|loan|grant|govt|government|give|show)\b/i.test(rawVal)) {
+        return loadSchemes();
+      }
+      return addBotText("Please reply 'Yes' to view matching government schemes, or 'No' to conclude.");
+    }
+
+    const currentKey = QUESTIONS[step].key;
+    let parsedValue = rawVal;
+
+    if (currentKey === 'budget') {
+      parsedValue = parseBudget(rawVal);
+      if (!parsedValue || parsedValue <= 0) {
+        return addBotText("I couldn't parse that budget amount. Try entering something like ₹1,50,000 or 2 Lakh.");
+      }
+    }
+
+    const updatedFilters = { ...filters, [currentKey]: parsedValue };
+    setFilters(updatedFilters);
+
+    if (step < 2) {
+      setStep(step + 1);
+      return addBotText(QUESTIONS[step + 1].text);
+    }
+
+    setStep(3);
+    setLoading(true);
+    setLoadingStatus(`Searching grounded opportunities for ${updatedFilters.domain} in ${updatedFilters.location} within ${formatINR(updatedFilters.budget)}…`);
+    
+    try {
+      const data = await postAI('/ideas', updatedFilters);
+      addMessage({
+        role: 'bot',
+        type: 'ideas',
+        ideas: data.ideas || [],
+        sources: data.sources || [],
+        filters: updatedFilters,
+      });
+    } catch (err) {
+      console.error('Ideas error:', err);
+      addBotText(`⚠️ Idea generation error: ${err.message}. Please verify the Saharohi AI backend server is running.`);
+      setStep(2);
+    } finally {
+      setLoading(false);
+      setLoadingStatus('');
+    }
+  };
+
+  const initiateSelectIdea = (idea, f) => {
+    if (loading || step >= 4) return;
+    setSelectedIdeaForConfirm({ idea, filters: f });
+  };
+
+  const confirmGeneratePlan = async () => {
+    if (!selectedIdeaForConfirm) return;
+    const { idea, filters: f } = selectedIdeaForConfirm;
+    setSelectedIdeaForConfirm(null);
+
+    setStep(4);
+    setLoading(true);
+    setLoadingStatus(`Formulating 90-day execution roadmap and financial estimates for ${idea.title}…`);
+    
+    addMessage({ role: 'user', type: 'text', text: `Selected Opportunity: ${idea.title}` });
+    addBotText(`Formulating a comprehensive, verified 90-day business roadmap for **${idea.title}** in ${f.location}…`);
+
+    try {
+      const data = await postAI('/plan', { ...f, idea });
+      addMessage({
+        role: 'bot',
+        type: 'plan',
+        plan: data.plan,
+        sources: data.sources || [],
+        idea,
+        filters: f,
+      });
+      setActiveContext({ f, idea, plan: data.plan });
+      setStep(5);
+      addMessage({ role: 'bot', type: 'offer', idea });
+    } catch (err) {
+      console.error('Plan error:', err);
+      addBotText(`⚠️ Business plan error: ${err.message}`);
+      setStep(3);
+    } finally {
+      setLoading(false);
+      setLoadingStatus('');
+    }
+  };
+
+  const loadSchemes = async () => {
+    if (!activeContext || loading) return;
+    setStep(6);
+    setLoading(true);
+    setLoadingStatus("Matching state and central government schemes, subsidies, and credit-linked grants…");
+    addBotText("Connecting with verified central and state subsidy databases for your business…");
+
+    try {
+      const data = await postAI('/schemes', { ...activeContext.f, idea: activeContext.idea });
+      addMessage({
+        role: 'bot',
+        type: 'schemes',
+        schemes: data.schemes || [],
+        state: data.state,
+      });
+    } catch (err) {
+      console.error('Schemes error:', err);
+      addBotText("Could not fetch government schemes at this time. Click 'Retry Schemes' below to try again.");
+      setStep(5);
+    } finally {
+      setLoading(false);
+      setLoadingStatus('');
+    }
+  };
+
+  const declineSchemes = () => {
+    setStep(6);
+    addBotText("All set! Best of luck with your entrepreneurial journey 🚀");
+  };
+
+  const copyPlanToClipboard = (planText, index) => {
+    navigator.clipboard.writeText(planText);
+    setCopiedPlanIndex(index);
+    toast.success('Business plan copied to clipboard');
+    setTimeout(() => setCopiedPlanIndex(null), 2500);
+  };
+
+  const downloadPlanPDF = (planText, idea) => {
+    try {
+      const doc = new jsPDF();
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 20;
+      let y = 20;
+
+      doc.setFillColor(141, 70, 36);
+      doc.rect(0, 0, doc.internal.pageSize.width, 36, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont(undefined, 'bold');
+      doc.text('Saharohi AI • Business Execution Plan', doc.internal.pageSize.width / 2, 22, { align: 'center' });
+
+      y = 48;
+      doc.setTextColor(40, 40, 40);
+      doc.setFontSize(14);
+      doc.text(idea?.title || 'Business Plan', margin, y);
+      y += 8;
+
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(110, 100, 95);
+      doc.text(`Generated on ${new Date().toLocaleDateString('en-IN')} | Verified AI Estimates`, margin, y);
+      y += 12;
+
+      const cleanText = planText
+        .replace(/#{1,6}\s+/g, '')
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .replace(/`{1,3}/g, '');
+
+      const lines = doc.splitTextToSize(cleanText, doc.internal.pageSize.width - margin * 2);
+
+      doc.setFontSize(10);
+      doc.setTextColor(50, 45, 42);
+
+      for (let i = 0; i < lines.length; i++) {
+        if (y > pageHeight - margin) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(lines[i], margin, y);
+        y += 5.5;
+      }
+
+      const fileName = `${idea?.title?.replace(/\s+/g, '_') || 'Business_Plan'}_Saharohi.pdf`;
+      doc.save(fileName);
+      toast.success('Business plan downloaded as PDF');
+    } catch (e) {
+      console.error('PDF error:', e);
+      toast.error('Could not generate PDF');
+    }
+  };
+
+  return (
+    <DashboardLayout sidebar={sidebar} className="is-chat" contentClassName="is-chat">
+      <div className="relative flex flex-col h-full w-full min-h-0 overflow-hidden bg-background">
+        
+        {/* Scrollable Message History Area */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 pt-6 pb-6 scroll-smooth">
+          <div className="w-full space-y-7">
+            {messages.map((m, idx) => (
+            <div
+              key={m.id || idx}
+              className={`w-full flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              {m.role === 'user' ? (
+                /* User Query Box: Thin, narrow, rounded-2xl container */
+                <div className="max-w-[80%] sm:max-w-[55%] md:max-w-[42%] w-fit bg-[#f5e9dd] text-[#3d2417] px-3.5 py-2 rounded-2xl rounded-tr-sm text-xs sm:text-sm leading-relaxed border border-[#8d4624]/20 shadow-xs break-words">
+                  {m.text}
+                </div>
+              ) : (
+                /* Assistant Message Canvas */
+                <div className="w-full flex items-start gap-3.5">
+                  <div className="w-7 h-7 rounded-lg bg-[#f5e9dd] border border-[#8d4624]/20 flex items-center justify-center text-[#8d4624] shrink-0 mt-0.5">
+                    <SparklesIcon className="w-4 h-4" />
+                  </div>
+
+                  <div className="flex-1 space-y-4 text-stone-900 text-sm leading-relaxed min-w-0">
+                    {/* Direct Text Output */}
+                    {m.type === 'text' && (
+                      <div className="prose prose-stone text-sm max-w-none leading-relaxed">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
+                      </div>
+                    )}
+
+                    {/* Curated Opportunities Grid */}
+                    {m.type === 'ideas' && (
+                      <div className="space-y-4 pt-1">
+                        <div>
+                          <h3 className="text-sm font-bold text-stone-900 flex items-center gap-1.5">
+                            <LightBulbIcon className="w-4 h-4 text-[#8d4624]" />
+                            Curated Opportunities for {m.filters?.location}
+                          </h3>
+                          <p className="text-xs text-stone-500 mt-0.5">
+                            Tailored for {m.filters?.domain} with {formatINR(m.filters?.budget)} capital.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {m.ideas?.map((idea, i) => (
+                            <div
+                              key={i}
+                              className="p-4 rounded-2xl border border-[#8d4624]/20 hover:border-[#8d4624]/40 bg-transparent flex flex-col justify-between transition-all"
+                            >
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-bold text-[#8d4624] uppercase tracking-wider">
+                                    Option {i + 1}
+                                  </span>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[9px] font-bold px-2 py-0 border ${
+                                      idea.difficulty?.toLowerCase() === 'easy'
+                                        ? 'border-emerald-300 text-emerald-700 bg-emerald-50/50'
+                                        : 'border-[#8d4624]/30 text-[#8d4624] bg-[#f5e9dd]/50'
+                                    }`}
+                                  >
+                                    {idea.difficulty || 'Medium'}
+                                  </Badge>
+                                </div>
+                                <h4 className="text-sm font-bold text-stone-900 leading-snug">
+                                  {idea.title}
+                                </h4>
+                                <p className="text-xs text-stone-600 line-clamp-3 leading-relaxed">
+                                  {idea.summary}
+                                </p>
+
+                                <div className="pt-2 border-t border-[#8d4624]/10 space-y-1 text-xs">
+                                  <div className="flex justify-between text-stone-500">
+                                    <span>Setup:</span>
+                                    <strong className="text-stone-900">{formatINR(idea.startup_cost_inr)}</strong>
+                                  </div>
+                                  <div className="flex justify-between text-stone-500">
+                                    <span>Rev / Mo:</span>
+                                    <strong className="text-emerald-700">{formatINR(idea.monthly_revenue_potential_inr)}</strong>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <Button
+                                disabled={loading || step >= 4}
+                                onClick={() => initiateSelectIdea(idea, m.filters)}
+                                className="mt-4 w-full bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs font-semibold h-8 shadow-xs"
+                              >
+                                Select Opportunity
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <SourcesInline sources={m.sources} />
+                      </div>
+                    )}
+
+                    {/* Business Roadmap */}
+                    {m.type === 'plan' && (
+                      <div className="space-y-4 pt-2">
+                        <div className="flex items-center justify-between border-b border-[#8d4624]/15 pb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold uppercase tracking-wider text-[#8d4624]">
+                              90-Day Execution Roadmap
+                            </span>
+                            <span className="text-xs text-stone-400">•</span>
+                            <span className="text-xs font-semibold text-stone-700">{m.idea?.title}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyPlanToClipboard(m.plan, idx)}
+                              className="h-7 text-xs text-stone-600 hover:text-[#8d4624] rounded-lg px-2"
+                              title="Copy plan"
+                            >
+                              {copiedPlanIndex === idx ? (
+                                <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
+                              ) : (
+                                <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => downloadPlanPDF(m.plan, m.idea)}
+                              className="h-7 text-xs text-stone-600 hover:text-[#8d4624] rounded-lg px-2"
+                              title="Download PDF"
+                            >
+                              <ArrowDownTrayIcon className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="prose prose-stone text-sm max-w-none leading-relaxed space-y-3">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.plan}</ReactMarkdown>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-stone-400 pt-3 border-t border-[#8d4624]/10">
+                          <span className="flex items-center gap-1 text-emerald-700">
+                            <ShieldCheckIcon className="w-3.5 h-3.5" /> Validated market estimates
+                          </span>
+                          <span className="italic">Verify regional licenses locally</span>
+                        </div>
+
+                        <SourcesInline sources={m.sources} />
+                      </div>
+                    )}
+
+                    {/* Government Scheme Offer Prompt */}
+                    {m.type === 'offer' && (
+                      <div className="p-4 rounded-2xl border border-[#8d4624]/20 space-y-3 bg-transparent">
+                        <div className="flex items-center gap-2 text-stone-900 font-bold text-sm">
+                          <BuildingLibraryIcon className="w-4 h-4 text-[#8d4624]" />
+                          Explore matching government schemes & subsidies?
+                        </div>
+                        <p className="text-xs text-stone-600 leading-relaxed">
+                          Saharohi AI can match state and central subsidy frameworks (e.g. PMEGP, Mudra, Stand-Up India) tailored to this setup.
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <Button
+                            disabled={step !== 5 || loading}
+                            onClick={() => {
+                              addMessage({ role: 'user', type: 'text', text: 'Yes, match schemes' });
+                              loadSchemes();
+                            }}
+                            className="bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs h-8 px-4 font-semibold shadow-xs"
+                          >
+                            Yes, Match Schemes
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            disabled={step !== 5 || loading}
+                            onClick={() => {
+                              addMessage({ role: 'user', type: 'text', text: 'No, thank you' });
+                              declineSchemes();
+                            }}
+                            className="text-stone-500 hover:text-stone-800 text-xs h-8 px-3 rounded-xl"
+                          >
+                            Skip
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Schemes Direct Grid */}
+                    {m.type === 'schemes' && (
+                      <div className="space-y-4 pt-1">
+                        <h3 className="text-sm font-bold text-stone-900 flex items-center gap-1.5">
+                          <BuildingLibraryIcon className="w-4 h-4 text-[#8d4624]" />
+                          Eligible Government Subsidies & Schemes {m.state ? `(${m.state})` : ''}
+                        </h3>
+
+                        {m.schemes?.length === 0 ? (
+                          <p className="text-xs text-stone-500 italic">
+                            No direct state grants recorded for this scale. Check local DIC/MSME facilitation offices.
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {m.schemes?.map((s) => (
+                              <div
+                                key={s.id || s.name}
+                                className="p-4 rounded-2xl border border-[#8d4624]/20 hover:border-[#8d4624]/40 flex flex-col justify-between transition-all bg-transparent"
+                              >
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <Badge className="bg-[#f5e9dd] text-[#8d4624] text-[9px] font-bold px-2 py-0 border-none">
+                                      {s.benefit_type || 'Support'}
+                                    </Badge>
+                                    {s.verified && (
+                                      <span className="flex items-center gap-1 text-[9px] font-semibold text-emerald-700">
+                                        <CheckCircleIcon className="w-3.5 h-3.5" /> Verified
+                                      </span>
+                                    )}
+                                  </div>
+                                  <h4 className="text-sm font-bold text-stone-900 leading-snug">
+                                    {s.name}
+                                  </h4>
+                                  <p className="text-xs text-stone-600 line-clamp-2">
+                                    {s.benefit_summary}
+                                  </p>
+
+                                  {s.eligibility?.length > 0 && (
+                                    <div className="text-[11px] text-stone-500 pt-1">
+                                      <span className="font-semibold text-stone-700">Criteria: </span>
+                                      {s.eligibility.slice(0, 2).join(' • ')}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <a
+                                  href={s.apply_url || '#'}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-4 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#8d4624]/25 text-[#8d4624] hover:bg-[#8d4624]/10 transition-colors"
+                                >
+                                  <span>Official Portal</span>
+                                  <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+                                </a>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Thinking / Streaming Indicator */}
+          {loading && (
+            <div className="flex items-center gap-3 text-xs text-stone-500">
+              <div className="w-7 h-7 rounded-lg bg-[#f5e9dd] border border-[#8d4624]/20 flex items-center justify-center text-[#8d4624] shrink-0">
+                <SparklesIcon className="w-4 h-4 animate-spin" />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#8d4624] animate-pulse" />
+                <span>{loadingStatus || 'Thinking…'}</span>
+              </div>
+            </div>
+          )}
+
+            <div ref={scrollBottomRef} />
+          </div>
+        </div>
+
+        {/* Bottom Input Dock - Contained inside chat container, no overlapping */}
+        <div className="shrink-0 w-full px-3 sm:px-6 pb-4 pt-3 bg-white/95 backdrop-blur-md z-10">
+          <div className="w-full space-y-2">
+            {/* Quick Suggestion Chips */}
+            {step <= 2 && QUESTIONS[step]?.chips && !loading && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {QUESTIONS[step].chips.map((chip, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSendMessage(chip)}
+                    className="px-3 py-1 rounded-full text-xs bg-[#f5e9dd]/70 hover:bg-[#8d4624] hover:text-white text-[#8d4624] border border-[#8d4624]/25 transition-all font-medium whitespace-nowrap shadow-xs shrink-0"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Input Capsule pinned cleanly at the bottom */}
+            {(step <= 2 || step === 5) && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendMessage();
+                }}
+                className="relative flex items-center rounded-3xl bg-white border border-[#8d4624]/30 shadow-xs p-1.5 transition-all focus-within:border-[#8d4624] focus-within:ring-1 focus-within:ring-[#8d4624]/20 w-full"
+              >
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  value={input}
+                  disabled={loading}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder={
+                    step === 5
+                      ? "Type 'Yes' to view schemes, or 'No' to skip…"
+                      : `Message Saharohi AI (${QUESTIONS[step]?.title || 'Answer'})…`
+                  }
+                  className="w-full resize-none bg-transparent px-4 py-2.5 text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none max-h-36 leading-relaxed"
+                />
+
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={loading || !input.trim()}
+                  className="w-9 h-9 rounded-full bg-[#8d4624] hover:bg-[#72371c] text-white shrink-0 disabled:opacity-30 transition-all shadow-xs mr-0.5"
+                >
+                  <ArrowUpIcon className="w-4 h-4 stroke-[2.5]" />
+                </Button>
+              </form>
+            )}
+
+            <p className="text-[10px] text-center text-stone-400">
+              Saharohi AI generates verified entrepreneurial roadmaps. Cross-check official subsidy mandates.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Idea Confirmation Dialog */}
+      <Dialog open={!!selectedIdeaForConfirm} onOpenChange={(open) => !open && setSelectedIdeaForConfirm(null)}>
+        <DialogContent className="max-w-md rounded-2xl bg-[#f5e9dd]/95 backdrop-blur-md border border-[#8d4624]/20 p-6">
+          <DialogHeader>
+            <div className="w-9 h-9 rounded-xl bg-[#8d4624] text-white flex items-center justify-center mb-2">
+              <SparklesIcon className="w-4 h-4" />
+            </div>
+            <DialogTitle className="text-base font-bold text-stone-900">
+              Generate 90-Day Execution Roadmap?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-stone-600 mt-1 leading-relaxed">
+              Formulating execution strategy for <strong>{selectedIdeaForConfirm?.idea?.title}</strong> with itemized setup cost, monthly recurring targets, and supplier licensing paths.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="mt-5 flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedIdeaForConfirm(null)}
+              className="rounded-xl text-xs border-[#8d4624]/30 text-[#8d4624] hover:bg-[#8d4624]/10"
+            >
+              Back
+            </Button>
+            <Button
+              size="sm"
+              onClick={confirmGeneratePlan}
+              className="bg-[#8d4624] hover:bg-[#72371c] text-white rounded-xl text-xs font-semibold"
+            >
+              Generate Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </DashboardLayout>
+  );
+};
+
+function SourcesInline({ sources }) {
+  if (!sources || sources.length === 0) return null;
+
+  return (
+    <div className="pt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-stone-500">
+      <span className="flex items-center gap-1 text-stone-400 font-medium">
+        <GlobeAltIcon className="w-3.5 h-3.5 text-stone-400" />
+        Sources:
+      </span>
+      {sources.map((src, i) => (
+        <a
+          key={i}
+          href={src.url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-[#8d4624]/20 text-stone-700 hover:text-[#8d4624] hover:bg-[#8d4624]/10 transition-colors"
+          title={src.snippet || src.title}
+        >
+          <span className="truncate max-w-[140px]">{src.title}</span>
+          <ArrowTopRightOnSquareIcon className="w-2.5 h-2.5 text-stone-400 shrink-0" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
+export default Chat;

@@ -1,8 +1,9 @@
 import Navbar from './Navbar'
 import { SidebarInset, SidebarProvider } from './ui/sidebar'
 import { TooltipProvider } from './ui/tooltip'
+import { cn } from '../lib/utils'
 
-const DashboardLayout = ({ children, sidebar }) => {
+const DashboardLayout = ({ children, sidebar, className, contentClassName }) => {
   return (
     <TooltipProvider>
       <SidebarProvider
@@ -10,9 +11,9 @@ const DashboardLayout = ({ children, sidebar }) => {
         style={{ '--sidebar-width': '17rem', '--sidebar-width-icon': '5rem' }}
       >
         {sidebar}
-        <SidebarInset className="dashboard-main">
+        <SidebarInset className={cn("dashboard-main", className)}>
           <Navbar />
-          <div className="dashboard-content">
+          <div className={cn("dashboard-content", contentClassName)}>
             {children}
           </div>
         </SidebarInset>

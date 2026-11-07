@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import darkLogo from '../../assets/logos/brown.png';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const { currentUser, loading } = useAuth();
 
   useEffect(() => {
     const updateScrollState = () => setIsScrolled(window.scrollY > 20);
@@ -32,6 +34,15 @@ export default function Navbar() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  const userName = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User';
+
+  // Single initial letter
+  const userInitial = (
+    currentUser?.displayName?.trim()?.[0] || 
+    userName?.[0] || 
+    'U'
+  ).toUpperCase();
 
   const navLinks = [
     { name: 'Home', href: '/' },
@@ -78,21 +89,35 @@ export default function Navbar() {
 
         {/* Right: Action Buttons */}
         <div className="hidden md:flex items-center gap-3">
-          {/* Log In Button - Thin brown border */}
-          <Link
-            to="/login"
-            className="px-5 py-2 text-sm font-medium text-neutral-800 bg-white border border-[#8D4624]/60 rounded-full shadow-sm hover:bg-[#8D4624]/5 hover:text-[#8D4624] transition-all duration-200"
-          >
-            Log In
-          </Link>
-
-          {/* Sign Up Button - Subtle thin white border */}
-          <Link
-            to="/signup"
-            className="px-5 py-2 text-sm font-medium text-white bg-[#8D4624] border border-white/60 rounded-full shadow-sm hover:bg-[#73371b] hover:border-white/80 transition-all duration-200"
-          >
-            Sign Up
-          </Link>
+          {!loading && (currentUser ? (
+            <Link
+              to="/profile"
+              className="group inline-flex items-center gap-2.5 pl-1.5 pr-4 py-1.5 text-sm font-medium text-neutral-800 bg-white border border-[#8D4624]/60 rounded-full shadow-sm hover:bg-[#8D4624] hover:text-white hover:border-white transition-all duration-200"
+            >
+              {/* Single initial circle */}
+              <span className="w-7 h-7 rounded-full bg-[#f5e9dd] text-[#8D4624] font-bold text-xs flex items-center justify-center border border-[#8D4624]/20 group-hover:bg-white group-hover:text-[#8D4624] group-hover:border-white transition-colors duration-200 shrink-0">
+                {userInitial}
+              </span>
+              <span className="max-w-[140px] truncate text-neutral-800 group-hover:text-white transition-colors duration-200">
+                {userName}
+              </span>
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="px-5 py-2 text-sm font-medium text-neutral-800 bg-white border border-[#8D4624]/60 rounded-full shadow-sm hover:bg-[#8D4624]/5 hover:text-[#8D4624] transition-all duration-200"
+              >
+                Log In
+              </Link>
+              <Link
+                to="/signup"
+                className="px-5 py-2 text-sm font-medium text-white bg-[#8D4624] border border-white/60 rounded-full shadow-sm hover:bg-[#73371b] hover:border-white/80 transition-all duration-200"
+              >
+                Sign Up
+              </Link>
+            </>
+          ))}
         </div>
 
         {/* Mobile Hamburger Toggle */}
@@ -134,22 +159,41 @@ export default function Navbar() {
               </Link>
             ))}
 
-            <div className="pt-4 border-t border-neutral-200/60 flex flex-col gap-3">
-              <Link
-                to="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-2.5 text-sm font-medium text-neutral-800 bg-white border border-[#8D4624]/60 rounded-full shadow-sm hover:bg-[#8D4624]/5 hover:text-[#8D4624] transition-all duration-200"
-              >
-                Log In
-              </Link>
-              <Link
-                to="/signup"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-2.5 text-sm font-medium text-white bg-[#8D4624] border border-white/60 rounded-full shadow-sm hover:bg-[#73371b] hover:border-white/80 transition-all duration-200"
-              >
-                Sign Up
-              </Link>
-            </div>
+            {!loading && (
+              <div className="pt-4 border-t border-neutral-200/60 flex flex-col gap-3">
+                {currentUser ? (
+                  <Link
+                    to="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="group w-full inline-flex justify-center items-center gap-2.5 py-2.5 text-sm font-medium text-neutral-800 bg-white border border-[#8D4624]/60 rounded-full shadow-sm hover:bg-[#8D4624] hover:text-white hover:border-white transition-all duration-200"
+                  >
+                    <span className="w-7 h-7 rounded-full bg-[#f5e9dd] text-[#8D4624] font-bold text-xs flex items-center justify-center border border-[#8D4624]/20 group-hover:bg-white group-hover:text-[#8D4624] group-hover:border-white transition-colors duration-200 shrink-0">
+                      {userInitial}
+                    </span>
+                    <span className="truncate text-neutral-800 group-hover:text-white transition-colors duration-200">
+                      {userName}
+                    </span>
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-center py-2.5 text-sm font-medium text-neutral-800 bg-white border border-[#8D4624]/60 rounded-full shadow-sm hover:bg-[#8D4624]/5 hover:text-[#8D4624] transition-all duration-200"
+                    >
+                      Log In
+                    </Link>
+                    <Link
+                      to="/signup"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-center py-2.5 text-sm font-medium text-white bg-[#8D4624] border border-white/60 rounded-full shadow-sm hover:bg-[#73371b] hover:border-white/80 transition-all duration-200"
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

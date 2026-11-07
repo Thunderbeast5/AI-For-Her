@@ -439,7 +439,7 @@ body.translated-ltr {
   top: 0 !important;
   align-self: stretch;
   flex-shrink: 0;
-  z-index: 15;
+  z-index: 25 !important;
   background: rgb(255 255 255 / 94%);
   backdrop-filter: blur(14px);
 }
@@ -811,6 +811,31 @@ body.translated-ltr {
   background: var(--dashboard-cream);
 }
 
+.dashboard-main.is-chat {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+}
+
+.dashboard-content.is-chat {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: calc(100vh - 4rem) !important;
+  max-height: calc(100vh - 4rem) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+@media (max-width: 767px) {
+  .dashboard-content.is-chat {
+    height: calc(100vh - 3.75rem) !important;
+    max-height: calc(100vh - 3.75rem) !important;
+    padding: 0 !important;
+  }
+}
+
 .dashboard-content [class*='text-pink-'] {
   color: var(--dashboard-brand) !important;
 }
@@ -853,6 +878,77 @@ body.translated-ltr {
 
 .dashboard-content [class*='to-purple-'] {
   --tw-gradient-to: #b8754e var(--tw-gradient-to-position) !important;
+}
+
+/* AI Chat Markdown Typography & Tables */
+.prose-chat {
+  color: #292524;
+}
+.prose-chat h1, .prose-chat h2, .prose-chat h3, .prose-chat h4 {
+  color: #1c1917;
+  font-weight: 700;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.prose-chat h1 { font-size: 1.25rem; }
+.prose-chat h2 { font-size: 1.1rem; border-bottom: 1px solid #ebdccf; padding-bottom: 0.25rem; }
+.prose-chat h3 { font-size: 0.95rem; }
+.prose-chat p {
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+}
+.prose-chat ul, .prose-chat ol {
+  margin-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+.prose-chat ul {
+  list-style-type: disc;
+}
+.prose-chat ol {
+  list-style-type: decimal;
+}
+.prose-chat li {
+  margin-bottom: 0.25rem;
+}
+.prose-chat table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1rem 0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid #e8dcc4;
+  font-size: 0.8rem;
+}
+.prose-chat th {
+  background-color: #f5e9dd;
+  color: #72371c;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #e8dcc4;
+}
+.prose-chat td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #f2ebe1;
+  color: #44403c;
+}
+.prose-chat tr:last-child td {
+  border-bottom: none;
+}
+.prose-chat tr:nth-child(even) {
+  background-color: #faf6f0;
+}
+.prose-chat strong {
+  color: #1c1917;
+  font-weight: 600;
+}
+.prose-chat blockquote {
+  border-left: 3px solid #8d4624;
+  padding-left: 0.75rem;
+  margin: 0.75rem 0;
+  color: #78716c;
+  font-style: italic;
 }
 
 @media (max-width: 767px) {
